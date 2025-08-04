@@ -1,0 +1,102 @@
+# Laravel Framework
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
+.env
+.env.backup
+.env.production
+.env.new
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+
+# IDE and Editor files
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+.phpactor.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+/storage/logs/*.log
+/storage/pail
+
+# Cache and temporary files
+/.phpunit.cache
+/bootstrap/cache/*.php
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/*
+/storage/app/private/*
+
+# Build files
+/public/build
+/public/mix-manifest.json
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# SSL and Security files
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+storage/keys/
+*.pem
+
+# Yo Payments private key (security)
+storage/keys/yo_payments_private_key.pem
+storage/keys/*.pem
+
+# Composer
+composer.phar
+/auth.json
+
+# Testing
+/coverage
+.phpunit.cache
+
+# Laravel Sail
+docker-compose.override.yml
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Application specific
+# Exclude any files that might contain sensitive API keys or credentials
+config/services.php
+.env.local
+.env.staging
+.env.testing
+
+# Keep example files
+!.env.example
