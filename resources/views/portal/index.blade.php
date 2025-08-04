@@ -124,19 +124,15 @@
                                             </small>
                                         @endif
                                         
-                                        <!-- Stock status indicator -->
+                                        <!-- Stock status indicator (only show out of stock) -->
                                         <div class="stock-status mt-2">
                                             @if($package->is_out_of_stock)
                                                 <small class="text-danger">
                                                     <i class="fas fa-times-circle me-1"></i>Out of Stock
                                                 </small>
-                                            @elseif($package->is_low_stock)
-                                                <small class="text-warning">
-                                                    <i class="fas fa-exclamation-triangle me-1"></i>Low Stock ({{ $package->available_vouchers }} remaining)
-                                                </small>
                                             @else
                                                 <small class="text-success">
-                                                    <i class="fas fa-check-circle me-1"></i>In Stock ({{ $package->available_vouchers }} available)
+                                                    <i class="fas fa-check-circle me-1"></i>Available
                                                 </small>
                                             @endif
                                         </div>
@@ -296,15 +292,10 @@
                 if (stockStatus) {
                     stockStatus.innerHTML = '<small class="text-danger"><i class="fas fa-times-circle me-1"></i>Out of Stock</small>';
                 }
-            } else if (availability.is_low_stock) {
-                // Show low stock warning
-                if (stockStatus) {
-                    stockStatus.innerHTML = `<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Low Stock (${availability.available} remaining)</small>`;
-                }
             } else {
-                // Show in stock
+                // Show available
                 if (stockStatus) {
-                    stockStatus.innerHTML = `<small class="text-success"><i class="fas fa-check-circle me-1"></i>In Stock (${availability.available} available)</small>`;
+                    stockStatus.innerHTML = `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Available</small>`;
                 }
             }
         }

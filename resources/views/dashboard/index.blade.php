@@ -17,52 +17,7 @@
         </div>
     </div>
 
-    <!-- Notifications Section -->
-    @if($unread_notifications->count() > 0)
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-left-warning shadow">
-                <div class="card-header bg-warning text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>Recent Notifications
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        @foreach($unread_notifications->take(3) as $notification)
-                        <div class="col-md-4 mb-3">
-                            <div class="notification-item p-3 border rounded" data-notification-id="{{ $notification->id }}">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1">{{ $notification->title }}</h6>
-                                        <p class="text-muted mb-2 small">{{ $notification->message }}</p>
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>
-                                            {{ $notification->created_at->diffForHumans() }}
-                                        </small>
-                                    </div>
-                                    <button class="btn btn-sm btn-outline-secondary ms-2" 
-                                            onclick="markAsRead({{ $notification->id }})"
-                                            title="Mark as read">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        @endforeach
-                    </div>
-                    @if($unread_notifications->count() > 3)
-                    <div class="text-center mt-3">
-                        <small class="text-muted">
-                            {{ $unread_notifications->count() - 3 }} more notifications...
-                        </small>
-                    </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-    @endif
+
 
     <!-- Balance Card -->
     <div class="row mb-4">

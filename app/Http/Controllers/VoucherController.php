@@ -219,4 +219,133 @@ class VoucherController extends Controller
             return back()->with('error', 'Failed to delete voucher.');
         }
     }
+
+    /**
+     * Delete all vouchers for a specific package
+     */
+    public function deleteAllForPackage(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'package_id' => 'required|exists:packages,id',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->with('error', 'Invalid package selected.');
+        }
+
+        // Verify the package belongs to the tenant
+        $package = Package::where('id', $request->package_id)
+            ->whereHas('hotspot', function ($query) use ($tenant) {
+                $query->where('tenant_id', $tenant->id);
+            })
+            ->first();
+
+        if (!$package) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        try {
+            $deletedCount = $tenant->vouchers()
+                ->where('package_id', $request->package_id)
+                ->where('status', 'unused')
+                ->delete();
+
+            return back()->with('success', "Successfully deleted {$deletedCount} vouchers for package '{$package->name}'.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete vouchers: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Upload vouchers from CSV file
+     */
+    public function uploadCsv(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'package_id' => 'required|exists:packages,id',
+            'csv_file' => 'required|file|mimes:csv,txt|max:2048',
+            'expires_at' => 'nullable|date|after:today',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator);
+        }
+
+        try {
+            $file = $request->file('csv_file');
+            $packageId = $request->package_id;
+            $expiresAt = $request->expires_at;
+
+            $imported = 0;
+            $skipped = 0;
+            $errors = [];
+
+            // Read CSV file
+            $handle = fopen($file->getPathname(), 'r');
+            
+            // Skip header row if it exists
+            $firstRow = fgetcsv($handle);
+            $hasHeader = false;
+            
+            // Check if first row contains headers
+            if ($firstRow && (strtolower($firstRow[0]) === 'voucher' || strtolower($firstRow[0]) === 'code' || strtolower($firstRow[0]) === 'voucher_code')) {
+                $hasHeader = true;
+            } else {
+                // Reset file pointer if no header
+                rewind($handle);
+            }
+
+            while (($row = fgetcsv($handle)) !== false) {
+                if (empty($row[0])) continue;
+
+                $code = trim($row[0]);
+
+                // Check if voucher already exists
+                $existingVoucher = Voucher::where('code', $code)->first();
+                if ($existingVoucher) {
+                    $skipped++;
+                    continue;
+                }
+
+                try {
+                    Voucher::create([
+                        'tenant_id' => $tenant->id,
+                        'code' => $code,
+                        'package_id' => $packageId,
+                        'expires_at' => $expiresAt,
+                        'status' => 'unused',
+                    ]);
+                    $imported++;
+                } catch (\Exception $e) {
+                    $errors[] = "Failed to create voucher '{$code}': " . $e->getMessage();
+                }
+            }
+
+            fclose($handle);
+
+            $message = "Successfully imported {$imported} vouchers from CSV.";
+            if ($skipped > 0) {
+                $message .= " Skipped {$skipped} existing vouchers.";
+            }
+            if (!empty($errors)) {
+                $message .= " Errors: " . implode(', ', $errors);
+            }
+
+            return back()->with('success', $message);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to upload CSV: ' . $e->getMessage());
+        }
+    }
 }

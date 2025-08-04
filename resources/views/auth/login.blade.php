@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - WiFi SaaS</title>
+    <title>Login</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo.png') }}">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -72,10 +77,10 @@
         <div class="login-card">
             <div class="login-header">
                 <div class="wifi-icon">
-                    <i class="fas fa-wifi"></i>
+                    <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 80px; width: auto; max-width: 200px; margin-bottom: 20px;">
                 </div>
                 <h2>Welcome Back</h2>
-                <p class="mb-0">Sign in to your WiFi SaaS account</p>
+                <p class="mb-0">Sign in to your account</p>
             </div>
             
             <div class="login-body">

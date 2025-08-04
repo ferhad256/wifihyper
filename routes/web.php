@@ -7,6 +7,7 @@ use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\HotspotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
+use App\Http\Controllers\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -39,27 +40,33 @@ Route::middleware('auth.tenant')->group(function () {
     Route::get('/hotspots', [HotspotController::class, 'index'])->name('dashboard.hotspots');
     Route::get('/settings', [DashboardController::class, 'settings'])->name('dashboard.settings');
     Route::get('/profile', [DashboardController::class, 'profile'])->name('dashboard.profile');
+    Route::get('/export-transactions', [DashboardController::class, 'exportTransactions'])->name('dashboard.export-transactions');
     
     // Notification routes
     Route::post('/notifications/mark-read', [DashboardController::class, 'markNotificationAsRead'])->name('notifications.mark-read');
     Route::post('/notifications/mark-all-read', [DashboardController::class, 'markAllNotificationsAsRead'])->name('notifications.mark-all-read');
     Route::get('/notifications/count', [DashboardController::class, 'getUnreadNotificationsCount'])->name('notifications.count');
+    Route::get('/notifications', [DashboardController::class, 'getNotifications'])->name('notifications.get');
     
     // Voucher management routes
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::post('/vouchers/upload', [VoucherController::class, 'upload'])->name('vouchers.upload');
     Route::post('/vouchers/upload-multiple', [VoucherController::class, 'uploadMultiple'])->name('vouchers.upload-multiple');
+    Route::post('/vouchers/upload-csv', [VoucherController::class, 'uploadCsv'])->name('vouchers.upload-csv');
     Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
     Route::delete('/vouchers/{voucher}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
+    Route::delete('/vouchers/delete-all-package', [VoucherController::class, 'deleteAllForPackage'])->name('vouchers.delete-all-package');
     Route::get('/vouchers/export', [VoucherController::class, 'export'])->name('vouchers.export');
     
     // Transaction export route
     Route::get('/transactions/export', [DashboardController::class, 'exportTransactions'])->name('transactions.export');
     
     // Settings routes
-    Route::post('/settings/payment', function() { return back()->with('success', 'Payment settings updated!'); })->name('settings.payment');
-    Route::post('/settings/sms', function() { return back()->with('success', 'SMS settings updated!'); })->name('settings.sms');
-    Route::post('/settings/system', function() { return back()->with('success', 'System settings updated!'); })->name('settings.system');
+    Route::post('/settings/appearance', [SettingsController::class, 'updateAppearance'])->name('settings.appearance');
+    Route::post('/settings/notifications', [SettingsController::class, 'updateNotifications'])->name('settings.notifications');
+    Route::post('/settings/system', [SettingsController::class, 'updateSystem'])->name('settings.system');
+    Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
+    Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
     
     // Profile routes
     Route::put('/profile/update', function() { return back()->with('success', 'Profile updated successfully!'); })->name('profile.update');
@@ -81,7 +88,7 @@ Route::middleware('auth.tenant')->group(function () {
 });
 
 // Captive portal routes (for WiFi users)
-Route::prefix('portal')->group(function () {
+Route::prefix('portal')->middleware('exclude.notifications')->group(function () {
     Route::get('/{hotspot}', [PortalController::class, 'index'])->name('portal.index');
     Route::get('/{hotspot}/payment', [PortalController::class, 'payment'])->name('portal.payment');
     Route::get('/{hotspot}/inactive', [PortalController::class, 'inactive'])->name('portal.inactive');

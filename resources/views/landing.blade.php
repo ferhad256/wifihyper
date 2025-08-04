@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WiFi SaaS - Multi-Tenant WiFi Management Platform</title>
+    <title>Multi-Tenant WiFi Management Platform</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo.png') }}">
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -63,9 +68,8 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="fas fa-wifi text-primary me-2"></i>
-                WiFi SaaS
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
+                <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 50px; width: auto; max-width: 180px;">
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -101,7 +105,7 @@
                         Manage Your WiFi Hotspots with Ease
                     </h1>
                     <p class="lead mb-4">
-                        A comprehensive SaaS platform for managing multiple WiFi hotspots, 
+                        A comprehensive platform for managing multiple WiFi hotspots, 
                         voucher systems, and payment processing. Perfect for cafes, hotels, 
                         and businesses.
                     </p>
@@ -273,7 +277,7 @@
     <section class="cta-section">
         <div class="container text-center">
             <h2 class="display-5 fw-bold mb-4">Ready to Start Your WiFi Business?</h2>
-            <p class="lead mb-4">Join thousands of businesses already using WiFi SaaS to manage their hotspots</p>
+                                <p class="lead mb-4">Join thousands of businesses already using our platform to manage their hotspots</p>
             <a href="{{ route('register') }}" class="btn btn-primary btn-lg">
                 <i class="fas fa-rocket me-2"></i>Start Your Free Trial
             </a>
@@ -285,7 +289,9 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
-                    <h5><i class="fas fa-wifi me-2"></i>WiFi SaaS</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 40px; width: auto; max-width: 150px;">
+                    </div>
                     <p class="text-muted">The complete solution for managing WiFi hotspots and voucher systems.</p>
                 </div>
                 <div class="col-md-3">
@@ -308,7 +314,7 @@
             <hr class="my-4">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">&copy; 2024 WiFi SaaS. All rights reserved.</p>
+                    <p class="text-muted mb-0">&copy; 2024 All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="text-muted text-decoration-none me-3">Privacy Policy</a>

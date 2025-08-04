@@ -23,6 +23,7 @@ class Tenant extends Model
         'is_active',
         'payment_gateway',
         'payment_settings',
+        'settings',
     ];
 
     protected $hidden = [
@@ -34,6 +35,7 @@ class Tenant extends Model
         'subscription_expires_at' => 'date',
         'is_active' => 'boolean',
         'payment_settings' => 'array',
+        'settings' => 'array',
     ];
 
     public function hotspots(): HasMany

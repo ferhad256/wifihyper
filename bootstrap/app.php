@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'auth.tenant' => \App\Http\Middleware\TenantAuth::class,
+            'exclude.notifications' => \App\Http\Middleware\ExcludeNotifications::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

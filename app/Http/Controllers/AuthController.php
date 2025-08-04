@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Tenant;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -50,6 +51,11 @@ class AuthController extends Controller
         if ($request->password === 'password123' || Hash::check($request->password, $tenant->password ?? '')) {
             // Store tenant ID in session
             session(['tenant_id' => $tenant->id]);
+            
+            // Check for low voucher notifications on login
+            $notificationService = new NotificationService();
+            $notificationService->checkLowVoucherNotifications($tenant);
+            $notificationService->checkNoVoucherNotifications($tenant);
             
             return redirect()->route('dashboard')->with('success', 'Welcome back, ' . $tenant->name . '!');
         }

@@ -9,6 +9,7 @@ use App\Models\Voucher;
 use App\Models\Notification;
 use App\Services\YoPaymentsService;
 use App\Services\VoucherAvailabilityService;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -26,6 +27,11 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
+        // Check for low voucher notifications on login
+        $notificationService = new NotificationService();
+        $notificationService->checkLowVoucherNotifications($tenant);
+        $notificationService->checkNoVoucherNotifications($tenant);
+
         // Get dashboard statistics
         $stats = [
             'total_sales' => $tenant->total_sales,
@@ -42,12 +48,7 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-        // Get unread notifications
-        $unread_notifications = $tenant->notifications()
-            ->where('status', 'unread')
-            ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
+
 
         // Get sales chart data (last 30 days with better formatting)
         $sales_data = $tenant->transactions()
@@ -84,7 +85,7 @@ class DashboardController extends Controller
             }
         }
 
-        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data', 'unread_notifications'));
+        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data'));
     }
 
     /**
@@ -258,14 +259,10 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
+        $notificationService = new NotificationService();
         $notificationId = $request->input('notification_id');
         
-        $notification = $tenant->notifications()
-            ->where('id', $notificationId)
-            ->first();
-
-        if ($notification) {
-            $notification->markAsRead();
+        if ($notificationService->markAsRead($tenant, $notificationId)) {
             return response()->json(['success' => true]);
         }
 
@@ -283,12 +280,8 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $count = $tenant->notifications()
-            ->where('status', 'unread')
-            ->update([
-                'status' => 'read',
-                'read_at' => now(),
-            ]);
+        $notificationService = new NotificationService();
+        $count = $notificationService->markAllAsRead($tenant);
 
         return response()->json(['success' => true, 'count' => $count]);
     }
@@ -304,15 +297,31 @@ class DashboardController extends Controller
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
-        $count = $tenant->notifications()
-            ->where('status', 'unread')
-            ->count();
+        $notificationService = new NotificationService();
+        $count = $notificationService->getUnreadCount($tenant);
 
         return response()->json(['count' => $count]);
     }
 
     /**
-     * Export transactions as PDF
+     * Get notifications for dropdown
+     */
+    public function getNotifications()
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $notificationService = new NotificationService();
+        $notifications = $notificationService->getNotificationsForDropdown($tenant);
+
+        return response()->json(['notifications' => $notifications]);
+    }
+
+    /**
+     * Export transactions as CSV
      */
     public function exportTransactions()
     {
@@ -327,13 +336,38 @@ class DashboardController extends Controller
             ->latest()
             ->get();
 
-        $filename = 'transactions_' . date('Y-m-d_H-i-s') . '.html';
+        $filename = 'transactions_' . date('Y-m-d_H-i-s') . '.csv';
         
-        // Generate HTML that can be printed as PDF
-        $html = view('dashboard.transactions-pdf', compact('transactions', 'tenant'))->render();
-        
-        return response($html)
-            ->header('Content-Type', 'text/html')
-            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($transactions) {
+            $file = fopen('php://output', 'w');
+            
+            // Add headers
+            fputcsv($file, ['Date', 'Transaction ID', 'Hotspot', 'Package', 'Voucher Code', 'Amount', 'Fee', 'Net Amount', 'Phone Number', 'Status']);
+            
+            // Add data
+            foreach ($transactions as $transaction) {
+                fputcsv($file, [
+                    $transaction->created_at->format('Y-m-d H:i:s'),
+                    $transaction->transaction_id,
+                    $transaction->hotspot ? $transaction->hotspot->name : 'N/A',
+                    $transaction->package ? $transaction->package->name : 'N/A',
+                    $transaction->voucher ? $transaction->voucher->code : 'N/A',
+                    $transaction->amount,
+                    $transaction->transaction_fee,
+                    $transaction->net_amount,
+                    $transaction->phone_number ?? 'N/A',
+                    $transaction->status,
+                ]);
+            }
+            
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

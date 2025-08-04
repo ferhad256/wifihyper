@@ -11,6 +11,9 @@
             <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadMultipleModal">
                 <i class="fas fa-upload me-2"></i>Upload Multiple
             </button>
+            <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#uploadCsvModal">
+                <i class="fas fa-file-csv me-2"></i>Upload CSV
+            </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVoucherModal">
                 <i class="fas fa-plus me-2"></i>Add Voucher
             </button>
@@ -117,6 +120,14 @@
                         <button class="btn btn-success btn-sm me-2" 
                                 onclick="uploadForPackage({{ $packageId }}, '{{ $packageName }}')">
                             <i class="fas fa-upload me-1"></i>Add More
+                        </button>
+                        <button class="btn btn-warning btn-sm me-2" 
+                                onclick="uploadCsvForPackage({{ $packageId }}, '{{ $packageName }}')">
+                            <i class="fas fa-file-csv me-1"></i>Upload CSV
+                        </button>
+                        <button class="btn btn-danger btn-sm me-2" 
+                                onclick="deleteAllVouchers({{ $packageId }}, '{{ $packageName }}', {{ $vouchers->count() }})">
+                            <i class="fas fa-trash me-1"></i>Delete All
                         </button>
                         <a href="{{ route('vouchers.export') }}" class="btn btn-info btn-sm">
                             <i class="fas fa-download me-1"></i>Export
@@ -300,6 +311,127 @@
     </div>
 </div>
 
+<!-- Upload CSV Modal -->
+<div class="modal fade" id="uploadCsvModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Vouchers from CSV</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('vouchers.upload-csv') }}" enctype="multipart/form-data">
+                @csrf
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="csv_package_id" class="form-label">Package</label>
+                        <select class="form-select @error('package_id') is-invalid @enderror" 
+                                id="csv_package_id" name="package_id" required>
+                            <option value="">Select a package</option>
+                            @foreach($packages as $package)
+                                <option value="{{ $package->id }}" {{ old('package_id') == $package->id ? 'selected' : '' }}>
+                                    {{ $package->name }} - {{ $package->hotspot->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('package_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="csv_file" class="form-label">CSV File</label>
+                        <input type="file" class="form-control @error('csv_file') is-invalid @enderror" 
+                               id="csv_file" name="csv_file" accept=".csv,.txt" required>
+                        <div class="form-text">
+                            Upload a CSV file with voucher codes. The file should contain one voucher code per line or use standard CSV format.
+                            <br><strong>Supported formats:</strong>
+                            <ul class="mb-0 mt-1">
+                                <li>Plain text file with one code per line</li>
+                                <li>CSV file with headers (first column will be used)</li>
+                                <li>CSV file without headers (first column will be used)</li>
+                            </ul>
+                        </div>
+                        @error('csv_file')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="csv_expires_at" class="form-label">Expiry Date (Optional)</label>
+                        <input type="date" class="form-control @error('expires_at') is-invalid @enderror" 
+                               id="csv_expires_at" name="expires_at" value="{{ old('expires_at') }}">
+                        @error('expires_at')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>CSV Format Tips:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Maximum file size: 2MB</li>
+                            <li>Duplicate codes will be automatically skipped</li>
+                            <li>Empty lines will be ignored</li>
+                            <li>Only unused vouchers will be created</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-file-csv me-1"></i>Upload CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Vouchers Confirmation Modal -->
+<div class="modal fade" id="deleteAllModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete All Vouchers
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('vouchers.delete-all-package') }}">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body">
+                    <input type="hidden" id="delete_package_id" name="package_id">
+                    
+                    <div class="text-center mb-4">
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                        <h5>Are you sure you want to delete all vouchers?</h5>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Package:</strong> <span id="delete_package_name"></span><br>
+                        <strong>Vouchers to delete:</strong> <span id="delete_voucher_count"></span> unused vouchers
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_delete" class="form-label">Type "DELETE" to confirm</label>
+                        <input type="text" class="form-control" id="confirm_delete" 
+                               placeholder="Type DELETE to confirm" required>
+                        <div class="form-text">This helps prevent accidental deletions.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="confirm_delete_btn" disabled>
+                        <i class="fas fa-trash me-1"></i>Delete All Vouchers
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function uploadForPackage(packageId, packageName) {
@@ -313,6 +445,53 @@ function uploadForPackage(packageId, packageName) {
     const modal = new bootstrap.Modal(document.getElementById('uploadMultipleModal'));
     modal.show();
 }
+
+function uploadCsvForPackage(packageId, packageName) {
+    // Set the package in the CSV upload modal
+    document.getElementById('csv_package_id').value = packageId;
+    
+    // Update modal title
+    document.querySelector('#uploadCsvModal .modal-title').textContent = `Upload CSV for ${packageName}`;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('uploadCsvModal'));
+    modal.show();
+}
+
+function deleteAllVouchers(packageId, packageName, voucherCount) {
+    // Set the package ID and details in the delete modal
+    document.getElementById('delete_package_id').value = packageId;
+    document.getElementById('delete_package_name').textContent = packageName;
+    document.getElementById('delete_voucher_count').textContent = voucherCount;
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('deleteAllModal'));
+    modal.show();
+}
+
+// Handle delete confirmation input
+document.getElementById('confirm_delete').addEventListener('input', function() {
+    const confirmBtn = document.getElementById('confirm_delete_btn');
+    const input = this.value.trim();
+    
+    if (input === 'DELETE') {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('btn-secondary');
+        confirmBtn.classList.add('btn-danger');
+    } else {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('btn-danger');
+        confirmBtn.classList.add('btn-secondary');
+    }
+});
+
+// Reset delete modal when closed
+document.getElementById('deleteAllModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('confirm_delete').value = '';
+    document.getElementById('confirm_delete_btn').disabled = true;
+    document.getElementById('confirm_delete_btn').classList.remove('btn-danger');
+    document.getElementById('confirm_delete_btn').classList.add('btn-secondary');
+});
 </script>
 @endpush
 @endsection 
