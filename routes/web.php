@@ -27,11 +27,13 @@ Route::get('/', function () {
     return view('landing', compact('plans'));
 })->name('landing');
 
-// Authentication routes
-Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
-Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
-Route::post('/register', [AuthController::class, 'register']);
+// Authentication routes with rate limiting
+Route::middleware('rate.limiting')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
+});
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
