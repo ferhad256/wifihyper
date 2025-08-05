@@ -305,6 +305,12 @@
                             <span class="badge bg-primary">{{ $tenant->subscriptionPlan ? $tenant->subscriptionPlan->name : 'Starter' }}</span>
                         </div>
                     </div>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> To change your subscription plan, please visit the 
+                        <a href="{{ route('subscription.plans') }}" class="alert-link">Subscription Plans</a> 
+                        page where you can upgrade through our secure payment system.
+                    </div>
                     <div class="row mb-3">
                         <div class="col-6">
                             <strong>Status:</strong>

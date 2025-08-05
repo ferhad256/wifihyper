@@ -93,8 +93,6 @@ class SettingsController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'subscription_plan' => 'required|in:starter,pro,enterprise',
-            'subscription_expires_at' => 'nullable|date|after:today',
             'is_active' => 'boolean',
             'timezone' => 'required|string',
         ]);
@@ -107,12 +105,7 @@ class SettingsController extends Controller
             $settings = $tenant->settings ?? [];
             $settings['timezone'] = $request->timezone;
 
-            // Get the subscription plan ID based on the slug
-            $subscriptionPlan = \App\Models\SubscriptionPlan::where('slug', $request->subscription_plan)->first();
-            
             $tenant->update([
-                'subscription_plan_id' => $subscriptionPlan ? $subscriptionPlan->id : null,
-                'subscription_expires_at' => $request->subscription_expires_at,
                 'is_active' => $request->has('is_active'),
                 'settings' => $settings,
             ]);
