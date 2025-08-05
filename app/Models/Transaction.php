@@ -26,6 +26,9 @@ class Transaction extends Model
         'phone_number',
         'payment_details',
         'paid_at',
+        'type',
+        'data',
+        'completed_at',
     ];
 
     protected $casts = [
@@ -35,6 +38,8 @@ class Transaction extends Model
         'fee_percentage' => 'decimal:2',
         'payment_details' => 'array',
         'paid_at' => 'datetime',
+        'data' => 'array',
+        'completed_at' => 'datetime',
     ];
 
     public function tenant(): BelongsTo

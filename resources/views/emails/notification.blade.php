@@ -53,7 +53,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>{{ config('app.name') }}</h1>
+        <h1 style="color: #007bff;">WIFIHYPER</h1>
         <p>Notification Center</p>
     </div>
     
@@ -75,7 +75,7 @@
     
     <div class="footer">
         <p>This email was sent to {{ $tenant->email }}</p>
-        <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+        <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>
 </html> 

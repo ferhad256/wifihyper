@@ -1,6 +1,6 @@
 @echo off
 echo ========================================
-echo WiFi SaaS Setup Script
+echo WIFIHYPER Setup Script
 echo ========================================
 echo.
 
@@ -31,7 +31,7 @@ echo ========================================
 echo Setup Complete!
 echo ========================================
 echo.
-echo Your WiFi SaaS application is ready!
+echo Your WIFIHYPER application is ready!
 echo.
 echo To start the development server:
 echo C:\xampp\php\php.exe artisan serve

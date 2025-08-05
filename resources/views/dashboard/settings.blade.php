@@ -131,23 +131,50 @@
                     </h6>
                 </div>
                 <div class="card-body">
+                    <!-- Current Subscription Plan Info -->
+                    <div class="mb-4">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-crown me-2"></i>Current Subscription Plan
+                        </h6>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <strong>Plan:</strong>
+                                        <span class="badge bg-primary ms-2">{{ $tenant->subscriptionPlan ? $tenant->subscriptionPlan->name : 'Starter' }}</span>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <strong>Status:</strong>
+                                        @if($tenant->subscription_expires_at && $tenant->subscription_expires_at->isFuture())
+                                            <span class="badge bg-success ms-2">Active</span>
+                                        @else
+                                            <span class="badge bg-warning ms-2">Expired</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                @if($tenant->subscription_expires_at)
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <strong>Expires:</strong>
+                                            <span class="text-muted ms-2">{{ $tenant->subscription_expires_at->format('M d, Y') }}</span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Days Left:</strong>
+                                            <span class="text-muted ms-2">{{ $tenant->subscription_expires_at->diffInDays(now()) }} days</span>
+                                        </div>
+                                    </div>
+                                @endif
+                                <div class="mt-3">
+                                    <a href="{{ route('subscription.plans') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-arrow-up me-1"></i>Upgrade Plan
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <form method="POST" action="{{ route('settings.system') }}">
                         @csrf
-                        <div class="mb-3">
-                            <label for="subscription_plan" class="form-label">Subscription Plan</label>
-                            <select class="form-select" id="subscription_plan" name="subscription_plan">
-                                <option value="basic" {{ $tenant->subscription_plan === 'basic' ? 'selected' : '' }}>Basic</option>
-                                <option value="professional" {{ $tenant->subscription_plan === 'professional' ? 'selected' : '' }}>Professional</option>
-                                <option value="enterprise" {{ $tenant->subscription_plan === 'enterprise' ? 'selected' : '' }}>Enterprise</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="subscription_expires_at" class="form-label">Subscription Expires</label>
-                            <input type="date" class="form-control" id="subscription_expires_at" name="subscription_expires_at" 
-                                   value="{{ $tenant->subscription_expires_at ? $tenant->subscription_expires_at->format('Y-m-d') : '' }}">
-                        </div>
-
                         <div class="mb-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="is_active" name="is_active" 
@@ -275,7 +302,7 @@
                             <strong>Plan:</strong>
                         </div>
                         <div class="col-6">
-                            <span class="badge bg-primary">{{ ucfirst($tenant->subscription_plan) }}</span>
+                            <span class="badge bg-primary">{{ $tenant->subscriptionPlan ? $tenant->subscriptionPlan->name : 'Starter' }}</span>
                         </div>
                     </div>
                     <div class="row mb-3">

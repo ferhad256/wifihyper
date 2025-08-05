@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\Package;
 use App\Models\Voucher;
 use App\Models\Notification;
+use App\Models\SubscriptionPlan;
 use App\Services\YoPaymentsService;
 use App\Services\UgSmsService;
 use App\Services\VoucherAvailabilityService;
@@ -674,5 +675,206 @@ class PaymentController extends Controller
                 'timestamp' => now()->toISOString(),
             ]);
         }
+    }
+
+    /**
+     * Show subscription payment form
+     */
+    public function showSubscriptionPayment(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $planId = $request->get('plan_id');
+        $plan = SubscriptionPlan::findOrFail($planId);
+        
+        if ($plan->slug === 'starter') {
+            return back()->with('error', 'Starter plan is free and does not require payment.');
+        }
+
+        return view('dashboard.subscription.payment', compact('tenant', 'plan'));
+    }
+
+    /**
+     * Initiate subscription payment
+     */
+    public function initiateSubscriptionPayment(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'plan_id' => 'required|exists:subscription_plans,id',
+            'phone_number' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $plan = SubscriptionPlan::findOrFail($request->plan_id);
+        
+        if ($plan->slug === 'starter') {
+            return back()->with('error', 'Starter plan is free and does not require payment.');
+        }
+
+        if ($plan->slug === 'enterprise') {
+            return back()->with('error', 'Enterprise plan requires contacting sales team.');
+        }
+
+        // Create subscription transaction
+        $transaction = Transaction::create([
+            'tenant_id' => $tenant->id,
+            'transaction_id' => 'SUBS_' . time() . '_' . rand(1000, 9999),
+            'amount' => $plan->monthly_price,
+            'phone_number' => $request->phone_number,
+            'status' => 'pending',
+            'type' => 'subscription',
+            'data' => [
+                'plan_id' => $plan->id,
+                'plan_name' => $plan->name,
+                'plan_slug' => $plan->slug,
+                'subscription_period' => 'monthly',
+            ],
+        ]);
+
+        // Initiate payment with Yo! Payments
+        $paymentData = [
+            'amount' => $plan->monthly_price,
+            'phone_number' => $request->phone_number,
+            'transaction_id' => $transaction->transaction_id,
+            'description' => "Subscription payment for {$plan->name} plan",
+        ];
+
+        try {
+            $response = $this->yoPayments->initiatePayment($paymentData);
+            
+            if ($response['success']) {
+                return redirect()->away($response['payment_url']);
+            } else {
+                $transaction->update(['status' => 'failed']);
+                return back()->with('error', 'Failed to initiate payment: ' . $response['message']);
+            }
+        } catch (\Exception $e) {
+            $transaction->update(['status' => 'failed']);
+            Log::error('Subscription payment initiation failed', [
+                'tenant_id' => $tenant->id,
+                'plan_id' => $plan->id,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Failed to initiate payment. Please try again.');
+        }
+    }
+
+    /**
+     * Handle subscription payment callback
+     */
+    public function subscriptionCallback(Request $request)
+    {
+        $transactionId = $request->get('transaction_id');
+        $transaction = Transaction::where('transaction_id', $transactionId)
+            ->where('type', 'subscription')
+            ->first();
+
+        if (!$transaction) {
+            return response()->json(['error' => 'Transaction not found'], 404);
+        }
+
+        $tenant = $transaction->tenant;
+        $planData = $transaction->data;
+        $plan = SubscriptionPlan::find($planData['plan_id']);
+
+        if (!$plan) {
+            return response()->json(['error' => 'Plan not found'], 404);
+        }
+
+        // Verify payment with Yo! Payments
+        $verificationData = [
+            'transaction_id' => $transactionId,
+        ];
+
+        try {
+            $response = $this->yoPayments->verifyPayment($verificationData);
+            
+            if ($response['success'] && $response['status'] === 'successful') {
+                // Update transaction status
+                $transaction->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+
+                // Update tenant subscription
+                $tenant->update([
+                    'subscription_plan_id' => $plan->id,
+                    'subscription_expires_at' => now()->addMonth(),
+                ]);
+
+                // Create success notification
+                $tenant->notifications()->create([
+                    'title' => 'Subscription Upgraded',
+                    'message' => "Successfully upgraded to {$plan->name} plan. Your subscription expires on " . now()->addMonth()->format('M d, Y'),
+                    'type' => 'subscription_upgrade',
+                    'data' => [
+                        'plan_name' => $plan->name,
+                        'expires_at' => now()->addMonth()->toISOString(),
+                    ],
+                    'is_read' => false,
+                ]);
+
+                return response()->json(['success' => true, 'message' => 'Subscription upgraded successfully']);
+            } else {
+                $transaction->update(['status' => 'failed']);
+                return response()->json(['error' => 'Payment verification failed'], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('Subscription payment verification failed', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json(['error' => 'Payment verification failed'], 500);
+        }
+    }
+
+    /**
+     * Handle subscription payment failure
+     */
+    public function subscriptionFailed(Request $request)
+    {
+        $transactionId = $request->get('transaction_id');
+        $transaction = Transaction::where('transaction_id', $transactionId)
+            ->where('type', 'subscription')
+            ->first();
+
+        if ($transaction) {
+            $transaction->update(['status' => 'failed']);
+        }
+
+        return redirect()->route('subscription.plans')
+            ->with('error', 'Subscription payment failed. Please try again.');
+    }
+
+    /**
+     * Handle subscription payment success
+     */
+    public function subscriptionSuccess(Request $request)
+    {
+        $transactionId = $request->get('transaction_id');
+        $transaction = Transaction::where('transaction_id', $transactionId)
+            ->where('type', 'subscription')
+            ->first();
+
+        if (!$transaction || $transaction->status !== 'completed') {
+            return redirect()->route('subscription.plans')
+                ->with('error', 'Payment verification failed. Please contact support.');
+        }
+
+        return redirect()->route('subscription.index')
+            ->with('success', 'Subscription upgraded successfully!');
     }
 }

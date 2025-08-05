@@ -22,8 +22,8 @@ Add these to your `.env` file:
 ```env
 # Mail Configuration
 MAIL_MAILER=resend
-MAIL_FROM_ADDRESS=noreply@yourdomain.com
-MAIL_FROM_NAME="WiFi SaaS"
+MAIL_FROM_ADDRESS=onboarding@resend.dev
+MAIL_FROM_NAME="WIFIHYPER"
 
 # Resend Configuration
 RESEND_API_KEY=re_your_api_key_here
@@ -39,6 +39,7 @@ RESEND_API_KEY=re_your_api_key_here
 2. **Update From Address:**
    - Change `MAIL_FROM_ADDRESS` to use your verified domain
    - Example: `noreply@yourdomain.com`
+   - **Note**: Without a custom domain, emails will be sent from `onboarding@resend.dev`
 
 ### **Step 4: Test Email Configuration**
 

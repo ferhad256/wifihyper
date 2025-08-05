@@ -66,7 +66,7 @@
 </head>
 <body>
     <div class="header">
-        <h1>Welcome to {{ config('app.name') }}</h1>
+        <h1 style="color: #007bff;">Welcome to WIFIHYPER</h1>
         <p>Your WiFi Management Platform</p>
     </div>
     
@@ -75,11 +75,11 @@
         
         <div class="welcome-box">
             <h3>🎉 Welcome aboard!</h3>
-            <p>Thank you for choosing {{ config('app.name') }} for your WiFi hotspot management needs. We're excited to help you streamline your WiFi business operations.</p>
+            <p>Thank you for choosing WIFIHYPER for your WiFi hotspot management needs. We're excited to help you streamline your WiFi business operations.</p>
         </div>
         
         <div class="feature-list">
-            <h3>What you can do with {{ config('app.name') }}:</h3>
+            <h3>What you can do with WIFIHYPER:</h3>
             <ul>
                 <li>📊 Manage multiple WiFi hotspots from one dashboard</li>
                 <li>🎫 Upload and manage voucher codes in bulk</li>

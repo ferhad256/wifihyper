@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use App\Models\Hotspot;
 use App\Models\Package;
+use App\Services\PlanLimitService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class HotspotController extends Controller
 {
+    protected $planLimitService;
+
+    public function __construct(PlanLimitService $planLimitService)
+    {
+        $this->planLimitService = $planLimitService;
+    }
+
     /**
      * Display a listing of hotspots
      */
@@ -35,6 +43,12 @@ class HotspotController extends Controller
         
         if (!$tenant) {
             return redirect()->route('login');
+        }
+
+        // Check plan limits
+        $limitCheck = $this->planLimitService->canCreateHotspot($tenant);
+        if (!$limitCheck['can_create']) {
+            return back()->with('error', "You've reached your plan limit of {$limitCheck['max_allowed']} hotspots. Please upgrade your plan to create more hotspots.")->withInput();
         }
 
         $validator = Validator::make($request->all(), [

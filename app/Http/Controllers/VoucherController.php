@@ -5,11 +5,19 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use App\Models\Voucher;
 use App\Models\Package;
+use App\Services\PlanLimitService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class VoucherController extends Controller
 {
+    protected $planLimitService;
+
+    public function __construct(PlanLimitService $planLimitService)
+    {
+        $this->planLimitService = $planLimitService;
+    }
+
     /**
      * Display a listing of vouchers
      */
@@ -62,6 +70,12 @@ class VoucherController extends Controller
         
         if (!$tenant) {
             return redirect()->route('login');
+        }
+
+        // Check plan limits
+        $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
+        if (!$limitCheck['can_upload']) {
+            return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.")->withInput();
         }
 
         $validator = Validator::make($request->all(), [
@@ -271,6 +285,12 @@ class VoucherController extends Controller
         
         if (!$tenant) {
             return redirect()->route('login');
+        }
+
+        // Check plan limits
+        $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
+        if (!$limitCheck['can_upload']) {
+            return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.");
         }
 
         $validator = Validator::make($request->all(), [

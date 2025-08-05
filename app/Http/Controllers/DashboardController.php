@@ -198,7 +198,7 @@ class DashboardController extends Controller
             $withdrawalResponse = $yoPayments->initiateWithdrawal(
                 $amount,
                 $phoneNumber,
-                "WiFi SaaS Withdrawal - " . $tenant->business_name,
+                "WIFIHYPER Withdrawal - " . $tenant->business_name,
                 $transaction->transaction_id
             );
 

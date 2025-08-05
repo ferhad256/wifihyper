@@ -21,7 +21,7 @@ class UgSmsService
         $this->baseUrl = 'https://ugsms.com/v1/sms/send';
         $this->username = config('services.ug_sms.username');
         $this->password = config('services.ug_sms.password');
-        $this->senderId = config('services.ug_sms.sender_id', 'WiFiSaaS');
+        $this->senderId = config('services.ug_sms.sender_id', 'Wifihyper');
     }
 
     /**
@@ -201,29 +201,13 @@ class UgSmsService
      */
     protected function formatVoucherMessage($voucherCode, Package $package = null)
     {
-        $message = "🎉 WiFi Voucher Received!\n\n";
-        $message .= "🔑 Your WiFi Code: {$voucherCode}\n\n";
+        $duration = "24 hours";
         
-        if ($package) {
-            $message .= "📦 Package: {$package->name}\n";
-            if ($package->duration_hours) {
-                $message .= "⏰ Duration: {$package->duration_hours} hours\n";
-            }
-            if ($package->data_limit_mb) {
-                $message .= "📊 Data Limit: {$package->data_limit_mb}MB\n";
-            }
-            $message .= "💰 Amount Paid: UGX " . number_format($package->price) . "\n\n";
+        if ($package && $package->duration_hours) {
+            $duration = $package->duration_hours . " hours";
         }
         
-        $message .= "📱 How to Connect:\n";
-        $message .= "1. Go to WiFi settings\n";
-        $message .= "2. Select the hotspot\n";
-        $message .= "3. Enter the voucher code\n";
-        $message .= "4. Enjoy your internet!\n\n";
-        
-        $message .= "⏰ Valid for 24 hours\n";
-        $message .= "📞 Support: Contact hotspot owner\n\n";
-        $message .= "Thank you for choosing our WiFi service! 🌐";
+        $message = "Your voucher code is {$voucherCode} for {$duration}. thank you.";
         
         return $message;
     }

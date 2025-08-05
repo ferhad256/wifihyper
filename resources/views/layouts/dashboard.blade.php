@@ -9,7 +9,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo.png') }}">
+
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -98,6 +98,16 @@
         .notification-list::-webkit-scrollbar-thumb {
             background: #c1c1c1;
             border-radius: 3px;
+        }
+        
+        .brand-name {
+            color: #007bff !important;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .brand-name:hover {
+            color: #0056b3 !important;
+        }
         }
         
         .notification-list::-webkit-scrollbar-thumb:hover {
@@ -218,7 +228,7 @@
         <div class="sidebar col-md-3 col-lg-2 d-md-block">
             <div class="p-3">
                 <div class="text-center mb-4">
-                    <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 60px; width: auto; max-width: 200px;">
+                    <h2 class="brand-name mb-0">WIFIHYPER</h2>
                 </div>
                 
                 <nav class="nav flex-column">
@@ -241,6 +251,10 @@
                     <a class="nav-link {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}" href="{{ route('dashboard.settings') }}">
                         <i class="fas fa-cog"></i>
                         Settings
+                    </a>
+                    <a class="nav-link {{ request()->routeIs('subscription.*') ? 'active' : '' }}" href="{{ route('subscription.index') }}">
+                        <i class="fas fa-credit-card"></i>
+                        Subscription
                     </a>
                     <a class="nav-link {{ request()->routeIs('dashboard.profile') ? 'active' : '' }}" href="{{ route('dashboard.profile') }}">
                         <i class="fas fa-user"></i>

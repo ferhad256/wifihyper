@@ -1,8 +1,8 @@
-# WiFi SaaS - Setup Guide
+# WIFIHYPER - Setup Guide
 
 ## 🚀 Quick Start
 
-This guide will help you set up the WiFi SaaS application for development and production.
+This guide will help you set up the WIFIHYPER application for development and production.
 
 ## 📋 Prerequisites
 
@@ -309,4 +309,4 @@ npm run build
 
 ---
 
-**WiFi SaaS** - Making WiFi management simple and profitable! 🚀 
+**WIFIHYPER** - Making WiFi management simple and profitable! 🚀 

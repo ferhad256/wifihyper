@@ -1,4 +1,4 @@
-# WiFi SaaS - Multi-Tenant WiFi Management Platform
+# WIFIHYPER - Multi-Tenant WiFi Management Platform
 
 A comprehensive SaaS platform for managing multiple WiFi hotspots, voucher systems, and payment processing. Perfect for cafes, hotels, and businesses.
 
@@ -231,4 +231,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**WiFi SaaS** - Making WiFi management simple and profitable! 🚀
+**WIFIHYPER** - Making WiFi management simple and profitable! 🚀

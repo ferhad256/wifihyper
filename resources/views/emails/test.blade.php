@@ -49,7 +49,7 @@
 <body>
     <div class="header">
         <h1>Email Configuration Test</h1>
-        <p>{{ config('app.name') }}</p>
+        <p style="color: #007bff; font-weight: bold;">WIFIHYPER</p>
     </div>
     
     <div class="content">
@@ -81,7 +81,7 @@
     
     <div class="footer">
         <p>This email was sent to {{ $tenant->email }}</p>
-        <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+        <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>
 </html> 

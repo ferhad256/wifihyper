@@ -8,6 +8,7 @@ use App\Http\Controllers\HotspotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\SubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,7 +23,8 @@ use App\Http\Controllers\SettingsController;
 
 // Landing page
 Route::get('/', function () {
-    return view('landing');
+    $plans = \App\Models\SubscriptionPlan::active()->orderBy('sort_order')->get();
+    return view('landing', compact('plans'));
 })->name('landing');
 
 // Authentication routes
@@ -31,6 +33,8 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+
 
 // Dashboard routes
 Route::middleware('auth.tenant')->group(function () {
@@ -67,6 +71,23 @@ Route::middleware('auth.tenant')->group(function () {
     Route::post('/settings/system', [SettingsController::class, 'updateSystem'])->name('settings.system');
     Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
     Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
+    
+    // Subscription routes
+    Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
+    Route::get('/subscription/usage', [SubscriptionController::class, 'usage'])->name('subscription.usage');
+    Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
+    Route::post('/subscription/upgrade', [SubscriptionController::class, 'upgrade'])->name('subscription.upgrade');
+    Route::get('/subscription/usage-data', [SubscriptionController::class, 'getUsageData'])->name('subscription.usage-data');
+    Route::post('/subscription/check-limit', [SubscriptionController::class, 'checkLimit'])->name('subscription.check-limit');
+    Route::post('/subscription/calculate-fee', [SubscriptionController::class, 'calculateTransactionFee'])->name('subscription.calculate-fee');
+    Route::post('/subscription/check-feature', [SubscriptionController::class, 'checkFeature'])->name('subscription.check-feature');
+    
+    // Subscription payment routes
+    Route::get('/subscription/payment', [PaymentController::class, 'showSubscriptionPayment'])->name('subscription.payment');
+    Route::post('/subscription/payment/initiate', [PaymentController::class, 'initiateSubscriptionPayment'])->name('subscription.payment.initiate');
+    Route::post('/subscription/payment/callback', [PaymentController::class, 'subscriptionCallback'])->name('subscription.payment.callback');
+    Route::get('/subscription/payment/failed', [PaymentController::class, 'subscriptionFailed'])->name('subscription.payment.failed');
+    Route::get('/subscription/payment/success', [PaymentController::class, 'subscriptionSuccess'])->name('subscription.payment.success');
     
     // Profile routes
     Route::put('/profile/update', function() { return back()->with('success', 'Profile updated successfully!'); })->name('profile.update');

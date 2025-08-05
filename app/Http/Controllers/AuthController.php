@@ -83,6 +83,9 @@ class AuthController extends Controller
         }
 
         try {
+            // Get the Starter Plan
+            $starterPlan = \App\Models\SubscriptionPlan::where('slug', 'starter')->first();
+            
             $tenant = Tenant::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -90,20 +93,31 @@ class AuthController extends Controller
                 'business_name' => $request->business_name,
                 'address' => $request->address,
                 'password' => Hash::make($request->password),
-                'subscription_plan' => 'basic',
+                'subscription_plan_id' => $starterPlan->id,
                 'subscription_expires_at' => now()->addDays(30), // 30-day trial
                 'is_active' => true,
             ]);
 
-            // Log in the tenant
-            session(['tenant_id' => $tenant->id]);
+            // Send welcome email
+            $emailService = new \App\Services\EmailService();
+            $welcomeSent = $emailService->sendWelcomeEmail($tenant);
 
-            return redirect()->route('dashboard')->with('success', 'Account created successfully! Welcome to WiFi SaaS.');
+            // Store tenant ID in session and redirect to dashboard
+            session(['tenant_id' => $tenant->id]);
+            
+            $message = 'Account created successfully! Welcome to WIFIHYPER.';
+            if (!$welcomeSent) {
+                $message .= ' (Welcome email could not be sent, but your account is active.)';
+            }
+            
+            return redirect()->route('dashboard')->with('success', $message);
 
         } catch (\Exception $e) {
             return back()->with('error', 'Registration failed. Please try again.')->withInput();
         }
     }
+
+
 
     /**
      * Handle tenant logout

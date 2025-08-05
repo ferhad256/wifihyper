@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo.png') }}">
+
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -70,6 +70,14 @@
             font-size: 3rem;
             margin-bottom: 15px;
         }
+        .brand-name {
+            color: #007bff !important;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .brand-name:hover {
+            color: #0056b3 !important;
+        }
     </style>
 </head>
 <body>
@@ -77,7 +85,7 @@
         <div class="register-card">
             <div class="register-header">
                 <div class="wifi-icon">
-                    <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 80px; width: auto; max-width: 200px; margin-bottom: 20px;">
+                    <h1 class="brand-name mb-0" style="font-size: 2.5rem;">WIFIHYPER</h1>
                 </div>
                 <h2>Create Account</h2>
                 <p class="mb-0">Join us and start managing your hotspots</p>

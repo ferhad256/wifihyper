@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="apple-touch-icon" href="{{ asset('images/logo/logo.png') }}">
+
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -53,6 +53,14 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
+        .brand-name {
+            color: #007bff !important;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .brand-name:hover {
+            color: #0056b3 !important;
+        }
         .navbar {
             background: rgba(255,255,255,0.95) !important;
             backdrop-filter: blur(10px);
@@ -69,7 +77,7 @@
     <nav class="navbar navbar-expand-lg navbar-light fixed-top">
         <div class="container">
             <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
-                <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 50px; width: auto; max-width: 180px;">
+                <h1 class="brand-name mb-0">WIFIHYPER</h1>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -221,54 +229,94 @@
                 <p class="lead text-muted">Choose the plan that fits your business</p>
             </div>
             <div class="row justify-content-center">
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
+                @foreach($plans as $plan)
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card feature-card h-100 {{ $plan->is_featured ? 'border-primary' : '' }}">
                         <div class="card-body text-center p-4">
-                            <h4>Basic</h4>
-                            <div class="display-6 fw-bold text-primary mb-3">$29<span class="fs-6 text-muted">/month</span></div>
+                            @if($plan->is_featured)
+                                <span class="badge bg-primary mb-2">Most Popular</span>
+                            @endif
+                            <h4>{{ $plan->name }}</h4>
+                            <div class="display-6 fw-bold text-primary mb-3">
+                                @if($plan->slug === 'enterprise')
+                                    Contact Sales
+                                @else
+                                    {{ $plan->getFormattedPrice() }}<span class="fs-6 text-muted">/month</span>
+                                @endif
+                            </div>
+                            <p class="text-muted mb-4">{{ $plan->description }}</p>
                             <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Up to 5 hotspots</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>1,000 vouchers/month</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Basic analytics</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Email support</li>
+                                <li class="mb-2">
+                                    <i class="fas fa-wifi me-2"></i>
+                                    <strong>Hotspots:</strong>
+                                    @if($plan->max_hotspots === -1)
+                                        Unlimited
+                                    @else
+                                        Up to {{ $plan->max_hotspots }}
+                                    @endif
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-ticket-alt me-2"></i>
+                                    <strong>Vouchers:</strong>
+                                    @if($plan->max_vouchers_per_month === -1)
+                                        Unlimited
+                                    @else
+                                        {{ number_format($plan->max_vouchers_per_month) }}/month
+                                    @endif
+                                </li>
+                                @if($plan->slug === 'enterprise')
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        No transaction charges
+                                    </li>
+                                @else
+                                    <li class="mb-2">
+                                        <i class="fas fa-percentage me-2"></i>
+                                        Transaction fees: 15%/10%/5%
+                                    </li>
+                                @endif
+                                @if($plan->custom_portal)
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Custom portal
+                                    </li>
+                                @endif
+                                @if($plan->api_access)
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        API access
+                                    </li>
+                                @endif
+                                @if($plan->priority_support)
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Priority support
+                                    </li>
+                                @endif
+                                @if($plan->source_code_access)
+                                    <li class="mb-2">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        Source code access
+                                    </li>
+                                @endif
                             </ul>
-                            <a href="{{ route('register') }}" class="btn btn-primary w-100">Get Started</a>
+                            @if($plan->slug === 'enterprise')
+                                <button class="btn btn-warning w-100" onclick="contactSales()">
+                                    <i class="fas fa-phone"></i> Contact Sales
+                                </button>
+                            @elseif($plan->slug === 'pro')
+                                <button class="btn btn-primary w-100" onclick="upgradeToPro()">
+                                    <i class="fas fa-arrow-up"></i> Upgrade to Pro
+                                </button>
+                            @else
+                                <a href="{{ route('register') }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-rocket"></i> Get Started Free
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100 border-primary">
-                        <div class="card-body text-center p-4">
-                            <span class="badge bg-primary mb-2">Most Popular</span>
-                            <h4>Professional</h4>
-                            <div class="display-6 fw-bold text-primary mb-3">$79<span class="fs-6 text-muted">/month</span></div>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Up to 20 hotspots</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>10,000 vouchers/month</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Advanced analytics</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Priority support</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>SMS integration</li>
-                            </ul>
-                            <a href="{{ route('register') }}" class="btn btn-primary w-100">Get Started</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <h4>Enterprise</h4>
-                            <div class="display-6 fw-bold text-primary mb-3">$199<span class="fs-6 text-muted">/month</span></div>
-                            <ul class="list-unstyled">
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Unlimited hotspots</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Unlimited vouchers</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Custom analytics</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>24/7 support</li>
-                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>API access</li>
-                            </ul>
-                            <a href="{{ route('register') }}" class="btn btn-primary w-100">Get Started</a>
-                        </div>
-                    </div>
-                </div>
+                @endforeach
             </div>
         </div>
     </section>
@@ -290,7 +338,7 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="{{ asset('images/logo/logo.png') }}" alt="Logo" style="height: 40px; width: auto; max-width: 150px;">
+                        <h3 class="brand-name mb-0">WIFIHYPER</h3>
                     </div>
                     <p class="text-muted">The complete solution for managing WiFi hotspots and voucher systems.</p>
                 </div>
@@ -326,5 +374,24 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function contactSales() {
+            alert('Please contact our sales team for Enterprise plan pricing and setup.');
+            // You can implement this to open a contact form or redirect to a sales page
+            // window.location.href = '/contact-sales';
+        }
+        
+        function upgradeToPro() {
+            // Check if user is logged in
+            @auth
+                // Redirect to subscription page for logged-in users
+                window.location.href = '{{ route("subscription.plans") }}';
+            @else
+                // Redirect to login for non-logged-in users
+                window.location.href = '{{ route("login") }}';
+            @endauth
+        }
+    </script>
 </body>
 </html> 

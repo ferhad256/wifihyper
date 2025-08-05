@@ -327,7 +327,7 @@ class YoPaymentsService
     /**
      * Process withdrawal request
      */
-    public function initiateWithdrawal($amount, $phoneNumber, $narrative = 'WiFi SaaS Withdrawal', $externalReference = null)
+    public function initiateWithdrawal($amount, $phoneNumber, $narrative = 'WIFIHYPER Withdrawal', $externalReference = null)
     {
         try {
             $parameters = [
