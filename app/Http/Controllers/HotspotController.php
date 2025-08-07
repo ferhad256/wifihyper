@@ -189,8 +189,22 @@ class HotspotController extends Controller
         $tenant = Tenant::find(session('tenant_id'));
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
+            \Log::error('Unauthorized package creation attempt', [
+                'tenant_id' => $tenant ? $tenant->id : 'null',
+                'hotspot_tenant_id' => $hotspot->tenant_id,
+                'request_data' => $request->all()
+            ]);
             return back()->with('error', 'Unauthorized action.');
         }
+
+        // Log the incoming request
+        \Log::info('Package creation request received', [
+            'tenant_id' => $tenant->id,
+            'hotspot_id' => $hotspot->id,
+            'request_data' => $request->all(),
+            'user_agent' => $request->userAgent(),
+            'ip' => $request->ip()
+        ]);
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -203,6 +217,11 @@ class HotspotController extends Controller
         ]);
 
         if ($validator->fails()) {
+            \Log::warning('Package creation validation failed', [
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id,
+                'validation_errors' => $validator->errors()->toArray()
+            ]);
             return back()->withErrors($validator)->withInput();
         }
 
@@ -229,22 +248,53 @@ class HotspotController extends Controller
                 return back()->with('error', 'Unauthorized action.')->withInput();
             }
 
-            // Create the package
-            $package = Package::create([
+            // Check if package with same name already exists for this hotspot
+            $existingPackage = Package::where('hotspot_id', $hotspot->id)
+                ->where('name', $request->name)
+                ->first();
+            
+            if ($existingPackage) {
+                \Log::warning('Package with same name already exists', [
+                    'tenant_id' => $tenant->id,
+                    'hotspot_id' => $hotspot->id,
+                    'package_name' => $request->name,
+                    'existing_package_id' => $existingPackage->id
+                ]);
+                return back()->with('error', 'A package with this name already exists for this hotspot.')->withInput();
+            }
+
+            // Prepare package data
+            $packageData = [
                 'hotspot_id' => $hotspot->id,
                 'name' => $request->name,
-                'description' => $request->description,
+                'description' => $request->description ?? '',
                 'price' => $request->price,
-                'duration_hours' => $request->duration_hours,
-                'data_limit_mb' => $request->data_limit_mb,
+                'duration_hours' => $request->duration_hours ? (int)$request->duration_hours : null,
+                'data_limit_mb' => $request->data_limit_mb ? (int)$request->data_limit_mb : null,
                 'sort_order' => $request->sort_order ?? 0,
                 'is_active' => $request->has('is_active'),
+            ];
+
+            // Ensure sort_order is never null
+            if ($packageData['sort_order'] === null) {
+                $packageData['sort_order'] = 0;
+            }
+
+            \Log::info('Package data prepared', [
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id,
+                'package_data' => $packageData
             ]);
+
+            // Create the package
+            $package = Package::create($packageData);
 
             \Log::info('Package created successfully', [
                 'package_id' => $package->id,
                 'hotspot_id' => $hotspot->id,
-                'tenant_id' => $tenant->id
+                'tenant_id' => $tenant->id,
+                'package_name' => $package->name,
+                'package_price' => $package->price
             ]);
 
             return back()->with('success', 'Package created successfully!');
@@ -252,9 +302,11 @@ class HotspotController extends Controller
         } catch (\Illuminate\Database\QueryException $e) {
             \Log::error('Database error creating package', [
                 'error' => $e->getMessage(),
+                'error_code' => $e->getCode(),
                 'tenant_id' => $tenant->id,
                 'hotspot_id' => $hotspot->id,
-                'request_data' => $request->all()
+                'request_data' => $request->all(),
+                'previous_error' => $e->getPrevious() ? $e->getPrevious()->getMessage() : null
             ]);
 
             // Check for specific database errors
@@ -266,17 +318,23 @@ class HotspotController extends Controller
                 return back()->with('error', 'A package with this name already exists.')->withInput();
             }
 
-            return back()->with('error', 'Database error occurred while creating package.')->withInput();
+            if (str_contains($e->getMessage(), 'column cannot be null')) {
+                return back()->with('error', 'Required fields are missing. Please fill all required fields.')->withInput();
+            }
+
+            return back()->with('error', 'Database error occurred while creating package. Please try again.')->withInput();
 
         } catch (\Exception $e) {
             \Log::error('Unexpected error creating package', [
                 'error' => $e->getMessage(),
+                'error_type' => get_class($e),
                 'trace' => $e->getTraceAsString(),
                 'tenant_id' => $tenant->id,
-                'hotspot_id' => $hotspot->id
+                'hotspot_id' => $hotspot->id,
+                'request_data' => $request->all()
             ]);
 
-            return back()->with('error', 'An unexpected error occurred while creating package.')->withInput();
+            return back()->with('error', 'An unexpected error occurred while creating package. Please try again.')->withInput();
         }
     }
 

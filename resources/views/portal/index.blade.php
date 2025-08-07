@@ -207,12 +207,12 @@
                             <label for="modal_phone_number" class="form-label">
                                 <i class="fas fa-phone me-1"></i>Phone Number
                             </label>
-                                                         <input type="tel" class="form-control" id="modal_phone_number" name="phone_number" 
-                                    placeholder="Enter your phone number (e.g., 0770123456) - will be converted to 256771234567" required>
-                                                         <div class="form-text">
-                                 <i class="fas fa-info-circle me-1"></i>
-                                 We'll send your WiFi voucher code to this number via SMS. Number will be converted to international format (256XXXXXXXX) for payment processing.
-                             </div>
+                            <input type="tel" class="form-control" id="modal_phone_number" name="phone_number" 
+                                   placeholder="Enter your phone number (e.g., 0744744888, 0397373763)" required>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                We'll send your WiFi voucher code to this number via SMS.
+                            </div>
                         </div>
                         
                         <div class="alert alert-info">
@@ -332,7 +332,7 @@
         
         // Form submission
         document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            const phoneNumber = document.getElementById('modal_phone_number').value;
+            let phoneNumber = document.getElementById('modal_phone_number').value;
             
             if (!phoneNumber) {
                 e.preventDefault();
@@ -340,13 +340,19 @@
                 return;
             }
             
-            // Validate phone number format (Uganda international format for Yo Payments)
-            const phoneRegex = /^2567\d{8}$/;
-            if (!phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
+            // Convert phone number to international format
+            phoneNumber = convertToInternationalFormat(phoneNumber);
+            
+            // Validate phone number format (Uganda international format)
+            const phoneRegex = /^256[0-9]{9}$/;
+            if (!phoneRegex.test(phoneNumber)) {
                 e.preventDefault();
-                alert('Please enter a valid Uganda phone number (e.g., 0770123456). It will be automatically converted to international format.');
+                alert('Please enter a valid Uganda phone number (e.g., 0744744888, 0397373763).');
                 return;
             }
+            
+            // Update the form field with the converted number
+            document.getElementById('modal_phone_number').value = phoneNumber;
             
             // Show loading state
             document.querySelector('.btn-text').style.display = 'none';
@@ -354,22 +360,38 @@
             document.getElementById('processPaymentBtn').disabled = true;
         });
         
-        // Phone number formatting for Yo Payments (international format without +)
+        // Function to convert phone number to international format
+        function convertToInternationalFormat(phoneNumber) {
+            // Remove all non-digit characters
+            let cleanNumber = phoneNumber.replace(/\D/g, '');
+            
+            // If number starts with 0, remove it and add 256
+            if (cleanNumber.startsWith('0')) {
+                cleanNumber = '256' + cleanNumber.substring(1);
+            }
+            // If number doesn't start with 256, add it
+            else if (!cleanNumber.startsWith('256')) {
+                cleanNumber = '256' + cleanNumber;
+            }
+            
+            // Ensure the final number is exactly 12 digits (256 + 9 digits)
+            if (cleanNumber.length > 12) {
+                cleanNumber = cleanNumber.substring(0, 12);
+            }
+            
+            return cleanNumber;
+        }
+        
+        // Phone number input formatting (show user-friendly format)
         document.getElementById('modal_phone_number').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
             
-            // Convert to international format for Yo Payments
-            if (value.startsWith('0')) {
-                // Remove leading 0 and add 256
-                value = '256' + value.substring(1);
-            } else if (value.startsWith('256')) {
-                // Already in international format
-                value = value;
-            } else if (value.length > 0 && !value.startsWith('256')) {
-                // Assume it's a local number, add 256
-                value = '256' + value;
+            // Limit to 10 digits for local format (e.g., 0744744888)
+            if (value.length > 10) {
+                value = value.substring(0, 10);
             }
             
+            // Format as local number (e.g., 0744744888)
             e.target.value = value;
         });
         

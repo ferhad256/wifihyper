@@ -27,6 +27,30 @@ class Package extends Model
         'is_active' => 'boolean',
     ];
 
+    /**
+     * Set sort_order attribute - ensure it's never null
+     */
+    public function setSortOrderAttribute($value)
+    {
+        $this->attributes['sort_order'] = $value ?? 0;
+    }
+
+    /**
+     * Set duration_hours attribute - handle empty strings
+     */
+    public function setDurationHoursAttribute($value)
+    {
+        $this->attributes['duration_hours'] = $value && $value !== '' ? (int)$value : null;
+    }
+
+    /**
+     * Set data_limit_mb attribute - handle empty strings
+     */
+    public function setDataLimitMbAttribute($value)
+    {
+        $this->attributes['data_limit_mb'] = $value && $value !== '' ? (int)$value : null;
+    }
+
     public function hotspot(): BelongsTo
     {
         return $this->belongsTo(Hotspot::class);

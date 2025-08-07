@@ -145,11 +145,11 @@
                 <h5 class="modal-title">Add New Package</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('hotspots.packages.store', $hotspot) }}">
+            <form method="POST" action="{{ route('hotspots.packages.store', $hotspot) }}" id="addPackageForm">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Package Name</label>
+                        <label for="name" class="form-label">Package Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control @error('name') is-invalid @enderror" 
                                id="name" name="name" value="{{ old('name') }}" required>
                         @error('name')
@@ -169,7 +169,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="price" class="form-label">Price (UGX)</label>
+                                <label for="price" class="form-label">Price (UGX) <span class="text-danger">*</span></label>
                                 <input type="number" class="form-control @error('price') is-invalid @enderror" 
                                        id="price" name="price" value="{{ old('price') }}" min="0" step="100" required>
                                 @error('price')
@@ -212,7 +212,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create Package</button>
+                    <button type="submit" class="btn btn-primary" id="submitPackageBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        Create Package
+                    </button>
                 </div>
             </form>
         </div>
@@ -281,6 +284,37 @@
 
 @push('scripts')
 <script>
+// Handle package creation form submission
+document.getElementById('addPackageForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitPackageBtn');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    const originalText = submitBtn.innerHTML;
+    
+    // Show loading state
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+    
+    // Form will submit normally, but we can track the state
+    console.log('Submitting package creation form...');
+});
+
+// Handle form validation
+document.getElementById('addPackageForm').addEventListener('input', function(e) {
+    const form = e.target.closest('form');
+    const submitBtn = document.getElementById('submitPackageBtn');
+    
+    // Basic validation
+    const name = form.querySelector('#name').value.trim();
+    const price = form.querySelector('#price').value;
+    
+    if (name && price && price > 0) {
+        submitBtn.disabled = false;
+    } else {
+        submitBtn.disabled = true;
+    }
+});
+
 function editPackage(packageId) {
     // Fetch package data and populate modal
     fetch(`/hotspots/{{ $hotspot->id }}/packages/${packageId}/edit`)
@@ -327,6 +361,24 @@ function deletePackage(packageId) {
         });
     }
 }
+
+// Show success/error messages
+@if(session('success'))
+    console.log('Success message: {{ session('success') }}');
+@endif
+
+@if(session('error'))
+    console.log('Error message: {{ session('error') }}');
+@endif
+
+// Debug form data on submit
+document.getElementById('addPackageForm').addEventListener('submit', function(e) {
+    const formData = new FormData(this);
+    console.log('Form data being submitted:');
+    for (let [key, value] of formData.entries()) {
+        console.log(key + ': ' + value);
+    }
+});
 </script>
 @endpush
 @endsection 

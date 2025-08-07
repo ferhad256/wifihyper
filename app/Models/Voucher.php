@@ -12,9 +12,10 @@ class Voucher extends Model
 
     protected $fillable = [
         'tenant_id',
+        'hotspot_id',
+        'package_id',
         'code',
         'status',
-        'package_id',
         'phone_number',
         'used_at',
         'expires_at',
@@ -28,6 +29,11 @@ class Voucher extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function hotspot(): BelongsTo
+    {
+        return $this->belongsTo(Hotspot::class);
     }
 
     public function package(): BelongsTo

@@ -17,18 +17,13 @@ class Transaction extends Model
         'voucher_id',
         'transaction_id',
         'amount',
-        'transaction_fee',
-        'net_amount',
-        'fee_percentage',
         'currency',
         'status',
-        'payment_method',
         'phone_number',
-        'payment_details',
+        'transaction_fee',
+        'net_amount',
+        'gateway_response',
         'paid_at',
-        'type',
-        'data',
-        'completed_at',
     ];
 
     protected $casts = [

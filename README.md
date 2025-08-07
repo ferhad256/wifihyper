@@ -1,234 +1,566 @@
-# WIFIHYPER - Multi-Tenant WiFi Management Platform
+# 🌐 WIFIHYPER - WiFi Billing System
 
-A comprehensive SaaS platform for managing multiple WiFi hotspots, voucher systems, and payment processing. Perfect for cafes, hotels, and businesses.
+A comprehensive WiFi hotspot billing and voucher management system built with Laravel, featuring mobile payments, SMS notifications, and automated voucher distribution.
 
-## 🚀 Features
+## 📋 Table of Contents
 
-- **Multi-Tenant Architecture**: Each tenant has their own isolated data
-- **Voucher Management**: Upload and manage voucher codes in bulk
-- **Payment Integration**: Yo Payments integration for mobile money
-- **SMS Integration**: UG SMS gateway for voucher delivery
-- **Analytics Dashboard**: Real-time sales and usage analytics
-- **Captive Portal**: Customizable WiFi login pages
-- **Responsive Design**: Works on all devices
+- [Features](#-features)
+- [System Overview](#-system-overview)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Database Structure](#-database-structure)
+- [Payment Flow](#-payment-flow)
+- [Mobile Responsiveness](#-mobile-responsiveness)
+- [Production Deployment](#-production-deployment)
+- [Security](#-security)
+- [API Integrations](#-api-integrations)
+- [Troubleshooting](#-troubleshooting)
+- [Changelog](#-changelog)
 
-## 📋 Requirements
+## ✨ Features
 
+### 🏢 Multi-Tenant Architecture
+- **Tenant Management**: Separate billing and data for each hotspot owner
+- **Subscription Plans**: Starter, Pro, and Enterprise tiers
+- **Plan Limits**: Automatic enforcement of package and hotspot limits
+- **Isolated Data**: Each tenant's data is completely separated
+
+### 💳 Payment System
+- **Yo! Payments Integration**: Secure mobile money payments
+- **Automatic Voucher Distribution**: SMS delivery of WiFi codes
+- **Transaction Tracking**: Complete payment history and status
+- **Fee Calculation**: Automatic transaction fee handling
+
+### 📱 User Experience
+- **Captive Portal**: Beautiful, responsive WiFi login page
+- **Real-time Availability**: Live voucher stock checking
+- **Mobile Responsive**: Works perfectly on all devices
+- **Phone Number Formatting**: Automatic international format conversion
+
+### 🔧 Management Features
+- **Hotspot Management**: Create and manage multiple hotspots
+- **Package Creation**: Flexible WiFi package configuration
+- **Voucher Management**: Bulk upload and tracking
+- **Analytics Dashboard**: Sales and usage statistics
+
+## 🏗️ System Overview
+
+### Architecture
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Captive Portal│    │  Admin Dashboard│    │  Payment System │
+│   (User Access) │    │  (Management)   │    │  (Yo Payments)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  Laravel Backend│
+                    │  (API & Logic)  │
+                    └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   MySQL Database│
+                    │  (Data Storage) │
+                    └─────────────────┘
+```
+
+### Key Components
+- **Frontend**: Bootstrap 5, responsive design
+- **Backend**: Laravel 10, PHP 8.1+
+- **Database**: MySQL with proper relationships
+- **Payments**: Yo! Payments API integration
+- **SMS**: UGSMS API for voucher delivery
+- **Email**: Resend API for notifications
+
+## 🚀 Installation
+
+### Prerequisites
 - PHP 8.1 or higher
 - MySQL 5.7 or higher
 - Composer
-- XAMPP (for local development)
+- Node.js (for asset compilation)
 
-## 🛠️ Installation
+### Quick Setup
 
-### 1. Clone the Repository
+1. **Clone the repository**
 ```bash
 git clone <repository-url>
-cd wifi-saas
+cd wifi-billing-system
 ```
 
-### 2. Install Dependencies
+2. **Install dependencies**
 ```bash
 composer install
+npm install
 ```
 
-### 3. Environment Setup
-Copy the `.env.example` file to `.env`:
+3. **Environment setup**
 ```bash
 cp .env.example .env
-```
-
-Update the `.env` file with your database credentials:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=wifi_saas
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### 4. Generate Application Key
-```bash
 php artisan key:generate
 ```
 
-### 5. Run Database Migrations
+4. **Database setup**
 ```bash
 php artisan migrate
+php artisan db:seed --class=SubscriptionPlanSeeder
 ```
 
-### 6. Set Permissions (Linux/Mac)
+5. **Build assets**
 ```bash
-chmod -R 775 storage bootstrap/cache
+npm run build
 ```
 
-### 7. Start the Application
+6. **Start development server**
 ```bash
 php artisan serve
 ```
 
-## 🌐 Access the Application
+## ⚙️ Configuration
 
-- **Landing Page**: http://localhost:8000
-- **Admin Login**: http://localhost:8000/login
-- **Registration**: http://localhost:8000/register
+### Environment Variables
 
-## 🔧 Configuration
-
-### Payment Gateway (Yo Payments)
-Update your `.env` file with Yo Payments credentials:
+#### Basic Configuration
 ```env
-YO_PAYMENTS_BASE_URL=https://pay.yo.co.ug/api
-YO_PAYMENTS_API_KEY=your_api_key_here
-YO_PAYMENTS_SECRET_KEY=your_secret_key_here
-YO_PAYMENTS_MERCHANT_ID=your_merchant_id_here
-YO_PAYMENTS_ENVIRONMENT=sandbox
+APP_NAME=WIFIHYPER
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=wifi_billing
+DB_USERNAME=root
+DB_PASSWORD=
 ```
 
-### SMS Gateway (UG SMS)
-Update your `.env` file with UG SMS credentials:
+#### Payment API Configuration
 ```env
-UG_SMS_BASE_URL=https://api.ug-sms.com/api/v1
-UG_SMS_API_KEY=your_api_key_here
-UG_SMS_USERNAME=your_username_here
-UG_SMS_SENDER_ID=WiFiSaaS
-UG_SMS_ENVIRONMENT=sandbox
+YO_PAYMENTS_API_URL=https://pay.yo.co.ug/api/deposit
+YO_PAYMENTS_MERCHANT_ID=your_merchant_id
+YO_PAYMENTS_SECRET_KEY=your_secret_key
 ```
 
-## 📱 Usage
+#### SMS API Configuration
+```env
+UG_SMS_API_URL=https://api.ug.sms.com/send
+UG_SMS_USERNAME=your_sms_username
+UG_SMS_PASSWORD=your_sms_password
+```
 
-### For Tenants (WiFi Business Owners)
+#### Email Configuration
+```env
+RESEND_API_KEY=your_resend_api_key
+MAIL_MAILER=resend
+MAIL_FROM_ADDRESS=noreply@yourdomain.com
+```
 
-1. **Register**: Create an account at the landing page
-2. **Add Hotspots**: Configure your WiFi hotspots
-3. **Create Packages**: Set up WiFi packages with pricing
-4. **Upload Vouchers**: Add voucher codes for your packages
-5. **Monitor Sales**: Track transactions and analytics
-
-### For End Users (WiFi Customers)
-
-1. **Connect to WiFi**: Connect to the hotspot
-2. **Access Portal**: Automatically redirected to payment page
-3. **Select Package**: Choose WiFi package and duration
-4. **Make Payment**: Pay via mobile money
-5. **Receive Voucher**: Get voucher code via SMS
-6. **Connect**: Use voucher to access WiFi
+### Production Settings
+```env
+APP_ENV=production
+APP_DEBUG=false
+LOG_LEVEL=error
+CACHE_DRIVER=file
+SESSION_DRIVER=file
+QUEUE_CONNECTION=sync
+```
 
 ## 🗄️ Database Structure
 
 ### Core Tables
-- `tenants` - Tenant information and settings
-- `hotspots` - WiFi hotspot configurations
-- `packages` - WiFi packages and pricing
-- `vouchers` - Voucher codes and status
-- `transactions` - Payment transactions
-- `sms_logs` - SMS delivery logs
 
-## 🔒 Security Features
+#### Tenants
+- **Purpose**: Multi-tenant architecture
+- **Key Fields**: name, email, subscription_plan_id
+- **Relationships**: hasMany hotspots, hasMany vouchers
 
-- Session-based authentication
-- CSRF protection
-- Input validation and sanitization
-- SQL injection prevention
-- XSS protection
+#### Hotspots
+- **Purpose**: WiFi access points
+- **Key Fields**: name, ssid, location, tenant_id
+- **Relationships**: belongsTo tenant, hasMany packages
 
-## 🚀 Deployment
+#### Packages
+- **Purpose**: WiFi service offerings
+- **Key Fields**: name, price, duration_hours, data_limit_mb
+- **Relationships**: belongsTo hotspot, hasMany vouchers
 
-### For Production
+#### Vouchers
+- **Purpose**: WiFi access codes
+- **Key Fields**: code, status, phone_number, expires_at
+- **Relationships**: belongsTo package, belongsTo tenant
 
-1. **Update Environment**
-   - Set `APP_ENV=production`
-   - Set `APP_DEBUG=false`
-   - Configure production database
+#### Transactions
+- **Purpose**: Payment tracking
+- **Key Fields**: amount, status, phone_number, reference
+- **Relationships**: belongsTo tenant, belongsTo package
 
-2. **Optimize Application**
-   ```bash
-   php artisan config:cache
-   php artisan route:cache
-   php artisan view:cache
-   ```
-
-3. **Set Permissions**
-   ```bash
-   chmod -R 755 storage bootstrap/cache
-   ```
-
-4. **Configure Web Server**
-   - Point document root to `public/` directory
-   - Enable URL rewriting
-   - Configure SSL certificate
-
-### For XAMPP
-
-1. Copy the project to `htdocs/`
-2. Access via `http://localhost/wifi-saas/public`
-3. Run the setup script: `setup.bat`
-
-## 📊 API Endpoints
-
-### Authentication
-- `POST /login` - Tenant login
-- `POST /register` - Tenant registration
-- `POST /logout` - Tenant logout
-
-### Dashboard
-- `GET /dashboard` - Main dashboard
-- `GET /billing` - Transaction history
-- `GET /hotspots` - Hotspot management
-- `GET /vouchers` - Voucher management
-
-### Payment
-- `POST /payment/process` - Process payment
-- `GET /payment/callback` - Payment callback
-- `GET /payment/status/{id}` - Check payment status
-
-### Portal
-- `GET /portal/{hotspot}` - Captive portal
-- `GET /portal/{hotspot}/payment` - Payment form
-
-## 🧪 Testing
-
-### Default Credentials
-- **Email**: admin@example.com
-- **Password**: password123
-
-### Test Data
-You can create test data using Laravel seeders:
-```bash
-php artisan db:seed
+### Database Relationships
+```
+Tenant (1) ── (Many) Hotspots
+Hotspot (1) ── (Many) Packages
+Package (1) ── (Many) Vouchers
+Tenant (1) ── (Many) Transactions
 ```
 
-## 📞 Support
+## 💳 Payment Flow
 
-For support and questions:
-- Email: support@wifi-saas.com
-- Documentation: https://docs.wifi-saas.com
-- Issues: GitHub Issues
+### Complete Payment Process
 
-## 📄 License
+1. **User Access**
+   - User connects to WiFi hotspot
+   - Captive portal displays available packages
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+2. **Package Selection**
+   - User selects WiFi package
+   - System checks voucher availability
+   - Real-time stock validation
+
+3. **Payment Initiation**
+   - User enters phone number (local format: 0744744888)
+   - System converts to international format (256744744888)
+   - Payment request sent to Yo! Payments
+
+4. **Payment Processing**
+   - User completes payment via mobile money
+   - Yo! Payments sends callback to system
+   - Transaction status updated
+
+5. **Voucher Delivery**
+   - Available voucher assigned to transaction
+   - SMS sent with WiFi code
+   - User receives voucher code
+
+6. **WiFi Access**
+   - User enters voucher code
+   - WiFi access granted
+   - Usage tracking begins
+
+### Phone Number Handling
+- **Input Format**: Local format (0744744888, 0397373763)
+- **Conversion**: Automatic to international (256XXXXXXXX)
+- **Validation**: Uganda mobile number validation
+- **Error Handling**: Clear user feedback
+
+## 📱 Mobile Responsiveness
+
+### Responsive Design Features
+
+#### Landing Page
+- **Hero Section**: Full-height responsive design
+- **Feature Cards**: Adaptive grid layout
+- **Footer**: Gradient background with brand colors
+- **Navigation**: Mobile-friendly menu
+
+#### Dashboard
+- **Sidebar**: Collapsible on mobile devices
+- **Tables**: Horizontal scrolling on small screens
+- **Forms**: Touch-friendly input fields
+- **Buttons**: Proper touch targets (44px minimum)
+
+#### Captive Portal
+- **Package Cards**: Responsive grid layout
+- **Payment Modal**: Mobile-optimized form
+- **Phone Input**: Touch-friendly number pad
+- **Loading States**: Visual feedback during processing
+
+### CSS Media Queries
+```css
+/* Mobile devices */
+@media (max-width: 768px) {
+    .portal-container { padding: 10px; }
+    .package-card { margin-bottom: 10px; }
+    .btn-buy-now { padding: 12px 20px; }
+}
+
+/* Tablet devices */
+@media (max-width: 1024px) {
+    .dashboard-sidebar { position: fixed; }
+    .main-content { margin-left: 0; }
+}
+```
+
+## 🚀 Production Deployment
+
+### Deployment Checklist
+
+#### Environment Setup
+- [ ] Set `APP_ENV=production`
+- [ ] Set `APP_DEBUG=false`
+- [ ] Configure real API credentials
+- [ ] Set up SSL certificate
+- [ ] Configure database backups
+
+#### File Permissions
+```bash
+chmod -R 775 storage/
+chmod -R 775 bootstrap/cache/
+chown -R www-data:www-data storage/
+chown -R www-data:www-data bootstrap/cache/
+```
+
+#### Cache Clearing
+```bash
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan route:clear
+```
+
+#### Database Setup
+```bash
+php artisan migrate --force
+php artisan db:seed --class=SubscriptionPlanSeeder --force
+```
+
+### Deployment Script
+```bash
+#!/bin/bash
+echo '🚀 Deploying WIFIHYPER to production...'
+
+# Set file permissions
+chmod -R 775 storage/
+chmod -R 775 bootstrap/cache/
+chown -R www-data:www-data storage/
+chown -R www-data:www-data bootstrap/cache/
+
+# Clear caches
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+php artisan route:clear
+
+# Run migrations
+php artisan migrate --force
+
+# Seed data if needed
+php artisan db:seed --class=SubscriptionPlanSeeder --force
+
+echo '✅ Deployment complete!'
+```
+
+## 🔒 Security
+
+### Security Features
+
+#### Authentication & Authorization
+- **Session Management**: Secure session handling
+- **CSRF Protection**: Built-in Laravel CSRF tokens
+- **Input Validation**: Comprehensive form validation
+- **SQL Injection Prevention**: Eloquent ORM protection
+
+#### Data Protection
+- **Environment Variables**: Sensitive data in .env
+- **Database Encryption**: Sensitive fields encrypted
+- **API Key Security**: Secure API credential storage
+- **HTTPS Enforcement**: SSL certificate required
+
+#### Payment Security
+- **Yo! Payments Integration**: Secure payment gateway
+- **Transaction Validation**: Server-side payment verification
+- **Callback Verification**: Secure payment confirmation
+- **Error Handling**: Comprehensive error logging
+
+### Security Checklist
+- [ ] SSL certificate installed
+- [ ] HTTPS enabled
+- [ ] File permissions set correctly
+- [ ] Database credentials secured
+- [ ] API keys protected
+- [ ] Error logging configured
+- [ ] Regular security updates
+- [ ] Database backups configured
+
+## 🔌 API Integrations
+
+### Yo! Payments API
+```php
+// Payment initiation
+$paymentData = [
+    'amount' => 1000,
+    'phone_number' => '256744744888',
+    'reference' => 'TXN_' . time(),
+    'description' => 'WiFi voucher payment'
+];
+
+$response = $yoPayments->initiatePayment($paymentData);
+```
+
+### UGSMS API
+```php
+// SMS sending
+$smsData = [
+    'phone_number' => '256744744888',
+    'message' => 'Your WiFi code: ABC123'
+];
+
+$response = $smsService->sendVoucherCode($smsData);
+```
+
+### Resend Email API
+```php
+// Email sending
+$emailData = [
+    'to' => 'user@example.com',
+    'subject' => 'WiFi Voucher',
+    'html' => '<p>Your WiFi code: ABC123</p>'
+];
+
+$response = $resend->sendEmail($emailData);
+```
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### Package Creation Fails
+**Problem**: Database error creating package
+**Solution**: 
+1. Check for empty string values in integer fields
+2. Ensure sort_order is never null
+3. Verify hotspot_id exists
+4. Check database permissions
+
+#### Payment Flow Issues
+**Problem**: Payment initiation fails
+**Solution**:
+1. Verify Yo! Payments API credentials
+2. Check phone number format (256XXXXXXXX)
+3. Ensure voucher availability
+4. Check network connectivity
+
+#### SMS Not Sending
+**Problem**: Voucher codes not delivered
+**Solution**:
+1. Check UGSMS API credentials
+2. Verify phone number format
+3. Check SMS balance
+4. Review API response logs
+
+#### Mobile Responsiveness Issues
+**Problem**: Layout breaks on mobile
+**Solution**:
+1. Check Bootstrap CSS loading
+2. Verify viewport meta tag
+3. Test media queries
+4. Check JavaScript errors
+
+### Debug Commands
+```bash
+# Check application status
+php artisan route:list
+php artisan config:cache
+php artisan view:cache
+
+# Database checks
+php artisan migrate:status
+php artisan db:show
+
+# Clear all caches
+php artisan optimize:clear
+```
+
+### Log Files
+- **Application Logs**: `storage/logs/laravel.log`
+- **Payment Logs**: Check Yo! Payments dashboard
+- **SMS Logs**: Check UGSMS dashboard
+- **Error Logs**: `storage/logs/error.log`
+
+## 📈 Performance Optimization
+
+### Database Optimization
+```sql
+-- Add indexes for better performance
+CREATE INDEX idx_transactions_status ON transactions(status);
+CREATE INDEX idx_vouchers_package_status ON vouchers(package_id, status);
+CREATE INDEX idx_packages_hotspot_active ON packages(hotspot_id, is_active);
+```
+
+### Caching Strategy
+```php
+// Cache frequently accessed data
+Cache::remember('package_availability', 300, function() {
+    return VoucherAvailabilityService::getAvailability();
+});
+```
+
+### Queue Processing
+```php
+// Use queues for SMS and email sending
+dispatch(new SendVoucherSms($transaction));
+dispatch(new SendPaymentNotification($transaction));
+```
+
+## 📊 Monitoring & Analytics
+
+### Key Metrics
+- **Payment Success Rate**: Track successful transactions
+- **SMS Delivery Rate**: Monitor voucher delivery
+- **Voucher Usage**: Track WiFi access patterns
+- **Revenue Analytics**: Sales and profit tracking
+
+### Logging Strategy
+```php
+// Payment success logging
+Log::info('Payment successful', [
+    'transaction_id' => $transactionId,
+    'amount' => $amount,
+    'package' => $packageName,
+]);
+
+// Error logging
+Log::error('Payment failed', [
+    'transaction_id' => $transactionId,
+    'error' => $error,
+    'user_agent' => $request->userAgent(),
+    'ip' => $request->ip(),
+]);
+```
+
+## 🔄 Changelog
+
+### Version 1.0.0 (Latest)
+- ✅ **Multi-tenant architecture** implemented
+- ✅ **Payment system** with Yo! Payments integration
+- ✅ **SMS delivery** with UGSMS integration
+- ✅ **Mobile responsive** design
+- ✅ **Captive portal** with real-time availability
+- ✅ **Package creation** with enhanced validation
+- ✅ **Phone number formatting** with automatic conversion
+- ✅ **Production deployment** guide
+- ✅ **Security features** implemented
+- ✅ **Database optimization** completed
+
+### Key Fixes
+- **Package Creation**: Fixed empty string handling for integer fields
+- **Phone Number Input**: Enhanced user experience with local format input
+- **Mobile Responsiveness**: Improved touch targets and layout
+- **Payment Flow**: Robust error handling and validation
+- **Database Structure**: Proper foreign key relationships
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Add tests
+4. Add tests if applicable
 5. Submit a pull request
 
-## 📈 Roadmap
+## 📄 License
 
-- [ ] Mobile app for tenants
-- [ ] Advanced analytics
-- [ ] Multi-language support
-- [ ] API documentation
-- [ ] White-label solution
-- [ ] Advanced reporting
-- [ ] Bulk SMS features
-- [ ] Integration with more payment gateways
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 📞 Support
+
+For support and questions:
+- **Email**: support@wifihyper.com
+- **Documentation**: Check the guides above
+- **Issues**: Use GitHub issues for bug reports
 
 ---
 
-**WIFIHYPER** - Making WiFi management simple and profitable! 🚀
+**WIFIHYPER** - Professional WiFi Billing System  
+**Version**: 1.0.0  
+**Status**: Production Ready ✅  
+**Last Updated**: August 2025
