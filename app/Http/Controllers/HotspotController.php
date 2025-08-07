@@ -207,7 +207,30 @@ class HotspotController extends Controller
         }
 
         try {
-            Package::create([
+            // Log the attempt
+            \Log::info('Attempting to create package', [
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id,
+                'package_data' => $request->all()
+            ]);
+
+            // Check if hotspot exists and belongs to tenant
+            if (!$hotspot->exists) {
+                \Log::error('Hotspot not found', ['hotspot_id' => $hotspot->id]);
+                return back()->with('error', 'Hotspot not found.')->withInput();
+            }
+
+            // Validate hotspot ownership
+            if ($hotspot->tenant_id !== $tenant->id) {
+                \Log::error('Unauthorized package creation attempt', [
+                    'tenant_id' => $tenant->id,
+                    'hotspot_tenant_id' => $hotspot->tenant_id
+                ]);
+                return back()->with('error', 'Unauthorized action.')->withInput();
+            }
+
+            // Create the package
+            $package = Package::create([
                 'hotspot_id' => $hotspot->id,
                 'name' => $request->name,
                 'description' => $request->description,
@@ -218,9 +241,42 @@ class HotspotController extends Controller
                 'is_active' => $request->has('is_active'),
             ]);
 
+            \Log::info('Package created successfully', [
+                'package_id' => $package->id,
+                'hotspot_id' => $hotspot->id,
+                'tenant_id' => $tenant->id
+            ]);
+
             return back()->with('success', 'Package created successfully!');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Database error creating package', [
+                'error' => $e->getMessage(),
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id,
+                'request_data' => $request->all()
+            ]);
+
+            // Check for specific database errors
+            if (str_contains($e->getMessage(), 'foreign key constraint')) {
+                return back()->with('error', 'Database constraint error. Please check if the hotspot exists.')->withInput();
+            }
+
+            if (str_contains($e->getMessage(), 'duplicate entry')) {
+                return back()->with('error', 'A package with this name already exists.')->withInput();
+            }
+
+            return back()->with('error', 'Database error occurred while creating package.')->withInput();
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to create package.')->withInput();
+            \Log::error('Unexpected error creating package', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id
+            ]);
+
+            return back()->with('error', 'An unexpected error occurred while creating package.')->withInput();
         }
     }
 

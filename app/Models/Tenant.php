@@ -51,7 +51,73 @@ class Tenant extends Model
      */
     public function getCurrentPlan()
     {
-        return $this->subscriptionPlan ?? SubscriptionPlan::getDefaultPlan();
+        // If tenant has a subscription plan, return it
+        if ($this->subscriptionPlan) {
+            return $this->subscriptionPlan;
+        }
+
+        // If no subscription plan, get the default plan
+        $defaultPlan = SubscriptionPlan::getDefaultPlan();
+        
+        if (!$defaultPlan) {
+            // If no default plan exists, create a fallback
+            \Log::warning('No default subscription plan found, creating fallback', [
+                'tenant_id' => $this->id,
+                'tenant_email' => $this->email
+            ]);
+            
+            // Create a basic fallback plan
+            $defaultPlan = SubscriptionPlan::create([
+                'name' => 'Basic',
+                'slug' => 'basic',
+                'description' => 'Basic plan for existing users',
+                'monthly_price' => 0.00,
+                'yearly_price' => 0.00,
+                'is_active' => true,
+                'is_featured' => false,
+                'sort_order' => 1,
+                'max_hotspots' => 3,
+                'max_vouchers_per_month' => 5000,
+                'max_users' => 1,
+                'max_transactions_per_month' => 1000,
+                'transaction_fees' => json_encode([
+                    [
+                        'min' => 0,
+                        'max' => 1000,
+                        'percentage' => 15,
+                        'description' => 'UGX 1000 and below - 15%'
+                    ],
+                    [
+                        'min' => 1001,
+                        'max' => 5000,
+                        'percentage' => 10,
+                        'description' => 'UGX 1000 to 5000 - 10%'
+                    ],
+                    [
+                        'min' => 5001,
+                        'max' => 999999999,
+                        'percentage' => 5,
+                        'description' => 'UGX 5000 and above - 5%'
+                    ]
+                ]),
+                'features' => json_encode([
+                    'basic_wifi_management',
+                    'voucher_system',
+                    'payment_processing'
+                ]),
+                'restrictions' => json_encode([
+                    'no_source_code_access',
+                    'no_custom_portal',
+                    'no_api_access'
+                ]),
+                'custom_portal' => false,
+                'source_code_access' => false,
+                'api_access' => false,
+                'priority_support' => false,
+            ]);
+        }
+
+        return $defaultPlan;
     }
 
     /**
