@@ -25,6 +25,76 @@
             min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                z-index: 1050;
+                transition: left 0.3s ease;
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .topbar {
+                position: sticky;
+                top: 0;
+                z-index: 1040;
+            }
+            
+            .card {
+                margin-bottom: 1rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+            
+            .navbar-nav .dropdown-menu {
+                position: static !important;
+                float: none;
+                width: 100%;
+                margin-top: 0.5rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .container-fluid {
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            
+            .p-4 {
+                padding: 1rem !important;
+            }
+            
+            .display-4 {
+                font-size: 2rem;
+            }
+            
+            .display-5 {
+                font-size: 1.75rem;
+            }
+            
+            .card-body {
+                padding: 1rem;
+            }
+        }
         .sidebar .nav-link {
             color: rgba(255,255,255,0.8);
             padding: 0.75rem 1rem;
@@ -269,7 +339,7 @@
             <!-- Topbar -->
             <nav class="topbar navbar navbar-expand navbar-light">
                 <div class="container-fluid">
-                    <button class="btn btn-link d-md-none" type="button">
+                    <button class="btn btn-link d-md-none" type="button" onclick="toggleSidebar()">
                         <i class="fas fa-bars"></i>
                     </button>
 
@@ -490,6 +560,25 @@
         document.addEventListener('DOMContentLoaded', function() {
             startNotificationChecking();
             applyUserSettings();
+        });
+        
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('show');
+        }
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.querySelector('.btn-link');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggleBtn.contains(event.target) &&
+                sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
         });
         
         // Apply user settings (theme, compact mode, etc.)

@@ -23,12 +23,16 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 100px 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
         }
         .feature-card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1);
             transition: transform 0.3s ease;
+            height: 100%;
         }
         .feature-card:hover {
             transform: translateY(-5px);
@@ -66,9 +70,116 @@
             backdrop-filter: blur(10px);
         }
         .footer {
-            background: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 40px 0;
+        }
+        .footer a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        .footer a:hover {
+            color: white;
+        }
+        .footer h6 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .footer .text-muted {
+            color: rgba(255,255,255,0.7) !important;
+        }
+        
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 60px 0;
+                text-align: center;
+            }
+            .hero-section h1 {
+                font-size: 2.5rem;
+            }
+            .hero-section .lead {
+                font-size: 1.1rem;
+            }
+            .hero-section .d-flex {
+                flex-direction: column;
+                gap: 1rem !important;
+            }
+            .hero-section .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+            .feature-card {
+                margin-bottom: 1.5rem;
+            }
+            .feature-icon {
+                font-size: 2.5rem;
+            }
+            .cta-section {
+                padding: 60px 0;
+            }
+            .footer {
+                text-align: center;
+            }
+            .footer .col-md-3,
+            .footer .col-md-6 {
+                margin-bottom: 2rem;
+            }
+            .navbar-nav {
+                text-align: center;
+            }
+            .navbar-nav .btn {
+                margin: 0.5rem 0;
+                width: 100%;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .hero-section h1 {
+                font-size: 2rem;
+            }
+            .display-5 {
+                font-size: 2.5rem;
+            }
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            .card-body {
+                padding: 1.5rem;
+            }
+        }
+        
+        /* Improved spacing for mobile */
+        @media (max-width: 768px) {
+            .py-5 {
+                padding-top: 3rem !important;
+                padding-bottom: 3rem !important;
+            }
+            .mb-4 {
+                margin-bottom: 1.5rem !important;
+            }
+            .mb-5 {
+                margin-bottom: 2rem !important;
+            }
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Better touch targets for mobile */
+        @media (max-width: 768px) {
+            .nav-link,
+            .btn {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
         }
     </style>
 </head>
@@ -345,28 +456,28 @@
                 <div class="col-md-3">
                     <h6>Product</h6>
                     <ul class="list-unstyled">
-                        <li><a href="#features" class="text-muted text-decoration-none">Features</a></li>
-                        <li><a href="#pricing" class="text-muted text-decoration-none">Pricing</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">Documentation</a></li>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#">Documentation</a></li>
                     </ul>
                 </div>
                 <div class="col-md-3">
                     <h6>Company</h6>
                     <ul class="list-unstyled">
-                        <li><a href="#" class="text-muted text-decoration-none">About</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">Contact</a></li>
-                        <li><a href="#" class="text-muted text-decoration-none">Support</a></li>
+                        <li><a href="#">About</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Support</a></li>
                     </ul>
                 </div>
             </div>
-            <hr class="my-4">
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
             <div class="row">
                 <div class="col-md-6">
                     <p class="text-muted mb-0">&copy; 2024 All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
-                    <a href="#" class="text-muted text-decoration-none me-3">Privacy Policy</a>
-                    <a href="#" class="text-muted text-decoration-none">Terms of Service</a>
+                    <a href="#" class="me-3">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
                 </div>
             </div>
         </div>
