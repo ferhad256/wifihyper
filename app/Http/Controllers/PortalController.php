@@ -20,12 +20,12 @@ class PortalController extends Controller
     /**
      * Show captive portal for a hotspot
      */
-    public function index($hotspotId)
+    public function index($hotspotName)
     {
-        $hotspot = Hotspot::findOrFail($hotspotId);
+        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
         
         if (!$hotspot->is_active) {
-            return redirect()->route('portal.inactive', $hotspotId);
+            return redirect()->route('portal.inactive', $hotspot->name);
         }
 
         $packages = $hotspot->packages()
@@ -51,13 +51,13 @@ class PortalController extends Controller
     /**
      * Show payment form for a specific package
      */
-    public function payment($hotspotId, Request $request)
+    public function payment($hotspotName, Request $request)
     {
-        $hotspot = Hotspot::findOrFail($hotspotId);
+        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
         $package = Package::findOrFail($request->package_id);
         
         if (!$hotspot->is_active || !$package->is_active) {
-            return redirect()->route('portal.inactive', $hotspotId);
+            return redirect()->route('portal.inactive', $hotspot->name);
         }
 
         return view('portal.payment', compact('hotspot', 'package'));
@@ -66,9 +66,9 @@ class PortalController extends Controller
     /**
      * Show inactive hotspot page
      */
-    public function inactive($hotspotId)
+    public function inactive($hotspotName)
     {
-        $hotspot = Hotspot::findOrFail($hotspotId);
+        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
         
         return view('portal.inactive', compact('hotspot'));
     }
@@ -106,9 +106,9 @@ class PortalController extends Controller
     /**
      * Test portal functionality
      */
-    public function test($hotspotId)
+    public function test($hotspotName)
     {
-        $hotspot = Hotspot::findOrFail($hotspotId);
+        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
         $packages = $hotspot->packages()->where('is_active', true)->get();
         
         return view('portal.test', compact('hotspot', 'packages'));
@@ -117,9 +117,9 @@ class PortalController extends Controller
     /**
      * API endpoint to check voucher availability in real-time
      */
-    public function checkAvailability($hotspotId, Request $request)
+    public function checkAvailability($hotspotName, Request $request)
     {
-        $hotspot = Hotspot::findOrFail($hotspotId);
+        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
         $packageId = $request->input('package_id');
         
         if (!$packageId) {

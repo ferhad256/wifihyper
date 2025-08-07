@@ -158,7 +158,7 @@
                         <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
                             <i class="fas fa-box me-2"></i>Manage Packages
                         </a>
-                        <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-warning" target="_blank">
+                        <a href="{{ route('portal.index', $hotspot->name) }}" class="btn btn-warning" target="_blank">
                             <i class="fas fa-external-link-alt me-2"></i>View Portal
                         </a>
                     </div>
@@ -174,7 +174,7 @@
                     <div class="mb-3">
                         <label class="form-label"><strong>Portal URL:</strong></label>
                         <div class="input-group">
-                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot) }}" readonly>
+                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->name) }}" readonly>
                             <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard(this)">
                                 <i class="fas fa-copy"></i>
                             </button>

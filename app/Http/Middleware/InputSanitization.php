@@ -49,7 +49,7 @@ class InputSanitization
     protected function sanitizeValue($value): string
     {
         if (!is_string($value)) {
-            return $value;
+            return (string) $value;
         }
         
         // Remove null bytes

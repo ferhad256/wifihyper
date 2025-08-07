@@ -37,12 +37,14 @@ class VoucherController extends Controller
                 return $hotspot->packages;
             });
 
-        // Group only UNUSED vouchers by package
-        $vouchersByPackage = $tenant->vouchers()
+        // Group only UNUSED vouchers by hotspot
+        $vouchersByHotspot = $tenant->vouchers()
             ->where('status', 'unused')
-            ->with('package')
+            ->with(['package.hotspot'])
             ->get()
-            ->groupBy('package_id');
+            ->groupBy(function ($voucher) {
+                return $voucher->package ? $voucher->package->hotspot_id : 'no_hotspot';
+            });
 
         // Get overall statistics for UNUSED vouchers only
         $totalVouchers = $tenant->vouchers()->where('status', 'unused')->count();
@@ -52,7 +54,7 @@ class VoucherController extends Controller
 
         return view('dashboard.vouchers.index', compact(
             'tenant', 
-            'vouchersByPackage', 
+            'vouchersByHotspot', 
             'packages', 
             'totalVouchers',
             'unusedVouchers',

@@ -112,11 +112,11 @@ Route::middleware('auth.tenant')->group(function () {
 
 // Captive portal routes (for WiFi users)
 Route::prefix('portal')->middleware('exclude.notifications')->group(function () {
-    Route::get('/{hotspot}', [PortalController::class, 'index'])->name('portal.index');
-    Route::get('/{hotspot}/payment', [PortalController::class, 'payment'])->name('portal.payment');
-    Route::get('/{hotspot}/inactive', [PortalController::class, 'inactive'])->name('portal.inactive');
-    Route::get('/{hotspot}/test', [PortalController::class, 'test'])->name('portal.test');
-    Route::post('/{hotspot}/check-availability', [PortalController::class, 'checkAvailability'])->name('portal.check-availability');
+    Route::get('/{hotspotName}', [PortalController::class, 'index'])->name('portal.index')->where('hotspotName', '[a-zA-Z0-9\-_]+');
+    Route::get('/{hotspotName}/payment', [PortalController::class, 'payment'])->name('portal.payment')->where('hotspotName', '[a-zA-Z0-9\-_]+');
+    Route::get('/{hotspotName}/inactive', [PortalController::class, 'inactive'])->name('portal.inactive')->where('hotspotName', '[a-zA-Z0-9\-_]+');
+    Route::get('/{hotspotName}/test', [PortalController::class, 'test'])->name('portal.test')->where('hotspotName', '[a-zA-Z0-9\-_]+');
+    Route::post('/{hotspotName}/check-availability', [PortalController::class, 'checkAvailability'])->name('portal.check-availability')->where('hotspotName', '[a-zA-Z0-9\-_]+');
 });
 
 // Payment routes

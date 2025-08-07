@@ -155,7 +155,7 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-info" target="_blank">
+                        <a href="{{ route('portal.index', $hotspot->name) }}" class="btn btn-info" target="_blank">
                             <i class="fas fa-external-link-alt me-2"></i>View Portal
                         </a>
                         <a href="{{ route('portal.test', $hotspot) }}" class="btn btn-warning" target="_blank">
@@ -180,7 +180,7 @@
                     <div class="mb-3">
                         <label class="form-label"><strong>Portal URL:</strong></label>
                         <div class="input-group">
-                            <input type="text" class="form-control" value="{{ route('portal.index', $hotspot) }}" readonly>
+                            <input type="text" class="form-control" value="{{ route('portal.index', $hotspot->name) }}" readonly>
                             <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard(this)">
                                 <i class="fas fa-copy"></i>
                             </button>

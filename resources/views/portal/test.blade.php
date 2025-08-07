@@ -101,7 +101,7 @@
                     @endforeach
                     
                     <div class="mt-4">
-                        <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary btn-lg w-100">
+                        <a href="{{ route('portal.index', $hotspot->name) }}" class="btn btn-primary btn-lg w-100">
                             <i class="fas fa-external-link-alt me-2"></i>View Live Portal
                         </a>
                     </div>

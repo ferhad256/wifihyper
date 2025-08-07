@@ -99,34 +99,36 @@
         </div>
     </div>
 
-    <!-- Vouchers Grouped by Package -->
-    @if($vouchersByPackage->count() > 0)
-        @foreach($vouchersByPackage as $packageId => $vouchers)
+    <!-- Vouchers Grouped by Hotspot -->
+    @if($vouchersByHotspot->count() > 0)
+        @foreach($vouchersByHotspot as $hotspotId => $vouchers)
             @php
-                $package = $vouchers->first()->package;
-                $packageName = $package ? $package->name : 'No Package';
+                $hotspot = $vouchers->first()->package ? $vouchers->first()->package->hotspot : null;
+                $hotspotName = $hotspot ? $hotspot->name : 'No Hotspot';
                 $unusedCount = $vouchers->where('status', 'unused')->count();
             @endphp
             
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <div>
-                        <h6 class="m-0 font-weight-bold text-primary">{{ $packageName }}</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-wifi me-2"></i>{{ $hotspotName }}
+                        </h6>
                         <small class="text-muted">
-                            {{ $vouchers->count() }} available vouchers
+                            {{ $vouchers->count() }} available vouchers across {{ $vouchers->groupBy('package_id')->count() }} packages
                         </small>
                     </div>
                     <div>
                         <button class="btn btn-success btn-sm me-2" 
-                                onclick="uploadForPackage({{ $packageId }}, '{{ $packageName }}')">
+                                onclick="uploadForHotspot({{ $hotspotId }}, '{{ $hotspotName }}')">
                             <i class="fas fa-upload me-1"></i>Add More
                         </button>
                         <button class="btn btn-warning btn-sm me-2" 
-                                onclick="uploadCsvForPackage({{ $packageId }}, '{{ $packageName }}')">
+                                onclick="uploadCsvForHotspot({{ $hotspotId }}, '{{ $hotspotName }}')">
                             <i class="fas fa-file-csv me-1"></i>Upload CSV
                         </button>
                         <button class="btn btn-danger btn-sm me-2" 
-                                onclick="deleteAllVouchers({{ $packageId }}, '{{ $packageName }}', {{ $vouchers->count() }})">
+                                onclick="deleteAllVouchersForHotspot({{ $hotspotId }}, '{{ $hotspotName }}', {{ $vouchers->count() }})">
                             <i class="fas fa-trash me-1"></i>Delete All
                         </button>
                         <a href="{{ route('vouchers.export') }}" class="btn btn-info btn-sm">
@@ -135,52 +137,66 @@
                     </div>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-sm" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>Voucher Code</th>
-                                    <th>Package</th>
-                                    <th>Status</th>
-                                    <th>Expires At</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($vouchers->take(10) as $voucher)
-                                <tr>
-                                    <td>
-                                        <code class="text-primary">{{ $voucher->code }}</code>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info">{{ $voucher->package->name ?? 'No Package' }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-success">Available</span>
-                                    </td>
-                                    <td>{{ $voucher->expires_at ? $voucher->expires_at->format('M d, Y') : 'No Expiry' }}</td>
-                                    <td>
-                                        <form method="POST" action="{{ route('vouchers.destroy', $voucher) }}" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this voucher?')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                    @php
+                        $vouchersByPackage = $vouchers->groupBy('package_id');
+                    @endphp
                     
-                    @if($vouchers->count() > 10)
-                        <div class="text-center mt-3">
-                            <small class="text-muted">
-                                Showing first 10 vouchers. Total: {{ $vouchers->count() }} available vouchers for this package.
-                            </small>
+                    @foreach($vouchersByPackage as $packageId => $packageVouchers)
+                        @php
+                            $package = $packageVouchers->first()->package;
+                            $packageName = $package ? $package->name : 'No Package';
+                        @endphp
+                        
+                        <div class="mb-4">
+                            <h6 class="text-secondary mb-3">
+                                <i class="fas fa-box me-2"></i>{{ $packageName }}
+                                <span class="badge bg-secondary ms-2">{{ $packageVouchers->count() }} vouchers</span>
+                            </h6>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm" width="100%" cellspacing="0">
+                                    <thead>
+                                        <tr>
+                                            <th>Voucher Code</th>
+                                            <th>Status</th>
+                                            <th>Expires At</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($packageVouchers->take(5) as $voucher)
+                                        <tr>
+                                            <td>
+                                                <code class="text-primary">{{ $voucher->code }}</code>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-success">Available</span>
+                                            </td>
+                                            <td>{{ $voucher->expires_at ? $voucher->expires_at->format('M d, Y') : 'No Expiry' }}</td>
+                                            <td>
+                                                <form method="POST" action="{{ route('vouchers.destroy', $voucher) }}" class="d-inline">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this voucher?')">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            @if($packageVouchers->count() > 5)
+                                <div class="text-center mt-2">
+                                    <small class="text-muted">
+                                        Showing first 5 vouchers. Total: {{ $packageVouchers->count() }} available vouchers for this package.
+                                    </small>
+                                </div>
+                            @endif
                         </div>
-                    @endif
+                    @endforeach
                 </div>
             </div>
         @endforeach
@@ -434,34 +450,27 @@
 
 @push('scripts')
 <script>
-function uploadForPackage(packageId, packageName) {
-    // Set the package in the upload modal
-    document.getElementById('package_id').value = packageId;
-    
-    // Update modal title
-    document.querySelector('#uploadMultipleModal .modal-title').textContent = `Upload Vouchers for ${packageName}`;
+function uploadForHotspot(hotspotId, hotspotName) {
+    // Show the upload modal for hotspot
+    document.querySelector('#uploadMultipleModal .modal-title').textContent = `Upload Vouchers for ${hotspotName}`;
     
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('uploadMultipleModal'));
     modal.show();
 }
 
-function uploadCsvForPackage(packageId, packageName) {
-    // Set the package in the CSV upload modal
-    document.getElementById('csv_package_id').value = packageId;
-    
-    // Update modal title
-    document.querySelector('#uploadCsvModal .modal-title').textContent = `Upload CSV for ${packageName}`;
+function uploadCsvForHotspot(hotspotId, hotspotName) {
+    // Show the CSV upload modal for hotspot
+    document.querySelector('#uploadCsvModal .modal-title').textContent = `Upload CSV for ${hotspotName}`;
     
     // Show the modal
     const modal = new bootstrap.Modal(document.getElementById('uploadCsvModal'));
     modal.show();
 }
 
-function deleteAllVouchers(packageId, packageName, voucherCount) {
-    // Set the package ID and details in the delete modal
-    document.getElementById('delete_package_id').value = packageId;
-    document.getElementById('delete_package_name').textContent = packageName;
+function deleteAllVouchersForHotspot(hotspotId, hotspotName, voucherCount) {
+    // Show the delete modal for hotspot
+    document.getElementById('delete_package_name').textContent = hotspotName;
     document.getElementById('delete_voucher_count').textContent = voucherCount;
     
     // Show the modal

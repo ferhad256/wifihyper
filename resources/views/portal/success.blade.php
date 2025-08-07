@@ -135,7 +135,7 @@
                         </div>
                         
                         <div class="mt-4">
-                            <a href="{{ route('portal.index', ['hotspot_id' => request('hotspot_id', 1)]) }}" class="btn btn-primary btn-lg">
+                            <a href="{{ route('portal.index', $hotspotName ?? 'default') }}" class="btn btn-primary btn-lg">
                                 <i class="fas fa-home me-2"></i>Back to Portal
                             </a>
                         </div>
