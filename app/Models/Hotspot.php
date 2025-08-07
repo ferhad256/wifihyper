@@ -47,4 +47,21 @@ class Hotspot extends Model
     {
         return $this->packages()->where('is_active', true)->get();
     }
+
+    /**
+     * Get URL-friendly name for the hotspot
+     */
+    public function getUrlNameAttribute()
+    {
+        // Convert to lowercase and replace spaces with hyphens
+        $name = strtolower($this->name);
+        // Remove special characters except alphanumeric, hyphens, and underscores
+        $name = preg_replace('/[^a-z0-9\-_]/', '', $name);
+        // Remove multiple consecutive hyphens
+        $name = preg_replace('/-+/', '-', $name);
+        // Remove leading and trailing hyphens
+        $name = trim($name, '-');
+        
+        return $name ?: 'hotspot-' . $this->id;
+    }
 }

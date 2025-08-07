@@ -158,7 +158,7 @@
                         <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
                             <i class="fas fa-box me-2"></i>Manage Packages
                         </a>
-                        <a href="{{ route('portal.index', $hotspot->name) }}" class="btn btn-warning" target="_blank">
+                        <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-warning" target="_blank">
                             <i class="fas fa-external-link-alt me-2"></i>View Portal
                         </a>
                     </div>

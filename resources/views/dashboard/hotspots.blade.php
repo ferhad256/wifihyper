@@ -83,7 +83,7 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <a href="{{ route('portal.index', $hotspot->name) }}" class="btn btn-sm btn-primary" target="_blank">
+                        <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-sm btn-primary" target="_blank">
                             <i class="fas fa-external-link-alt me-1"></i>View Portal
                         </a>
                         <a href="{{ route('portal.test', $hotspot) }}" class="btn btn-sm btn-info" target="_blank">

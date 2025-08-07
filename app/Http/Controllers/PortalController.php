@@ -22,7 +22,9 @@ class PortalController extends Controller
      */
     public function index($hotspotName)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
+        $hotspot = Hotspot::where('name', $hotspotName)
+            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower($hotspotName)])
+            ->firstOrFail();
         
         if (!$hotspot->is_active) {
             return redirect()->route('portal.inactive', $hotspot->name);
