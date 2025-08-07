@@ -142,6 +142,11 @@ class PlanLimitService
             
         $currentHotspots = $tenant->hotspots()->count();
         
+        // Ensure arrays are properly formatted
+        $transactionFees = is_array($plan->transaction_fees) ? $plan->transaction_fees : [];
+        $features = is_array($plan->features) ? $plan->features : [];
+        $restrictions = is_array($plan->restrictions) ? $plan->restrictions : [];
+        
         return [
             'plan' => [
                 'name' => $plan->name,
@@ -169,9 +174,9 @@ class PlanLimitService
                     'can_create' => $plan->canCreateTransaction($currentMonthTransactions),
                 ],
             ],
-            'features' => $plan->features,
-            'restrictions' => $plan->restrictions,
-            'transaction_fees' => $plan->transaction_fees,
+            'features' => $features,
+            'restrictions' => $restrictions,
+            'transaction_fees' => $transactionFees,
         ];
     }
 

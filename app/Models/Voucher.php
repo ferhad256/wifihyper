@@ -26,6 +26,14 @@ class Voucher extends Model
         'expires_at' => 'datetime',
     ];
 
+    /**
+     * Set expires_at attribute - handle empty strings
+     */
+    public function setExpiresAtAttribute($value)
+    {
+        $this->attributes['expires_at'] = $value && $value !== '' ? $value : null;
+    }
+
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);

@@ -91,11 +91,24 @@ class VoucherController extends Controller
         }
 
         try {
+            // Get hotspot_id from package
+            $hotspotId = null;
+            if ($request->package_id) {
+                $package = Package::find($request->package_id);
+                if ($package) {
+                    $hotspotId = $package->hotspot_id;
+                }
+            }
+
+            // Handle empty expiry date
+            $expiresAt = $request->expires_at ? $request->expires_at : null;
+
             Voucher::create([
                 'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspotId,
                 'code' => $request->code,
                 'package_id' => $request->package_id,
-                'expires_at' => $request->expires_at,
+                'expires_at' => $expiresAt,
                 'status' => 'unused',
             ]);
 
@@ -118,24 +131,82 @@ class VoucherController extends Controller
 
         $validator = Validator::make($request->all(), [
             'package_id' => 'required|exists:packages,id',
-            'voucher_codes' => 'required|string',
+            'voucher_codes' => 'required|string|min:1',
             'expires_at' => 'nullable|date|after:today',
         ]);
 
         if ($validator->fails()) {
-            return back()->withErrors($validator);
+            return back()->withErrors($validator)->withInput();
         }
 
         try {
-            // Parse voucher codes (comma-separated or newline-separated)
-            $codes = array_filter(array_map('trim', explode("\n", str_replace(',', "\n", $request->voucher_codes))));
+            // Get hotspot_id from package
+            $package = Package::find($request->package_id);
+            if (!$package) {
+                return back()->with('error', 'Package not found.')->withInput();
+            }
+
+            // Check plan limits before processing
+            $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
+            if (!$limitCheck['can_upload']) {
+                return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.")->withInput();
+            }
+
+            // Handle empty expiry date
+            $expiresAt = $request->expires_at ? $request->expires_at : null;
+
+            // SIMPLE PARSING: Split by any whitespace or comma
+            $rawInput = $request->voucher_codes;
+            
+            // Remove any carriage returns and normalize line endings
+            $rawInput = str_replace(["\r\n", "\r"], "\n", $rawInput);
+            
+            // Split by newlines first
+            $lines = explode("\n", $rawInput);
+            $codes = [];
+            
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+                
+                // If line contains commas, split by commas too
+                if (strpos($line, ',') !== false) {
+                    $commaParts = explode(',', $line);
+                    foreach ($commaParts as $part) {
+                        $part = trim($part);
+                        if (!empty($part)) {
+                            $codes[] = $part;
+                        }
+                    }
+                } else {
+                    $codes[] = $line;
+                }
+            }
+            
+            // Remove duplicates while preserving order
+            $codes = array_unique($codes);
+            
+            // Validate that we have at least one code
+            if (empty($codes)) {
+                return back()->with('error', 'No valid voucher codes provided.')->withInput();
+            }
+
+            // Check if we're within plan limits for the number of codes
+            if (count($codes) > $limitCheck['remaining'] && $limitCheck['remaining'] !== -1) {
+                return back()->with('error', "You can only upload {$limitCheck['remaining']} more vouchers this month. You're trying to upload " . count($codes) . " vouchers.")->withInput();
+            }
             
             $imported = 0;
             $skipped = 0;
             $errors = [];
+            $invalidCodes = [];
 
             foreach ($codes as $code) {
-                if (empty($code)) continue;
+                // Validate voucher code format (alphanumeric, 3-20 characters)
+                if (!preg_match('/^[a-zA-Z0-9]{3,20}$/', $code)) {
+                    $invalidCodes[] = $code;
+                    continue;
+                }
 
                 // Check if voucher already exists
                 $existingVoucher = Voucher::where('code', $code)->first();
@@ -147,9 +218,10 @@ class VoucherController extends Controller
                 try {
                     Voucher::create([
                         'tenant_id' => $tenant->id,
+                        'hotspot_id' => $package->hotspot_id,
                         'code' => $code,
                         'package_id' => $request->package_id,
-                        'expires_at' => $request->expires_at,
+                        'expires_at' => $expiresAt,
                         'status' => 'unused',
                     ]);
                     $imported++;
@@ -158,17 +230,38 @@ class VoucherController extends Controller
                 }
             }
 
+            // Build success message
             $message = "Successfully imported {$imported} vouchers.";
             if ($skipped > 0) {
                 $message .= " Skipped {$skipped} existing vouchers.";
             }
+            if (!empty($invalidCodes)) {
+                $message .= " Skipped " . count($invalidCodes) . " invalid voucher codes: " . implode(', ', array_slice($invalidCodes, 0, 5));
+                if (count($invalidCodes) > 5) {
+                    $message .= " and " . (count($invalidCodes) - 5) . " more";
+                }
+            }
             if (!empty($errors)) {
-                $message .= " Errors: " . implode(', ', $errors);
+                $message .= " Errors: " . implode(', ', array_slice($errors, 0, 3));
+                if (count($errors) > 3) {
+                    $message .= " and " . (count($errors) - 3) . " more errors";
+                }
             }
 
-            return back()->with('success', $message);
+            // Determine message type
+            if ($imported > 0) {
+                return back()->with('success', $message);
+            } else {
+                return back()->with('warning', $message)->withInput();
+            }
+
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to upload vouchers: ' . $e->getMessage());
+            \Log::error('Multiple voucher upload failed', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'package_id' => $request->package_id,
+            ]);
+            return back()->with('error', 'Failed to upload vouchers: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -308,7 +401,15 @@ class VoucherController extends Controller
         try {
             $file = $request->file('csv_file');
             $packageId = $request->package_id;
-            $expiresAt = $request->expires_at;
+            
+            // Handle empty expiry date
+            $expiresAt = $request->expires_at ? $request->expires_at : null;
+
+            // Get hotspot_id from package
+            $package = Package::find($packageId);
+            if (!$package) {
+                return back()->with('error', 'Package not found.');
+            }
 
             $imported = 0;
             $skipped = 0;
@@ -344,6 +445,7 @@ class VoucherController extends Controller
                 try {
                     Voucher::create([
                         'tenant_id' => $tenant->id,
+                        'hotspot_id' => $package->hotspot_id,
                         'code' => $code,
                         'package_id' => $packageId,
                         'expires_at' => $expiresAt,

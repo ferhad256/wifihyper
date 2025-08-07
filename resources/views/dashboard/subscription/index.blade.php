@@ -132,30 +132,39 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($planUsage['transaction_fees'] as $fee)
+                                    @if(is_array($planUsage['transaction_fees']))
+                                        @foreach($planUsage['transaction_fees'] as $fee)
+                                            <tr>
+                                                <td>
+                                                    @if($fee['min'] == 0)
+                                                        UGX {{ number_format($fee['min']) }} and below
+                                                    @elseif($fee['max'] == 999999999)
+                                                        UGX {{ number_format($fee['min']) }} and above
+                                                    @else
+                                                        UGX {{ number_format($fee['min']) }} to {{ number_format($fee['max']) }}
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-primary">{{ $fee['percentage'] }}%</span>
+                                                </td>
+                                                <td>
+                                                    @php
+                                                        $exampleAmount = $fee['min'] > 0 ? $fee['min'] : 1000;
+                                                        $exampleFee = ($exampleAmount * $fee['percentage']) / 100;
+                                                        $exampleTotal = $exampleAmount + $exampleFee;
+                                                    @endphp
+                                                    UGX {{ number_format($exampleAmount) }} + {{ $fee['percentage'] }}% = UGX {{ number_format($exampleTotal) }}
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @else
                                         <tr>
-                                            <td>
-                                                @if($fee['min'] == 0)
-                                                    UGX {{ number_format($fee['min']) }} and below
-                                                @elseif($fee['max'] == 999999999)
-                                                    UGX {{ number_format($fee['min']) }} and above
-                                                @else
-                                                    UGX {{ number_format($fee['min']) }} to {{ number_format($fee['max']) }}
-                                                @endif
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-primary">{{ $fee['percentage'] }}%</span>
-                                            </td>
-                                            <td>
-                                                @php
-                                                    $exampleAmount = $fee['min'] > 0 ? $fee['min'] : 1000;
-                                                    $exampleFee = ($exampleAmount * $fee['percentage']) / 100;
-                                                    $exampleTotal = $exampleAmount + $exampleFee;
-                                                @endphp
-                                                UGX {{ number_format($exampleAmount) }} + {{ $fee['percentage'] }}% = UGX {{ number_format($exampleTotal) }}
+                                            <td colspan="3" class="text-center text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Transaction fees not configured for this plan.
                                             </td>
                                         </tr>
-                                    @endforeach
+                                    @endif
                                 </tbody>
                             </table>
                         </div>
@@ -174,12 +183,19 @@
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
-                        @foreach($planUsage['features'] as $feature)
-                            <li class="mb-2">
-                                <i class="fas fa-check text-success me-2"></i>
-                                {{ ucwords(str_replace('_', ' ', $feature)) }}
+                        @if(is_array($planUsage['features']))
+                            @foreach($planUsage['features'] as $feature)
+                                <li class="mb-2">
+                                    <i class="fas fa-check text-success me-2"></i>
+                                    {{ ucwords(str_replace('_', ' ', $feature)) }}
+                                </li>
+                            @endforeach
+                        @else
+                            <li class="mb-2 text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Features not configured for this plan.
                             </li>
-                        @endforeach
+                        @endif
                     </ul>
                 </div>
             </div>
@@ -197,12 +213,19 @@
                         </div>
                     @else
                         <ul class="list-unstyled">
-                            @foreach($planUsage['restrictions'] as $restriction)
-                                <li class="mb-2">
-                                    <i class="fas fa-times text-danger me-2"></i>
-                                    {{ ucwords(str_replace('_', ' ', $restriction)) }}
+                            @if(is_array($planUsage['restrictions']))
+                                @foreach($planUsage['restrictions'] as $restriction)
+                                    <li class="mb-2">
+                                        <i class="fas fa-times text-danger me-2"></i>
+                                        {{ ucwords(str_replace('_', ' ', $restriction)) }}
+                                    </li>
+                                @endforeach
+                            @else
+                                <li class="mb-2 text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    Restrictions not configured for this plan.
                                 </li>
-                            @endforeach
+                            @endif
                         </ul>
                     @endif
                 </div>

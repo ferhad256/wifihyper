@@ -80,7 +80,7 @@ class Tenant extends Model
                 'max_vouchers_per_month' => 5000,
                 'max_users' => 1,
                 'max_transactions_per_month' => 1000,
-                'transaction_fees' => json_encode([
+                'transaction_fees' => [
                     [
                         'min' => 0,
                         'max' => 1000,
@@ -99,21 +99,26 @@ class Tenant extends Model
                         'percentage' => 5,
                         'description' => 'UGX 5000 and above - 5%'
                     ]
-                ]),
-                'features' => json_encode([
+                ],
+                'features' => [
                     'basic_wifi_management',
                     'voucher_system',
-                    'payment_processing'
-                ]),
-                'restrictions' => json_encode([
+                    'payment_processing',
+                    'sms_notifications',
+                    'email_notifications',
+                    'basic_analytics',
+                    'default_captive_portal',
+                    'mobile_responsive',
+                    'multi_tenant_support'
+                ],
+                'restrictions' => [
                     'no_source_code_access',
                     'no_custom_portal',
-                    'no_api_access'
-                ]),
-                'custom_portal' => false,
-                'source_code_access' => false,
-                'api_access' => false,
-                'priority_support' => false,
+                    'no_api_access',
+                    'no_priority_support',
+                    'limited_analytics',
+                    'standard_support'
+                ]
             ]);
         }
 

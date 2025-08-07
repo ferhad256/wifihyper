@@ -242,9 +242,22 @@
                         <label for="voucher_codes" class="form-label">Voucher Codes</label>
                         <textarea class="form-control @error('voucher_codes') is-invalid @enderror" 
                                   id="voucher_codes" name="voucher_codes" rows="8" 
-                                  placeholder="Enter voucher codes (one per line or comma-separated)&#10;Example:&#10;VOUCHER001&#10;VOUCHER002&#10;VOUCHER003" required>{{ old('voucher_codes') }}</textarea>
+                                  placeholder="Enter voucher codes (one per line or comma-separated):&#10;VOUCHER001&#10;VOUCHER002,VOUCHER003&#10;VOUCHER004" required>{{ old('voucher_codes') }}</textarea>
                         <div class="form-text">
-                            Enter voucher codes separated by commas or new lines. Duplicate codes will be skipped.
+                            <ul class="mb-0">
+                                <li><strong>One voucher per line</strong> (recommended)</li>
+                                <li><strong>Comma-separated</strong> on same line: VOUCHER001,VOUCHER002</li>
+                                <li>Codes must be 3-20 characters (letters and numbers only)</li>
+                                <li>Duplicate codes will be skipped automatically</li>
+                            </ul>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="loadSampleVouchers()">
+                                <i class="fas fa-file-alt"></i> Load Sample
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="testVoucherParsing()">
+                                <i class="fas fa-eye"></i> Test Parsing
+                            </button>
                         </div>
                         @error('voucher_codes')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -501,6 +514,69 @@ document.getElementById('deleteAllModal').addEventListener('hidden.bs.modal', fu
     document.getElementById('confirm_delete_btn').classList.remove('btn-danger');
     document.getElementById('confirm_delete_btn').classList.add('btn-secondary');
 });
+
+function testVoucherParsing() {
+    const voucherCodesTextarea = document.getElementById('voucher_codes');
+    const voucherCodes = voucherCodesTextarea.value.trim();
+    const codes = [];
+    const invalidCodes = [];
+
+    if (voucherCodes === '') {
+        alert('Please enter voucher codes in the textarea.');
+        return;
+    }
+
+    // Use the same parsing logic as the controller
+    const rawInput = voucherCodes.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = rawInput.split('\n');
+    
+    for (let line of lines) {
+        line = line.trim();
+        if (line === '') continue;
+        
+        // If line contains commas, split by commas too
+        if (line.includes(',')) {
+            const commaParts = line.split(',');
+            for (let part of commaParts) {
+                part = part.trim();
+                if (part !== '') {
+                    if (part.length >= 3 && part.length <= 20 && /^[a-zA-Z0-9]+$/.test(part)) {
+                        codes.push(part);
+                    } else {
+                        invalidCodes.push(part);
+                    }
+                }
+            }
+        } else {
+            if (line.length >= 3 && line.length <= 20 && /^[a-zA-Z0-9]+$/.test(line)) {
+                codes.push(line);
+            } else {
+                invalidCodes.push(line);
+            }
+        }
+    }
+    
+    // Remove duplicates
+    const uniqueCodes = [...new Set(codes)];
+
+    if (uniqueCodes.length === 0) {
+        alert('No valid voucher codes found after parsing.');
+        return;
+    }
+
+    alert(`Parsed ${uniqueCodes.length} unique voucher codes.\nInvalid codes: ${invalidCodes.length}`);
+    console.log('Valid Codes:', uniqueCodes);
+    console.log('Invalid Codes:', invalidCodes);
+}
+
+function loadSampleVouchers() {
+    const voucherCodesTextarea = document.getElementById('voucher_codes');
+    voucherCodesTextarea.value = `VOUCHER001
+VOUCHER002,VOUCHER003
+VOUCHER004
+VOUCHER005,VOUCHER006,VOUCHER007`;
+    alert('Sample vouchers loaded. You can now test parsing or modify them.');
+}
 </script>
 @endpush
 @endsection 
