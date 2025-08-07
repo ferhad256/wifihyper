@@ -204,22 +204,95 @@ class PaymentController extends Controller
     }
 
     /**
-     * Handle payment callback
+     * Handle payment callback from Yo Payments
      */
     public function callback(Request $request)
     {
-        $result = $this->yoPayments->processCallback($request->all());
-        
-        if ($result['success']) {
-            // Update wallet balance and send SMS when payment is successful
-            $this->updateWalletBalance($result['transaction_id']);
-            $this->sendVoucherSms($result['transaction_id']);
+        try {
+            Log::info('Yo Payments Callback Received', [
+                'request_data' => $request->all(),
+                'headers' => $request->headers->all(),
+            ]);
+
+            $result = $this->yoPayments->processCallback($request->getContent());
             
-            // Store transaction ID in session for success page
-            session(['last_transaction_id' => $result['transaction_id']]);
+            if ($result['success']) {
+                $transactionId = $result['transaction_id'];
+                $status = $result['status'];
+                
+                // Find the transaction
+                $transaction = Transaction::where('transaction_id', $transactionId)->first();
+                
+                if ($transaction) {
+                    $oldStatus = $transaction->status;
+                    $newStatus = $this->yoPayments->mapPaymentStatus($status);
+                    
+                    // Update transaction with callback data and billing information
+                    $updateData = [
+                        'status' => $newStatus,
+                        'payment_details' => array_merge($transaction->payment_details ?? [], [
+                            'callback_received_at' => now(),
+                            'callback_status' => $status,
+                            'callback_amount' => $request->input('Amount'),
+                            'callback_currency' => $request->input('Currency', 'UGX'),
+                            'yo_payments_status' => $status,
+                            'yo_payments_amount' => $request->input('Amount'),
+                            'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                            'yo_payments_receipt' => $request->input('IssuedReceiptNumber'),
+                            'yo_payments_initiation_date' => $request->input('TransactionInitiationDate'),
+                            'yo_payments_completion_date' => $request->input('TransactionCompletionDate'),
+                        ]),
+                    ];
+
+                    // If payment is completed, add completion timestamp and process
+                    if ($newStatus === 'completed' && $oldStatus !== 'completed') {
+                        $updateData['paid_at'] = now();
+                        
+                        // Update wallet balance and send SMS
+                        $this->updateWalletBalance($transactionId);
+                        $this->sendVoucherSms($transactionId);
+                        
+                        // Store transaction ID in session for success page
+                        session(['last_transaction_id' => $transactionId]);
+                        
+                        Log::info('Payment completed via callback', [
+                            'transaction_id' => $transactionId,
+                            'old_status' => $oldStatus,
+                            'new_status' => $newStatus,
+                            'amount' => $transaction->amount,
+                            'phone_number' => $transaction->phone_number,
+                            'receipt_number' => $request->input('IssuedReceiptNumber'),
+                        ]);
+                    }
+
+                    // If payment failed, add failure timestamp
+                    if ($newStatus === 'failed' && $oldStatus !== 'failed') {
+                        $updateData['failed_at'] = now();
+                        
+                        Log::warning('Payment failed via callback', [
+                            'transaction_id' => $transactionId,
+                            'old_status' => $oldStatus,
+                            'new_status' => $newStatus,
+                            'amount' => $transaction->amount,
+                            'phone_number' => $transaction->phone_number,
+                        ]);
+                    }
+
+                    $transaction->update($updateData);
+                }
+            }
+            
+            return response()->json(['status' => 'success']);
+            
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Callback Error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-        
-        return response()->json(['status' => 'success']);
     }
 
     /**
@@ -311,7 +384,7 @@ class PaymentController extends Controller
     }
 
     /**
-     * Check payment status
+     * Check payment status using Yo Payments API
      */
     public function checkStatus($transactionId)
     {
@@ -330,30 +403,74 @@ class PaymentController extends Controller
             $statusResult = $yoPaymentsService->verifyPayment($transactionId);
 
             if ($statusResult['success']) {
-                // Update transaction with latest status
-                $transaction->update([
-                    'status' => $statusResult['status'],
+                $oldStatus = $transaction->status;
+                $newStatus = $statusResult['status'];
+                
+                // Update transaction with latest status and billing details
+                $updateData = [
+                    'status' => $newStatus,
                     'payment_details' => array_merge($transaction->payment_details ?? [], [
                         'last_status_check' => now(),
                         'status_check_result' => $statusResult['data'],
                         'transaction_details' => $statusResult['transaction_details'] ?? [],
+                        'yo_payments_status' => $statusResult['data']['Status'] ?? 'unknown',
+                        'yo_payments_amount' => $statusResult['data']['Amount'] ?? null,
+                        'yo_payments_currency' => $statusResult['data']['Currency'] ?? 'UGX',
+                        'yo_payments_receipt' => $statusResult['transaction_details']['receipt_number'] ?? null,
+                        'yo_payments_initiation_date' => $statusResult['transaction_details']['initiation_date'] ?? null,
+                        'yo_payments_completion_date' => $statusResult['transaction_details']['completion_date'] ?? null,
                     ]),
-                ]);
+                ];
 
-                // If payment is completed, update wallet balance and send SMS
-                if ($statusResult['status'] === 'completed') {
+                // If payment is completed, add completion timestamp
+                if ($newStatus === 'completed' && $oldStatus !== 'completed') {
+                    $updateData['paid_at'] = now();
+                    
+                    // Update wallet balance and send SMS
                     $this->updateWalletBalance($transactionId);
                     $this->sendVoucherSms($transactionId);
                     
                     // Store transaction ID in session for success page
                     session(['last_transaction_id' => $transactionId]);
+                    
+                    Log::info('Payment completed successfully', [
+                        'transaction_id' => $transactionId,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus,
+                        'amount' => $transaction->amount,
+                        'phone_number' => $transaction->phone_number,
+                    ]);
                 }
+
+                // If payment failed, add failure timestamp
+                if ($newStatus === 'failed' && $oldStatus !== 'failed') {
+                    $updateData['failed_at'] = now();
+                    
+                    Log::warning('Payment failed', [
+                        'transaction_id' => $transactionId,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus,
+                        'amount' => $transaction->amount,
+                        'phone_number' => $transaction->phone_number,
+                    ]);
+                }
+
+                $transaction->update($updateData);
 
                 return response()->json([
                     'success' => true,
-                    'status' => $statusResult['status'],
+                    'status' => $newStatus,
                     'is_pending' => $statusResult['is_pending'] ?? false,
                     'transaction_details' => $statusResult['transaction_details'] ?? [],
+                    'billing_info' => [
+                        'amount' => $transaction->amount,
+                        'transaction_fee' => $transaction->transaction_fee,
+                        'net_amount' => $transaction->net_amount,
+                        'currency' => $transaction->currency,
+                        'receipt_number' => $statusResult['transaction_details']['receipt_number'] ?? null,
+                        'initiation_date' => $statusResult['transaction_details']['initiation_date'] ?? null,
+                        'completion_date' => $statusResult['transaction_details']['completion_date'] ?? null,
+                    ],
                     'message' => $statusResult['message'],
                 ]);
             }
@@ -367,6 +484,7 @@ class PaymentController extends Controller
             Log::error('Payment Status Check Error', [
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return response()->json([
@@ -545,35 +663,6 @@ class PaymentController extends Controller
                 $tenant->wallet_balance += $transaction->net_amount;
                 $tenant->save();
                 
-                // Mark voucher as used with enhanced validation
-                if ($transaction->voucher) {
-                    $voucher = $transaction->voucher;
-                    
-                    // Double-check voucher is still available
-                    if ($voucher->status === 'unused' && !$voucher->used_at) {
-                        $voucher->update([
-                            'status' => 'used',
-                            'used_at' => now(),
-                            'phone_number' => $transaction->phone_number,
-                        ]);
-                        
-                        Log::info('Voucher marked as used', [
-                            'transaction_id' => $transactionId,
-                            'voucher_id' => $voucher->id,
-                            'voucher_code' => $voucher->code,
-                            'package_name' => $transaction->package->name ?? 'Unknown',
-                            'phone_number' => $transaction->phone_number,
-                        ]);
-                    } else {
-                        Log::warning('Voucher already used or invalid', [
-                            'transaction_id' => $transactionId,
-                            'voucher_id' => $voucher->id,
-                            'voucher_status' => $voucher->status,
-                            'voucher_used_at' => $voucher->used_at,
-                        ]);
-                    }
-                }
-                
                 DB::commit();
                 
                 Log::info('Wallet balance updated successfully', [
@@ -602,8 +691,8 @@ class PaymentController extends Controller
             if ($transaction && $transaction->status === 'completed' && $transaction->voucher) {
                 $voucher = $transaction->voucher;
                 
-                // Verify voucher is valid and matches the package
-                if ($voucher->status === 'used' && $voucher->package_id === $transaction->package_id) {
+                // Verify voucher is valid and unused
+                if ($voucher->status === 'unused' && $voucher->package_id === $transaction->package_id) {
                     $smsService = new UgSmsService();
                     $smsResult = $smsService->sendVoucherCode(
                         $transaction->phone_number,
@@ -612,7 +701,14 @@ class PaymentController extends Controller
                     );
 
                     if ($smsResult['success']) {
-                        Log::info('Voucher SMS sent successfully', [
+                        // Mark voucher as used
+                        $voucher->update([
+                            'status' => 'used',
+                            'used_at' => now(),
+                            'phone_number' => $transaction->phone_number,
+                        ]);
+
+                        Log::info('Voucher SMS sent successfully and voucher marked as used', [
                             'transaction_id' => $transactionId,
                             'voucher_code' => $voucher->code,
                             'package_name' => $transaction->package->name ?? 'Unknown',

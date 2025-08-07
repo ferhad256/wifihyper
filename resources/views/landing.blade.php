@@ -473,7 +473,7 @@
             <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
             <div class="row">
                 <div class="col-md-6">
-                    <p class="text-muted mb-0">&copy; 2024 All rights reserved.</p>
+                    <p class="text-muted mb-0">&copy; 2025 WIFIHYPER. All rights reserved.</p>
                 </div>
                 <div class="col-md-6 text-md-end">
                     <a href="#" class="me-3">Privacy Policy</a>

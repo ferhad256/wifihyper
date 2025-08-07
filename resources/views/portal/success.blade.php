@@ -102,9 +102,8 @@
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Instructions:</strong>
                             <ul class="mb-0 mt-2 text-start">
-                                <li>Go to your WiFi settings</li>
                                 <li>Connect to the WiFi network</li>
-                                <li>Enter the code above when prompted</li>
+                                <li>Enter the voucher code to get connected</li>
                                 <li>Enjoy your internet access!</li>
                             </ul>
                         </div>
