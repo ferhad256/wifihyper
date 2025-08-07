@@ -174,7 +174,7 @@
                     <div class="mb-3">
                         <label class="form-label"><strong>Portal URL:</strong></label>
                         <div class="input-group">
-                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->name) }}" readonly>
+                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->url_name) }}" readonly>
                             <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard(this)">
                                 <i class="fas fa-copy"></i>
                             </button>

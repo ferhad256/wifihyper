@@ -64,4 +64,15 @@ class Hotspot extends Model
         
         return $name ?: 'hotspot-' . $this->id;
     }
+
+    /**
+     * Find hotspot by URL name
+     */
+    public static function findByUrlName($urlName)
+    {
+        return static::where('name', $urlName)
+            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower($urlName)])
+            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower(str_replace(['-', '_'], '', $urlName))])
+            ->first();
+    }
 }

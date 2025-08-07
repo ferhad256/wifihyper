@@ -22,12 +22,14 @@ class PortalController extends Controller
      */
     public function index($hotspotName)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower($hotspotName)])
-            ->firstOrFail();
+        $hotspot = Hotspot::findByUrlName($hotspotName);
+        
+        if (!$hotspot) {
+            abort(404, 'Hotspot not found');
+        }
         
         if (!$hotspot->is_active) {
-            return redirect()->route('portal.inactive', $hotspot->name);
+            return redirect()->route('portal.inactive', $hotspot->url_name);
         }
 
         $packages = $hotspot->packages()
@@ -55,11 +57,16 @@ class PortalController extends Controller
      */
     public function payment($hotspotName, Request $request)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
+        $hotspot = Hotspot::findByUrlName($hotspotName);
+        
+        if (!$hotspot) {
+            abort(404, 'Hotspot not found');
+        }
+        
         $package = Package::findOrFail($request->package_id);
         
         if (!$hotspot->is_active || !$package->is_active) {
-            return redirect()->route('portal.inactive', $hotspot->name);
+            return redirect()->route('portal.inactive', $hotspot->url_name);
         }
 
         return view('portal.payment', compact('hotspot', 'package'));
@@ -70,7 +77,11 @@ class PortalController extends Controller
      */
     public function inactive($hotspotName)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
+        $hotspot = Hotspot::findByUrlName($hotspotName);
+        
+        if (!$hotspot) {
+            abort(404, 'Hotspot not found');
+        }
         
         return view('portal.inactive', compact('hotspot'));
     }
@@ -110,7 +121,12 @@ class PortalController extends Controller
      */
     public function test($hotspotName)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
+        $hotspot = Hotspot::findByUrlName($hotspotName);
+        
+        if (!$hotspot) {
+            abort(404, 'Hotspot not found');
+        }
+        
         $packages = $hotspot->packages()->where('is_active', true)->get();
         
         return view('portal.test', compact('hotspot', 'packages'));
@@ -121,7 +137,12 @@ class PortalController extends Controller
      */
     public function checkAvailability($hotspotName, Request $request)
     {
-        $hotspot = Hotspot::where('name', $hotspotName)->firstOrFail();
+        $hotspot = Hotspot::findByUrlName($hotspotName);
+        
+        if (!$hotspot) {
+            return response()->json(['error' => 'Hotspot not found'], 404);
+        }
+        
         $packageId = $request->input('package_id');
         
         if (!$packageId) {
