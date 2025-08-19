@@ -21,6 +21,7 @@ class Tenant extends Model
         'subscription_plan_id',
         'subscription_expires_at',
         'is_active',
+        'email_verified_at',
         'payment_gateway',
         'payment_settings',
         'settings',
@@ -34,6 +35,7 @@ class Tenant extends Model
         'wallet_balance' => 'decimal:2',
         'subscription_expires_at' => 'date',
         'is_active' => 'boolean',
+        'email_verified_at' => 'datetime',
         'payment_settings' => 'array',
         'settings' => 'array',
     ];
@@ -149,16 +151,38 @@ class Tenant extends Model
     }
 
     /**
-     * Check if tenant can create more transactions this month
+     * Check if tenant can create more transactions
      */
-    public function canCreateTransaction()
+    public function canCreateTransaction($currentMonthTransactions)
     {
-        $plan = $this->getCurrentPlan();
-        $currentMonthTransactions = $this->transactions()
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-        return $plan->canCreateTransaction($currentMonthTransactions);
+        return $currentMonthTransactions < $this->max_transactions_per_month;
+    }
+
+    /**
+     * Check if email is verified
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Mark email as verified
+     */
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => now(),
+            'is_active' => true
+        ])->save();
+    }
+
+    /**
+     * Check if tenant can access the system (email verified and active)
+     */
+    public function canAccessSystem(): bool
+    {
+        return $this->hasVerifiedEmail() && $this->is_active;
     }
 
     /**

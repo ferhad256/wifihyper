@@ -4,13 +4,18 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="row">
+    <!-- Page Header -->
+    <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Subscription Plans</h1>
-                <a href="{{ route('subscription.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Back to Subscription
-                </a>
+            <div class="page-title-box">
+                <div class="page-title-right">
+                    <ol class="breadcrumb m-0">
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('subscription.index') }}">Subscription</a></li>
+                        <li class="breadcrumb-item active">Plans</li>
+                    </ol>
+                </div>
+                <h4 class="page-title">Choose Your Plan</h4>
             </div>
         </div>
     </div>
@@ -80,41 +85,49 @@
                                 <strong>No transaction charges!</strong>
                             </div>
                         @else
-                            <ul class="list-unstyled">
-                                @foreach($plan['transaction_fees'] as $fee)
-                                    <li class="mb-1">
-                                        <small>
-                                            @if($fee['min'] == 0)
-                                                UGX {{ number_format($fee['min']) }} and below: {{ $fee['percentage'] }}%
-                                            @elseif($fee['max'] == 999999999)
-                                                UGX {{ number_format($fee['min']) }} and above: {{ $fee['percentage'] }}%
-                                            @else
-                                                UGX {{ number_format($fee['min']) }} to {{ number_format($fee['max']) }}: {{ $fee['percentage'] }}%
-                                            @endif
-                                        </small>
-                                    </li>
-                                @endforeach
-                            </ul>
+                            @if(is_array($plan['transaction_fees']) && count($plan['transaction_fees']) > 0)
+                                <ul class="list-unstyled">
+                                    @foreach($plan['transaction_fees'] as $fee)
+                                        <li class="mb-1">
+                                            <small>
+                                                @if($fee['min'] == 0)
+                                                    UGX {{ number_format($fee['min']) }} and below: {{ $fee['percentage'] }}%
+                                                @elseif($fee['max'] == 999999999)
+                                                    UGX {{ number_format($fee['min']) }} and above: {{ $fee['percentage'] }}%
+                                                @else
+                                                    UGX {{ number_format($fee['min']) }} to {{ number_format($fee['max']) }}: {{ $fee['percentage'] }}%
+                                                @endif
+                                            </small>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @else
+                                <p class="text-muted">Transaction fees not configured</p>
+                            @endif
                         @endif
                     </div>
 
                     <!-- Features -->
                     <div class="mb-4">
                         <h6 class="fw-bold">Key Features:</h6>
-                        <ul class="list-unstyled">
-                            @foreach(array_slice($plan['features'], 0, 5) as $feature)
-                                <li class="mb-1">
-                                    <i class="fas fa-check text-success me-2"></i>
-                                    <small>{{ ucwords(str_replace('_', ' ', $feature)) }}</small>
-                                </li>
-                            @endforeach
-                            @if(count($plan['features']) > 5)
-                                <li class="mb-1">
-                                    <i class="fas fa-plus text-muted me-2"></i>
-                                    <small>And {{ count($plan['features']) - 5 }} more features</small>
-                                </li>
-                            @endif
-                        </ul>
+                        @if(is_array($plan['features']) && count($plan['features']) > 0)
+                            <ul class="list-unstyled">
+                                @foreach(array_slice($plan['features'], 0, 5) as $feature)
+                                    <li class="mb-1">
+                                        <i class="fas fa-check text-success me-2"></i>
+                                        <small>{{ ucwords(str_replace('_', ' ', $feature)) }}</small>
+                                    </li>
+                                @endforeach
+                                @if(count($plan['features']) > 5)
+                                    <li class="mb-1">
+                                        <i class="fas fa-plus text-muted me-2"></i>
+                                        <small>And {{ count($plan['features']) - 5 }} more features</small>
+                                    </li>
+                                @endif
+                            </ul>
+                        @else
+                            <p class="text-muted">Features not configured</p>
+                        @endif
                     </div>
 
                     <!-- Action Button -->

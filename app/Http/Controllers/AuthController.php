@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Services\NotificationService;
+use App\Services\EmailVerificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -45,6 +46,24 @@ class AuthController extends Controller
         if (!$tenant) {
             // Use same error message to prevent user enumeration
             return back()->with('error', 'Invalid credentials.')->withInput();
+        }
+
+        // Check if email is verified
+        if (!$tenant->hasVerifiedEmail()) {
+            \Log::warning('Login attempt with unverified email', [
+                'tenant_id' => $tenant->id,
+                'email' => $tenant->email,
+                'ip' => $request->ip(),
+            ]);
+
+            // Send verification email if not already sent recently
+            $emailVerificationService = new \App\Services\EmailVerificationService(new \App\Services\EmailService());
+            if ($emailVerificationService->canRequestVerification($tenant)) {
+                $emailVerificationService->sendVerificationCode($tenant);
+            }
+
+            return redirect()->route('verification.show', ['email' => $tenant->email])
+                ->with('error', 'Please verify your email address before logging in. A new verification code has been sent.');
         }
 
         // Check if account is active
@@ -123,7 +142,8 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
                 'subscription_plan_id' => $starterPlan->id,
                 'subscription_expires_at' => now()->addDays(30), // 30-day trial
-                'is_active' => true,
+                'is_active' => false, // Account inactive until email verification
+                'email_verified_at' => null, // Email not verified yet
             ]);
 
             // Log successful registration
@@ -134,23 +154,31 @@ class AuthController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // Send welcome email
-            $emailService = new \App\Services\EmailService();
-            $welcomeSent = $emailService->sendWelcomeEmail($tenant);
+            // Send verification email
+            $emailVerificationService = new \App\Services\EmailVerificationService(new \App\Services\EmailService());
+            $verificationResult = $emailVerificationService->sendVerificationCode($tenant);
 
-            // Regenerate session to prevent session fixation
-            session()->regenerate();
-            
-            // Store tenant ID in session and redirect to dashboard
-            session(['tenant_id' => $tenant->id]);
-            session(['last_activity' => time()]);
-            
-            $message = 'Account created successfully! Welcome to WIFIHYPER.';
-            if (!$welcomeSent) {
-                $message .= ' (Welcome email could not be sent, but your account is active.)';
+            if ($verificationResult['success']) {
+                \Log::info('Verification email sent during registration', [
+                    'tenant_id' => $tenant->id,
+                    'email' => $tenant->email
+                ]);
+
+                // Redirect to verification page
+                return redirect()->route('verification.show', ['email' => $tenant->email])
+                    ->with('success', 'Account created successfully! Please check your email for the verification code to activate your account.');
+            } else {
+                \Log::error('Failed to send verification email during registration', [
+                    'tenant_id' => $tenant->id,
+                    'email' => $tenant->email,
+                    'error' => $verificationResult['message']
+                ]);
+
+                // Delete the tenant if verification email fails
+                $tenant->delete();
+
+                return back()->with('error', 'Registration failed: Could not send verification email. Please try again.')->withInput();
             }
-            
-            return redirect()->route('dashboard')->with('success', $message);
 
         } catch (\Exception $e) {
             \Log::error('Registration failed', [

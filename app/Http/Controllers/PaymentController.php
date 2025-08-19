@@ -45,6 +45,13 @@ class PaymentController extends Controller
      */
     public function initiate(Request $request)
     {
+        Log::info('Payment initiation started', [
+            'request_data' => $request->all(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString()
+        ]);
+
         $validator = Validator::make($request->all(), [
             'package_id' => 'required|exists:packages,id',
             'phone_number' => 'required|string',
@@ -52,76 +59,179 @@ class PaymentController extends Controller
         ]);
 
         if ($validator->fails()) {
+            Log::warning('Payment validation failed', [
+                'errors' => $validator->errors()->toArray(),
+                'request_data' => $request->all()
+            ]);
             return back()->withErrors($validator)->withInput();
         }
 
-        $package = Package::findOrFail($request->package_id);
-        $hotspot = $package->hotspot;
-        $tenant = $hotspot->tenant;
+        try {
+            $package = Package::findOrFail($request->package_id);
+            $hotspot = $package->hotspot;
+            $tenant = $hotspot->tenant;
 
-        // Enhanced voucher availability check with notification
-        $availability = $this->voucherAvailabilityService->checkVoucherAvailability($tenant, $package);
-        
-        if (!$availability['has_vouchers']) {
-            // Create notification for admin about voucher shortage
-            $this->createVoucherShortageNotification($tenant, $package);
+            Log::info('Payment entities found', [
+                'package_id' => $package->id,
+                'package_name' => $package->name,
+                'package_price' => $package->price,
+                'hotspot_id' => $hotspot->id,
+                'hotspot_name' => $hotspot->name,
+                'tenant_id' => $tenant->id,
+                'tenant_email' => $tenant->email
+            ]);
+
+            // Enhanced voucher availability check with notification
+            $availability = $this->voucherAvailabilityService->checkVoucherAvailability($tenant, $package);
             
-            return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
-        }
-
-        // Find an available voucher for the specific package with enhanced validation
-        $voucher = $tenant->vouchers()
-            ->where('status', 'unused')
-            ->where('package_id', $package->id)
-            ->whereNull('used_at')
-            ->where(function($query) {
-                $query->whereNull('expires_at')
-                      ->orWhere('expires_at', '>', now());
-            })
-            ->lockForUpdate() // Prevent race conditions
-            ->first();
-
-        if (!$voucher) {
-            // Create notification for admin about voucher shortage
-            $this->createVoucherShortageNotification($tenant, $package);
+            Log::info('Voucher availability check', [
+                'availability_result' => $availability,
+                'tenant_id' => $tenant->id,
+                'package_id' => $package->id
+            ]);
             
-            return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
-        }
-
-        // Calculate transaction fees
-        $feeCalculation = $this->transactionFeeService->calculateFee($package->price);
-        
-        // Create transaction
-        $transaction = Transaction::create([
-            'tenant_id' => $tenant->id,
-            'hotspot_id' => $hotspot->id,
-            'package_id' => $package->id,
-            'voucher_id' => $voucher->id,
-            'transaction_id' => 'TXN_' . time() . '_' . rand(1000, 9999),
-            'amount' => $feeCalculation['amount'],
-            'transaction_fee' => $feeCalculation['transaction_fee'],
-            'net_amount' => $feeCalculation['net_amount'],
-            'fee_percentage' => $feeCalculation['fee_percentage'],
-            'currency' => 'UGX',
-            'status' => 'pending',
-            'phone_number' => $request->phone_number,
-        ]);
-
-        // Process payment via Yo Payments
-        $result = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
-
-        if ($result['success']) {
-            // Check if this is a simulated payment (development mode)
-            if (config('app.env') === 'local' && config('app.debug') === true) {
-                // For simulated payments, redirect directly to success
-                session(['last_transaction_id' => $transaction->transaction_id]);
-                return redirect()->route('payment.success')->with('success', 'Payment completed successfully! Check your phone for the WiFi voucher code.');
-            } else {
-                // For real payments, redirect to pending page
-                return redirect()->route('payment.pending', $transaction->transaction_id);
+            if (!$availability['has_vouchers']) {
+                Log::warning('No vouchers available for payment', [
+                    'tenant_id' => $tenant->id,
+                    'package_id' => $package->id,
+                    'availability' => $availability
+                ]);
+                
+                // Create notification for admin about voucher shortage
+                $this->createVoucherShortageNotification($tenant, $package);
+                
+                return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
             }
-        } else {
-            return back()->with('error', $result['message'])->withInput();
+
+            // Find an available voucher for the specific package with enhanced validation
+            $voucher = $tenant->vouchers()
+                ->where('status', 'unused')
+                ->where('package_id', $package->id)
+                ->whereNull('used_at')
+                ->where(function($query) {
+                    $query->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                })
+                ->lockForUpdate() // Prevent race conditions
+                ->first();
+
+            if (!$voucher) {
+                Log::error('Voucher not found despite availability check', [
+                    'tenant_id' => $tenant->id,
+                    'package_id' => $package->id,
+                    'availability' => $availability
+                ]);
+                
+                // Create notification for admin about voucher shortage
+                $this->createVoucherShortageNotification($tenant, $package);
+                
+                return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
+            }
+
+            Log::info('Voucher found for payment', [
+                'voucher_id' => $voucher->id,
+                'voucher_code' => $voucher->code,
+                'package_id' => $package->id
+            ]);
+
+            // Calculate transaction fees
+            $feeCalculation = $this->transactionFeeService->calculateFee($package->price);
+            
+            Log::info('Transaction fee calculation', [
+                'original_amount' => $package->price,
+                'fee_calculation' => $feeCalculation
+            ]);
+            
+            // Create transaction
+            $transaction = Transaction::create([
+                'tenant_id' => $tenant->id,
+                'hotspot_id' => $hotspot->id,
+                'package_id' => $package->id,
+                'voucher_id' => $voucher->id,
+                'transaction_id' => 'TXN_' . time() . '_' . rand(1000, 9999),
+                'amount' => $feeCalculation['amount'],
+                'transaction_fee' => $feeCalculation['transaction_fee'],
+                'net_amount' => $feeCalculation['net_amount'],
+                'fee_percentage' => $feeCalculation['fee_percentage'],
+                'currency' => 'UGX',
+                'status' => 'pending',
+                'phone_number' => $request->phone_number,
+            ]);
+
+            Log::info('Transaction created successfully', [
+                'transaction_id' => $transaction->transaction_id,
+                'amount' => $transaction->amount,
+                'transaction_fee' => $transaction->transaction_fee,
+                'net_amount' => $transaction->net_amount,
+                'phone_number' => $request->phone_number
+            ]);
+
+            // Process payment via Yo Payments
+            Log::info('Initiating Yo Payments request', [
+                'transaction_id' => $transaction->transaction_id,
+                'amount' => $transaction->amount,
+                'phone_number' => $request->phone_number
+            ]);
+
+            $result = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
+
+            Log::info('Yo Payments response received', [
+                'transaction_id' => $transaction->transaction_id,
+                'yo_payments_result' => $result,
+                'success' => $result['success'] ?? false
+            ]);
+
+            if ($result['success']) {
+                Log::info('Payment initiated successfully', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'yo_payments_reference' => $result['transaction_reference'] ?? null
+                ]);
+
+                // Check if this is a simulated payment (development mode)
+                if (config('app.env') === 'local' && config('app.debug') === true) {
+                    Log::info('Development mode: Simulating payment success', [
+                        'transaction_id' => $transaction->transaction_id
+                    ]);
+                    
+                    // For simulated payments, redirect directly to success
+                    session(['last_transaction_id' => $transaction->transaction_id]);
+                    return redirect()->route('payment.success')->with('success', 'Payment completed successfully! Check your phone for the WiFi voucher code.');
+                } else {
+                    Log::info('Production mode: Redirecting to pending page', [
+                        'transaction_id' => $transaction->transaction_id
+                    ]);
+                    
+                    // For real payments, redirect to pending page
+                    return redirect()->route('payment.pending', $transaction->transaction_id);
+                }
+            } else {
+                Log::error('Payment initiation failed', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'yo_payments_error' => $result['message'] ?? 'Unknown error',
+                    'yo_payments_response' => $result
+                ]);
+
+                // Update transaction status to failed
+                $transaction->update([
+                    'status' => 'failed',
+                    'payment_details' => [
+                        'yo_payments_error' => $result['message'] ?? 'Unknown error',
+                        'yo_payments_response' => $result,
+                        'failed_at' => now()
+                    ]
+                ]);
+
+                return back()->with('error', $result['message'])->withInput();
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Payment initiation exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return back()->with('error', 'Payment initiation failed: ' . $e->getMessage())->withInput();
         }
     }
 
@@ -519,13 +629,10 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
 
-            // Mark voucher as used
-            $voucher->update([
-                'status' => 'used',
-                'used_at' => now(),
-                'phone_number' => $request->phone_number,
-            ]);
-
+            // Calculate transaction fees
+            $transactionFeeService = new \App\Services\TransactionFeeService();
+            $feeCalculation = $transactionFeeService->calculateFee($voucher->package ? $voucher->package->price : 0);
+            
             // Create manual transaction
             $transaction = Transaction::create([
                 'tenant_id' => $voucher->tenant_id,
@@ -533,6 +640,9 @@ class PaymentController extends Controller
                 'voucher_id' => $voucher->id,
                 'transaction_id' => 'MANUAL_' . time(),
                 'amount' => $voucher->package ? $voucher->package->price : 0,
+                'transaction_fee' => $feeCalculation['fee_amount'],
+                'net_amount' => $feeCalculation['net_amount'],
+                'fee_percentage' => $feeCalculation['fee_percentage'],
                 'currency' => 'UGX',
                 'status' => 'completed',
                 'phone_number' => $request->phone_number,
@@ -541,7 +651,7 @@ class PaymentController extends Controller
 
             // Update tenant wallet balance
             $tenant = $voucher->tenant;
-            $tenant->wallet_balance += $transaction->amount;
+            $tenant->wallet_balance += $transaction->net_amount;
             $tenant->save();
 
             // Send SMS
@@ -596,6 +706,10 @@ class PaymentController extends Controller
         try {
             DB::beginTransaction();
 
+            // Calculate transaction fees
+            $transactionFeeService = new \App\Services\TransactionFeeService();
+            $feeCalculation = $transactionFeeService->calculateFee($package->price);
+
             // Create test transaction
             $transaction = Transaction::create([
                 'tenant_id' => $tenant->id,
@@ -604,6 +718,9 @@ class PaymentController extends Controller
                 'voucher_id' => $voucher->id,
                 'transaction_id' => 'TEST_' . time(),
                 'amount' => $package->price,
+                'transaction_fee' => $feeCalculation['fee_amount'],
+                'net_amount' => $feeCalculation['net_amount'],
+                'fee_percentage' => $feeCalculation['fee_percentage'],
                 'currency' => 'UGX',
                 'status' => 'completed',
                 'phone_number' => $request->phone_number,
@@ -618,7 +735,7 @@ class PaymentController extends Controller
             ]);
 
             // Update tenant wallet balance
-            $tenant->wallet_balance += $transaction->amount;
+            $tenant->wallet_balance += $transaction->net_amount;
             $tenant->save();
 
             // Send SMS with voucher code

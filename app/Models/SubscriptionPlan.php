@@ -50,6 +50,39 @@ class SubscriptionPlan extends Model
     ];
 
     /**
+     * Get transaction fees with proper JSON decoding
+     */
+    public function getTransactionFeesAttribute($value)
+    {
+        if (is_string($value)) {
+            return json_decode($value, true) ?: [];
+        }
+        return $value ?: [];
+    }
+
+    /**
+     * Get features with proper JSON decoding
+     */
+    public function getFeaturesAttribute($value)
+    {
+        if (is_string($value)) {
+            return json_decode($value, true) ?: [];
+        }
+        return $value ?: [];
+    }
+
+    /**
+     * Get restrictions with proper JSON decoding
+     */
+    public function getRestrictionsAttribute($value)
+    {
+        if (is_string($value)) {
+            return json_decode($value, true) ?: [];
+        }
+        return $value ?: [];
+    }
+
+    /**
      * Get tenants using this plan
      */
     public function tenants()

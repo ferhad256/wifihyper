@@ -31,12 +31,30 @@ class YoPaymentsService
      */
     public function initiatePayment(Transaction $transaction, $phoneNumber)
     {
+        Log::info('YoPaymentsService: Payment initiation started', [
+            'transaction_id' => $transaction->transaction_id,
+            'amount' => $transaction->amount,
+            'phone_number' => $phoneNumber,
+            'app_env' => config('app.env'),
+            'app_debug' => config('app.debug'),
+            'timestamp' => now()->toISOString()
+        ]);
+
         // Check if we're in test mode (for development)
         if (config('app.env') === 'local' && config('app.debug') === true) {
+            Log::info('YoPaymentsService: Using development mode - simulating payment', [
+                'transaction_id' => $transaction->transaction_id
+            ]);
             return $this->simulatePayment($transaction, $phoneNumber);
         }
 
         try {
+            Log::info('YoPaymentsService: Building payment parameters', [
+                'transaction_id' => $transaction->transaction_id,
+                'amount' => $transaction->amount,
+                'phone_number' => $phoneNumber
+            ]);
+
             $parameters = [
                 'NonBlocking' => 'TRUE', // Use non-blocking for better performance
                 'Amount' => $transaction->amount,
@@ -48,28 +66,81 @@ class YoPaymentsService
                 'FailureNotificationUrl' => route('payment.failed'),
             ];
 
+            Log::info('YoPaymentsService: Payment parameters built', [
+                'transaction_id' => $transaction->transaction_id,
+                'parameters' => $parameters,
+                'callback_url' => route('payment.callback'),
+                'failure_url' => route('payment.failed')
+            ]);
+
             // Add authentication signature if required
             if ($this->publicKeyEnabled && $this->privateKeyPath) {
+                Log::info('YoPaymentsService: Adding authentication signature', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'public_key_enabled' => $this->publicKeyEnabled,
+                    'private_key_path' => $this->privateKeyPath
+                ]);
+                
                 $signature = $this->generateDepositSignature($parameters);
                 $parameters['AuthenticationSignatureBase64'] = $signature;
+                
+                Log::info('YoPaymentsService: Authentication signature generated', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'signature_length' => strlen($signature)
+                ]);
+            } else {
+                Log::info('YoPaymentsService: No authentication signature required', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'public_key_enabled' => $this->publicKeyEnabled
+                ]);
             }
+
+            Log::info('YoPaymentsService: Building XML request', [
+                'transaction_id' => $transaction->transaction_id,
+                'method' => 'acdepositfunds'
+            ]);
 
             $xmlRequest = $this->buildXmlRequest('acdepositfunds', $parameters);
 
+            Log::info('YoPaymentsService: XML request built', [
+                'transaction_id' => $transaction->transaction_id,
+                'xml_length' => strlen($xmlRequest),
+                'xml_preview' => substr($xmlRequest, 0, 200) . '...'
+            ]);
+
+            Log::info('YoPaymentsService: Making XML request to Yo Payments API', [
+                'transaction_id' => $transaction->transaction_id,
+                'base_url' => $this->baseUrl
+            ]);
+
             $response = $this->makeXmlRequest($xmlRequest);
 
-            Log::info('Yo Payments Deposit Response', [
+            Log::info('YoPaymentsService: Yo Payments API response received', [
                 'transaction_id' => $transaction->transaction_id,
                 'phone_number' => $phoneNumber,
                 'public_key_enabled' => $this->publicKeyEnabled,
-                'response' => $response,
+                'response_success' => $response['success'] ?? false,
+                'response_message' => $response['message'] ?? 'No message',
+                'response_data' => $response['data'] ?? null,
+                'full_response' => $response
             ]);
 
             if ($response['success']) {
+                Log::info('YoPaymentsService: Payment initiated successfully', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'yo_payments_data' => $response['data'],
+                    'transaction_reference' => $response['transaction_reference'] ?? null
+                ]);
+
                 // Update transaction with payment details
                 $transaction->update([
                     'payment_details' => $response['data'],
                     'status' => 'pending',
+                ]);
+
+                Log::info('YoPaymentsService: Transaction updated with payment details', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'status' => 'pending'
                 ]);
 
                 return [
@@ -80,16 +151,25 @@ class YoPaymentsService
                 ];
             }
 
+            Log::error('YoPaymentsService: Payment initiation failed', [
+                'transaction_id' => $transaction->transaction_id,
+                'yo_payments_error' => $response['message'] ?? 'Unknown error',
+                'yo_payments_response' => $response
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Failed to initiate payment: ' . $response['message'],
             ];
 
         } catch (\Exception $e) {
-            Log::error('Yo Payments Deposit Error', [
+            Log::error('YoPaymentsService: Payment initiation exception', [
                 'transaction_id' => $transaction->transaction_id,
                 'phone_number' => $phoneNumber,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile()
             ]);
 
             return [
@@ -151,7 +231,7 @@ class YoPaymentsService
 
         // Update tenant wallet balance in simulation
         $tenant = $transaction->tenant;
-        $tenant->wallet_balance += $transaction->amount;
+        $tenant->wallet_balance += $transaction->net_amount;
         $tenant->save();
 
         // Send SMS with voucher code (simulated payment)
@@ -414,34 +494,78 @@ class YoPaymentsService
      */
     protected function makeXmlRequest($xmlRequest)
     {
+        Log::info('YoPaymentsService: makeXmlRequest started', [
+            'xml_length' => strlen($xmlRequest),
+            'primary_url' => $this->baseUrl,
+            'fallback_url' => $this->fallbackUrl,
+            'timestamp' => now()->toISOString()
+        ]);
+
         // Try primary URL first
+        Log::info('YoPaymentsService: Attempting primary URL', [
+            'url' => $this->baseUrl
+        ]);
+        
         $result = $this->makeRequest($this->baseUrl, $xmlRequest);
+        
+        Log::info('YoPaymentsService: Primary URL response', [
+            'result' => $result,
+            'result_type' => gettype($result),
+            'result_length' => is_string($result) ? strlen($result) : 'N/A'
+        ]);
         
         // If primary URL fails, try fallback URL
         if ($result === FALSE) {
-            Log::warning('Yo Payments primary URL failed, trying fallback URL', [
+            Log::warning('YoPaymentsService: Primary URL failed, trying fallback URL', [
                 'primary_url' => $this->baseUrl,
                 'fallback_url' => $this->fallbackUrl,
             ]);
+            
             $result = $this->makeRequest($this->fallbackUrl, $xmlRequest);
+            
+            Log::info('YoPaymentsService: Fallback URL response', [
+                'result' => $result,
+                'result_type' => gettype($result),
+                'result_length' => is_string($result) ? strlen($result) : 'N/A'
+            ]);
         }
 
         if ($result === FALSE) {
+            Log::error('YoPaymentsService: Both primary and fallback URLs failed', [
+                'primary_url' => $this->baseUrl,
+                'fallback_url' => $this->fallbackUrl
+            ]);
+            
             return [
                 'success' => false,
                 'message' => 'Failed to connect to Yo Payments API (both primary and fallback URLs failed)'
             ];
         }
 
+        Log::info('YoPaymentsService: Parsing XML response', [
+            'response_length' => strlen($result),
+            'response_preview' => substr($result, 0, 200) . '...'
+        ]);
+
         // Parse XML response
         $xml = simplexml_load_string($result);
         
         if (!$xml) {
+            Log::error('YoPaymentsService: Failed to parse XML response', [
+                'raw_response' => $result,
+                'xml_errors' => libxml_get_errors()
+            ]);
+            
             return [
                 'success' => false,
                 'message' => 'Invalid response from Yo Payments API'
             ];
         }
+
+        Log::info('YoPaymentsService: XML parsed successfully', [
+            'xml_object' => $xml,
+            'xml_children' => array_keys((array)$xml)
+        ]);
 
         $response = [
             'success' => true,
@@ -459,6 +583,16 @@ class YoPaymentsService
             $transactionStatus = (string) $xml->Response->TransactionStatus;
             $transactionReference = (string) $xml->Response->TransactionReference;
             
+            Log::info('YoPaymentsService: API response details', [
+                'status' => $status,
+                'status_code' => $statusCode,
+                'status_message' => $statusMessage,
+                'error_message_code' => $errorMessageCode,
+                'error_message' => $errorMessage,
+                'transaction_status' => $transactionStatus,
+                'transaction_reference' => $transactionReference
+            ]);
+            
             // Check if request was successful or pending
             if ($status === 'OK' && ($statusCode === '0' || $statusCode === '1')) {
                 // Request was successful or pending
@@ -470,9 +604,19 @@ class YoPaymentsService
                 if ($statusCode === '1') {
                     $response['is_pending'] = true;
                     $response['message'] = 'Payment is pending confirmation';
+                    
+                    Log::info('YoPaymentsService: Payment is pending', [
+                        'transaction_reference' => $transactionReference,
+                        'status_message' => $statusMessage
+                    ]);
                 } else {
                     $response['is_pending'] = false;
                     $response['message'] = 'Payment processed successfully';
+                    
+                    Log::info('YoPaymentsService: Payment processed successfully', [
+                        'transaction_reference' => $transactionReference,
+                        'status_message' => $statusMessage
+                    ]);
                 }
             } else {
                 // Request was unsuccessful
@@ -496,7 +640,7 @@ class YoPaymentsService
                 $response['message'] = $errorMsg;
                 
                 // Log detailed error information
-                Log::error('Yo Payments API Error', [
+                Log::error('YoPaymentsService: API request failed', [
                     'status' => $status,
                     'status_code' => $statusCode,
                     'status_message' => $statusMessage,
@@ -504,15 +648,20 @@ class YoPaymentsService
                     'error_message' => $errorMessage,
                     'transaction_status' => $transactionStatus,
                     'transaction_reference' => $transactionReference,
+                    'full_response' => $response
                 ]);
             }
         } else {
-            // Fallback error checking for older format
-            if (isset($xml->ErrorCode) && (string) $xml->ErrorCode !== '0') {
-                $response['success'] = false;
-                $response['message'] = (string) $xml->ErrorMessage ?? 'API request failed';
-            }
+            Log::warning('YoPaymentsService: No Response element found in XML', [
+                'xml_structure' => $this->xmlToArray($xml),
+                'raw_response' => $result
+            ]);
         }
+
+        Log::info('YoPaymentsService: makeXmlRequest completed', [
+            'final_response' => $response,
+            'success' => $response['success'] ?? false
+        ]);
 
         return $response;
     }

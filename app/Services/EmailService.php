@@ -53,32 +53,80 @@ class EmailService
     /**
      * Send welcome email to new tenant
      */
-    public function sendWelcomeEmail(Tenant $tenant)
+    public function sendWelcomeEmail($email, $businessName)
     {
         try {
             $data = [
-                'tenant' => $tenant,
+                'email' => $email,
+                'business_name' => $businessName,
                 'login_url' => route('login'),
             ];
 
-            Mail::send('emails.welcome', $data, function ($message) use ($tenant) {
-                $message->to($tenant->email, $tenant->name)
+            Mail::send('emails.welcome', $data, function ($message) use ($email, $businessName) {
+                $message->to($email, $businessName)
                         ->subject('Welcome to ' . config('app.name'));
             });
 
             Log::info('Welcome email sent', [
-                'tenant_id' => $tenant->id,
-                'email' => $tenant->email,
+                'email' => $email,
+                'business_name' => $businessName,
             ]);
 
-            return true;
+            return [
+                'success' => true,
+                'message' => 'Welcome email sent successfully'
+            ];
         } catch (\Exception $e) {
             Log::error('Failed to send welcome email', [
-                'tenant_id' => $tenant->id,
+                'email' => $email,
                 'error' => $e->getMessage(),
             ]);
 
-            return false;
+            return [
+                'success' => false,
+                'message' => 'Failed to send welcome email: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send verification email with code
+     */
+    public function sendVerificationEmail($email, $businessName, $verificationCode)
+    {
+        try {
+            $data = [
+                'email' => $email,
+                'business_name' => $businessName,
+                'verification_code' => $verificationCode,
+                'expires_in' => 5, // minutes
+            ];
+
+            Mail::send('emails.verify-email', $data, function ($message) use ($email, $businessName) {
+                $message->to($email, $businessName)
+                        ->subject('Verify Your Email - ' . config('app.name'));
+            });
+
+            Log::info('Verification email sent', [
+                'email' => $email,
+                'business_name' => $businessName,
+                'verification_code' => $verificationCode,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Verification email sent successfully'
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to send verification email', [
+                'email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Failed to send verification email: ' . $e->getMessage()
+            ];
         }
     }
 

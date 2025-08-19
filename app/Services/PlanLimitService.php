@@ -143,9 +143,14 @@ class PlanLimitService
         $currentHotspots = $tenant->hotspots()->count();
         
         // Ensure arrays are properly formatted
-        $transactionFees = is_array($plan->transaction_fees) ? $plan->transaction_fees : [];
-        $features = is_array($plan->features) ? $plan->features : [];
-        $restrictions = is_array($plan->restrictions) ? $plan->restrictions : [];
+        $transactionFees = is_string($plan->transaction_fees) ? json_decode($plan->transaction_fees, true) : $plan->transaction_fees;
+        $features = is_string($plan->features) ? json_decode($plan->features, true) : $plan->features;
+        $restrictions = is_string($plan->restrictions) ? json_decode($plan->restrictions, true) : $plan->restrictions;
+        
+        // Ensure we have arrays, not null
+        $transactionFees = is_array($transactionFees) ? $transactionFees : [];
+        $features = is_array($features) ? $features : [];
+        $restrictions = is_array($restrictions) ? $restrictions : [];
         
         return [
             'plan' => [
@@ -199,10 +204,15 @@ class PlanLimitService
      */
     public function getAvailablePlans(): array
     {
-        return SubscriptionPlan::active()
+        $plans = SubscriptionPlan::active()
             ->orderBy('sort_order')
             ->get()
             ->map(function ($plan) {
+                // Ensure JSON fields are properly decoded
+                $transactionFees = is_string($plan->transaction_fees) ? json_decode($plan->transaction_fees, true) : $plan->transaction_fees;
+                $features = is_string($plan->features) ? json_decode($plan->features, true) : $plan->features;
+                $restrictions = is_string($plan->restrictions) ? json_decode($plan->restrictions, true) : $plan->restrictions;
+                
                 return [
                     'id' => $plan->id,
                     'name' => $plan->name,
@@ -213,12 +223,14 @@ class PlanLimitService
                     'formatted_monthly_price' => $plan->getFormattedPrice('monthly'),
                     'formatted_yearly_price' => $plan->getFormattedPrice('yearly'),
                     'is_featured' => $plan->is_featured,
-                    'features' => $plan->features,
+                    'features' => $features,
                     'max_hotspots' => $plan->max_hotspots,
                     'max_vouchers_per_month' => $plan->max_vouchers_per_month,
-                    'transaction_fees' => $plan->transaction_fees,
+                    'transaction_fees' => $transactionFees,
                 ];
             })
             ->toArray();
+            
+        return $plans;
     }
 } 

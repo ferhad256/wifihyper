@@ -34,6 +34,13 @@ Route::middleware('rate.limiting')->group(function () {
     Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [AuthController::class, 'register']);
 });
+
+// Email verification routes
+Route::get('/verify-email', [App\Http\Controllers\EmailVerificationController::class, 'show'])->name('verification.show');
+Route::post('/verify-email', [App\Http\Controllers\EmailVerificationController::class, 'verify'])->name('verification.verify');
+Route::post('/verify-email/resend', [App\Http\Controllers\EmailVerificationController::class, 'resend'])->name('verification.resend');
+Route::get('/verify-email/status', [App\Http\Controllers\EmailVerificationController::class, 'status'])->name('verification.status');
+
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 

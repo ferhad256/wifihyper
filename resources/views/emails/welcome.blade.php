@@ -71,7 +71,7 @@
     </div>
     
     <div class="content">
-        <h2>Hello {{ $tenant->name }},</h2>
+        <h2>Hello {{ $business_name }},</h2>
         
         <div class="welcome-box">
             <h3>🎉 Welcome aboard!</h3>

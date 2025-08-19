@@ -83,7 +83,6 @@
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 UGX {{ number_format($tenant->wallet_balance) }}
                             </div>
-                            <small class="text-muted">Transaction fees already excluded</small>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-piggy-bank fa-2x text-gray-300"></i>

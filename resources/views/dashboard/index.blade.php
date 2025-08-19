@@ -32,7 +32,6 @@
                             <div class="h2 mb-0 font-weight-bold text-gray-800">
                                 UGX {{ number_format($tenant->wallet_balance) }}
                             </div>
-                            <small class="text-muted">Transaction fees already excluded</small>
                         </div>
                         <div class="col-md-4 text-end">
                             @if($tenant->wallet_balance >= 10000)
