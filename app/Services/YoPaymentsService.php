@@ -345,25 +345,65 @@ class YoPaymentsService
     public function processCallback($data)
     {
         try {
-            // Parse XML callback data
-            $xml = simplexml_load_string($data);
+            $transactionId = '';
+            $status = '';
+            $amount = '';
+            $currency = 'UGX';
             
-            if (!$xml) {
-                Log::error('Yo Payments Callback Error: Invalid XML', ['data' => $data]);
-                return ['success' => false, 'message' => 'Invalid callback data'];
+            // Check if data is XML or form-encoded
+            if (strpos($data, '<?xml') === 0 || strpos($data, '<') === 0) {
+                // Parse XML callback data
+                $xml = simplexml_load_string($data);
+                
+                if (!$xml) {
+                    Log::error('Yo Payments Callback Error: Invalid XML', ['data' => $data]);
+                    return ['success' => false, 'message' => 'Invalid callback data'];
+                }
+                
+                $transactionId = (string) $xml->TransactionReference;
+                $status = (string) $xml->Status;
+                $amount = (string) $xml->Amount;
+                $currency = (string) $xml->Currency;
+                
+                Log::info('Yo Payments Callback: XML format processed', [
+                    'transaction_id' => $transactionId,
+                    'status' => $status,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                ]);
+            } else {
+                // Parse form-encoded data
+                parse_str($data, $formData);
+                
+                // Map Yo Payments actual field names to our expected format
+                $transactionId = $formData['external_ref'] ?? $formData['TransactionReference'] ?? '';
+                $status = $formData['Status'] ?? 'OK'; // Default to OK if no status field
+                $amount = $formData['amount'] ?? $formData['Amount'] ?? '';
+                $currency = $formData['Currency'] ?? 'UGX';
+                
+                // If we have external_ref, this is a successful payment
+                if ($formData['external_ref'] && !$status) {
+                    $status = 'OK';
+                }
+                
+                Log::info('Yo Payments Callback: Form data processed', [
+                    'transaction_id' => $transactionId,
+                    'status' => $status,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'form_data' => $formData,
+                ]);
             }
-
-            $transactionId = (string) $xml->TransactionReference;
-            $status = (string) $xml->Status;
-            $amount = (string) $xml->Amount;
-            $currency = (string) $xml->Currency;
-
-            Log::info('Yo Payments Callback', [
-                'transaction_id' => $transactionId,
-                'status' => $status,
-                'amount' => $amount,
-                'currency' => $currency,
-            ]);
+            
+            // Validate required fields
+            if (!$transactionId || !$status) {
+                Log::error('Yo Payments Callback Error: Missing required fields', [
+                    'transaction_id' => $transactionId,
+                    'status' => $status,
+                    'data' => $data
+                ]);
+                return ['success' => false, 'message' => 'Missing required fields'];
+            }
 
             // Find transaction
             $transaction = Transaction::where('transaction_id', $transactionId)->first();
@@ -848,7 +888,7 @@ class YoPaymentsService
     /**
      * Map Yo Payments status to our status
      */
-    protected function mapPaymentStatus($yoStatus)
+    public function mapPaymentStatus($yoStatus)
     {
         $statusMap = [
             'SUCCEEDED' => 'completed',

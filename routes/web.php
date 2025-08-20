@@ -94,7 +94,7 @@ Route::middleware('auth.tenant')->group(function () {
     // Subscription payment routes
     Route::get('/subscription/payment', [PaymentController::class, 'showSubscriptionPayment'])->name('subscription.payment');
     Route::post('/subscription/payment/initiate', [PaymentController::class, 'initiateSubscriptionPayment'])->name('subscription.payment.initiate');
-    Route::post('/subscription/payment/callback', [PaymentController::class, 'subscriptionCallback'])->name('subscription.payment.callback');
+    Route::post('/subscription/payment/callback', [PaymentController::class, 'subscriptionCallback'])->name('subscription.payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
     Route::get('/subscription/payment/failed', [PaymentController::class, 'subscriptionFailed'])->name('subscription.payment.failed');
     Route::get('/subscription/payment/success', [PaymentController::class, 'subscriptionSuccess'])->name('subscription.payment.success');
     
@@ -128,8 +128,8 @@ Route::prefix('portal')->middleware('exclude.notifications')->group(function () 
 
 // Payment routes
 Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
-Route::post('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
-Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+Route::post('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
 Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
 Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
