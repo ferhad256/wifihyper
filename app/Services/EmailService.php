@@ -64,7 +64,7 @@ class EmailService
 
             Mail::send('emails.welcome', $data, function ($message) use ($email, $businessName) {
                 $message->to($email, $businessName)
-                        ->subject('Welcome to ' . config('app.name'));
+                        ->subject('Welcome to WIFIHYPER');
             });
 
             Log::info('Welcome email sent', [
@@ -104,7 +104,7 @@ class EmailService
 
             Mail::send('emails.verify-email', $data, function ($message) use ($email, $businessName) {
                 $message->to($email, $businessName)
-                        ->subject('Verify Your Email - ' . config('app.name'));
+                        ->subject('Verify Your Email - WIFIHYPER');
             });
 
             Log::info('Verification email sent', [

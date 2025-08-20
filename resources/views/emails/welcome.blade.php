@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to {{ config('app.name') }}</title>
+            <title>Welcome to WIFIHYPER</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,6 +76,7 @@
         <div class="welcome-box">
             <h3>🎉 Welcome aboard!</h3>
             <p>Thank you for choosing WIFIHYPER for your WiFi hotspot management needs. We're excited to help you streamline your WiFi business operations.</p>
+            <p><strong>Your account has been successfully verified and activated!</strong></p>
         </div>
         
         <div class="feature-list">
@@ -103,8 +104,8 @@
     </div>
     
     <div class="footer">
-        <p>This email was sent to {{ $tenant->email }}</p>
-        <p>&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
+        <p>This email was sent to {{ $email }}</p>
+        <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>
 </html> 

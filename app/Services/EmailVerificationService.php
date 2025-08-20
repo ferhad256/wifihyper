@@ -138,27 +138,36 @@ class EmailVerificationService
             Cache::forget($cacheKey);
 
             // Send welcome email
-            $welcomeResult = $this->emailService->sendWelcomeEmail(
-                $tenant->email,
-                $tenant->business_name
-            );
+            try {
+                $welcomeResult = $this->emailService->sendWelcomeEmail(
+                    $tenant->email,
+                    $tenant->business_name
+                );
 
-            if ($welcomeResult['success']) {
-                Log::info('Email verified and welcome email sent', [
-                    'tenant_id' => $tenant->id,
-                    'email' => $tenant->email
-                ]);
-            } else {
-                Log::warning('Email verified but welcome email failed', [
+                if ($welcomeResult['success']) {
+                    Log::info('Email verified and welcome email sent', [
+                        'tenant_id' => $tenant->id,
+                        'email' => $tenant->email
+                    ]);
+                } else {
+                    Log::warning('Email verified but welcome email failed', [
+                        'tenant_id' => $tenant->id,
+                        'email' => $tenant->email,
+                        'error' => $welcomeResult['message']
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Exception while sending welcome email', [
                     'tenant_id' => $tenant->id,
                     'email' => $tenant->email,
-                    'error' => $welcomeResult['message']
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
 
             return [
                 'success' => true,
-                'message' => 'Email verified successfully! Welcome email sent.',
+                'message' => 'Email verified successfully! Welcome email sent. You can now login to your account.',
                 'tenant' => $tenant
             ];
 
