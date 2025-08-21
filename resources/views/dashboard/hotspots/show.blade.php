@@ -155,18 +155,17 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-info" target="_blank">
-                            <i class="fas fa-external-link-alt me-2"></i>View Portal
-                        </a>
-                        <a href="{{ route('portal.test', $hotspot) }}" class="btn btn-warning" target="_blank">
-                            <i class="fas fa-vial me-2"></i>Test Portal
-                        </a>
-                        <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
-                            <i class="fas fa-box me-2"></i>Manage Packages
-                        </a>
-                        <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-primary">
-                            <i class="fas fa-edit me-2"></i>Edit Hotspot
-                        </a>
+                        <div class="btn-group" role="group">
+                            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary" target="_blank">
+                                <i class="fas fa-external-link-alt me-2"></i>View Portal
+                            </a>
+                            <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-warning">
+                                <i class="fas fa-edit me-2"></i>Edit Hotspot
+                            </a>
+                            <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-info">
+                                <i class="fas fa-box me-2"></i>Manage Packages
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -186,18 +185,9 @@
                             </button>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Test URL:</strong></label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" value="{{ route('portal.test', $hotspot) }}" readonly>
-                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard(this)">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Use these URLs to test your captive portal or share with customers.
+                        This is the URL customers will use to access your WiFi portal.
                     </small>
                 </div>
             </div>

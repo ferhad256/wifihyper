@@ -86,9 +86,6 @@
                         <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-sm btn-primary" target="_blank">
                             <i class="fas fa-external-link-alt me-1"></i>View Portal
                         </a>
-                        <a href="{{ route('portal.test', $hotspot) }}" class="btn btn-sm btn-info" target="_blank">
-                            <i class="fas fa-vial me-1"></i>Test
-                        </a>
                     </div>
                 </div>
             </div>

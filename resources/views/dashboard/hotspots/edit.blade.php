@@ -172,27 +172,10 @@
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
-                        <label class="form-label"><strong>Portal URL:</strong></label>
-                        <div class="input-group">
-                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->url_name) }}" readonly>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard(this)">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
+                        <label for="portal_url" class="form-label">Portal URL</label>
+                        <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot) }}" readonly>
+                        <div class="form-text">This is the URL customers will use to access your WiFi portal.</div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label"><strong>Test URL:</strong></label>
-                        <div class="input-group">
-                            <input type="text" class="form-control form-control-sm" value="{{ route('portal.test', $hotspot) }}" readonly>
-                            <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard(this)">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <small class="text-muted">
-                        <i class="fas fa-info-circle me-1"></i>
-                        These URLs will remain the same after updating.
-                    </small>
                 </div>
             </div>
         </div>
