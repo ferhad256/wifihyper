@@ -14,6 +14,7 @@ class Tenant extends Model
         'name',
         'email',
         'password',
+        'password_changed_at',
         'phone',
         'business_name',
         'address',
@@ -36,6 +37,7 @@ class Tenant extends Model
         'subscription_expires_at' => 'date',
         'is_active' => 'boolean',
         'email_verified_at' => 'datetime',
+        'password_changed_at' => 'datetime',
         'payment_settings' => 'array',
         'settings' => 'array',
     ];

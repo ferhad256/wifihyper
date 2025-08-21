@@ -99,8 +99,10 @@ Route::middleware('auth.tenant')->group(function () {
     Route::get('/subscription/payment/success', [PaymentController::class, 'subscriptionSuccess'])->name('subscription.payment.success');
     
     // Profile routes
-    Route::put('/profile/update', function() { return back()->with('success', 'Profile updated successfully!'); })->name('profile.update');
-    Route::put('/profile/password', function() { return back()->with('success', 'Password changed successfully!'); })->name('profile.password');
+    Route::put('/profile/update', [App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/profile/password', [App\Http\Controllers\ProfileController::class, 'changePassword'])->name('profile.password');
+    Route::get('/profile/delete', [App\Http\Controllers\ProfileController::class, 'showDeleteConfirmation'])->name('profile.delete');
+    Route::delete('/profile/delete', [App\Http\Controllers\ProfileController::class, 'deleteAccount'])->name('profile.delete.confirm');
     
     // Hotspot management routes
     Route::post('/hotspots', [HotspotController::class, 'store'])->name('hotspots.store');
@@ -122,7 +124,6 @@ Route::prefix('portal')->middleware('exclude.notifications')->group(function () 
     Route::get('/{hotspotName}', [PortalController::class, 'index'])->name('portal.index')->where('hotspotName', '[a-zA-Z0-9\-_]+');
     Route::get('/{hotspotName}/payment', [PortalController::class, 'payment'])->name('portal.payment')->where('hotspotName', '[a-zA-Z0-9\-_]+');
     Route::get('/{hotspotName}/inactive', [PortalController::class, 'inactive'])->name('portal.inactive')->where('hotspotName', '[a-zA-Z0-9\-_]+');
-    Route::get('/{hotspotName}/test', [PortalController::class, 'test'])->name('portal.test')->where('hotspotName', '[a-zA-Z0-9\-_]+');
     Route::post('/{hotspotName}/check-availability', [PortalController::class, 'checkAvailability'])->name('portal.check-availability')->where('hotspotName', '[a-zA-Z0-9\-_]+');
 });
 
@@ -131,7 +132,11 @@ Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('
 Route::post('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
-Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
+Route::post('/payment/redeem-voucher', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem-voucher');
 Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
-Route::post('/payment/redeem', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem');
-Route::post('/payment/test', [PaymentController::class, 'testPayment'])->name('payment.test');
+Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
+Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+
+// Resend webhook routes (excluded from CSRF)
+Route::post('/webhooks/resend', [App\Http\Controllers\ResendWebhookController::class, 'handle'])->name('webhooks.resend')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::get('/webhooks/resend/stats', [App\Http\Controllers\ResendWebhookController::class, 'stats'])->name('webhooks.resend.stats')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);

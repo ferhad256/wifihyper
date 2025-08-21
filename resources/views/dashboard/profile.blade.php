@@ -76,7 +76,9 @@
                             @enderror
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Update Profile
+                        </button>
                     </form>
                 </div>
             </div>
@@ -109,6 +111,9 @@
                             @error('new_password')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
+                            <div class="form-text">
+                                <small>Password must be at least 8 characters with uppercase, lowercase, number, and special character.</small>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -117,7 +122,9 @@
                                    id="new_password_confirmation" name="new_password_confirmation" required>
                         </div>
 
-                        <button type="submit" class="btn btn-warning">Change Password</button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-key me-1"></i>Change Password
+                        </button>
                     </form>
                 </div>
             </div>
@@ -158,7 +165,7 @@
                         </div>
                         <div class="col-6">
                             <div class="text-xs font-weight-bold text-primary text-uppercase">
-                                Balance
+                                Wallet Balance
                             </div>
                             <div class="h6 mb-0 font-weight-bold text-gray-800">
                                 UGX {{ number_format($tenant->wallet_balance) }}
@@ -167,7 +174,45 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Danger Zone -->
+            <div class="card shadow mt-4 border-danger">
+                <div class="card-header py-3 bg-danger text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Danger Zone
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> The following actions are irreversible and will permanently delete your account and all associated data.
+                    </div>
+                    
+                    <a href="{{ route('profile.delete') }}" class="btn btn-danger btn-block">
+                        <i class="fas fa-trash-alt me-2"></i>Delete Account
+                    </a>
+                    
+                    <small class="text-muted d-block mt-2">
+                        This will permanently delete your account, hotspots, vouchers, and all transaction history.
+                    </small>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+@if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+        <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
+
 @endsection 

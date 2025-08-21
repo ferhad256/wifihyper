@@ -117,22 +117,6 @@ class PortalController extends Controller
     }
 
     /**
-     * Test portal functionality
-     */
-    public function test($hotspotName)
-    {
-        $hotspot = Hotspot::findByUrlName($hotspotName);
-        
-        if (!$hotspot) {
-            abort(404, 'Hotspot not found');
-        }
-        
-        $packages = $hotspot->packages()->where('is_active', true)->get();
-        
-        return view('portal.test', compact('hotspot', 'packages'));
-    }
-
-    /**
      * API endpoint to check voucher availability in real-time
      */
     public function checkAvailability($hotspotName, Request $request)

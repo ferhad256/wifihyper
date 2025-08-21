@@ -85,6 +85,19 @@
         .btn-close {
             filter: invert(1);
         }
+        .stock-count {
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .stock-count.available {
+            color: #28a745;
+        }
+        .stock-count.low {
+            color: #ffc107;
+        }
+        .stock-count.out {
+            color: #dc3545;
+        }
     </style>
 </head>
 <body>
@@ -124,17 +137,31 @@
                                             </small>
                                         @endif
                                         
-                                        <!-- Stock status indicator (only show out of stock) -->
+                                        <!-- Stock status indicator with count -->
                                         <div class="stock-status mt-2">
                                             @if($package->is_out_of_stock)
                                                 <small class="text-danger">
                                                     <i class="fas fa-times-circle me-1"></i>Out of Stock
+                                                </small>
+                                            @elseif($package->is_low_stock)
+                                                <small class="text-warning">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Low Stock
                                                 </small>
                                             @else
                                                 <small class="text-success">
                                                     <i class="fas fa-check-circle me-1"></i>Available
                                                 </small>
                                             @endif
+                                            
+                                            <!-- Stock count display -->
+                                            <div class="stock-count {{ $package->is_out_of_stock ? 'out' : ($package->is_low_stock ? 'low' : 'available') }}" 
+                                                 data-stock-count="{{ $package->available_vouchers }}">
+                                                @if($package->is_out_of_stock)
+                                                    <i class="fas fa-times-circle me-1"></i>0 vouchers
+                                                @else
+                                                    <i class="fas fa-tags me-1"></i>{{ $package->available_vouchers }} vouchers
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="col-4 text-end">
@@ -252,9 +279,9 @@
         let paymentModal;
         let availabilityCheckInterval;
         
-        // Real-time availability checking
+        // Real-time availability checking with enhanced frequency
         function checkAvailability(packageId) {
-            fetch(`{{ route('portal.check-availability', $hotspot->id) }}`, {
+            fetch(`{{ route('portal.check-availability', $hotspot->url_name) }}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -279,38 +306,71 @@
             
             const buyButton = packageCard.querySelector('.btn-buy-now');
             const stockStatus = packageCard.querySelector('.stock-status');
+            const stockCount = packageCard.querySelector('.stock-count');
             
-            if (!availability.has_vouchers) {
-                // Disable buy button and show out of stock
-                if (buyButton) {
+            // Update stock count
+            if (stockCount) {
+                const count = availability.available || 0;
+                stockCount.setAttribute('data-stock-count', count);
+                
+                if (count === 0) {
+                    stockCount.className = 'stock-count out';
+                    stockCount.innerHTML = '<i class="fas fa-times-circle me-1"></i>0 vouchers';
+                } else if (count <= 5) {
+                    stockCount.className = 'stock-count low';
+                    stockCount.innerHTML = `<i class="fas fa-exclamation-triangle me-1"></i>${count} vouchers`;
+                } else {
+                    stockCount.className = 'stock-count available';
+                    stockCount.innerHTML = `<i class="fas fa-tags me-1"></i>${count} vouchers`;
+                }
+            }
+            
+            // Update stock status
+            if (stockStatus) {
+                if (!availability.has_vouchers) {
+                    stockStatus.innerHTML = '<small class="text-danger"><i class="fas fa-times-circle me-1"></i>Out of Stock</small>';
+                } else if (availability.is_low_stock) {
+                    stockStatus.innerHTML = '<small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Low Stock</small>';
+                } else {
+                    stockStatus.innerHTML = '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Available</small>';
+                }
+            }
+            
+            // Update buy button
+            if (buyButton) {
+                if (!availability.has_vouchers) {
                     buyButton.disabled = true;
                     buyButton.className = 'btn btn-secondary';
                     buyButton.innerHTML = '<i class="fas fa-times-circle me-1"></i>Out of Stock';
                     buyButton.onclick = null;
-                }
-                
-                if (stockStatus) {
-                    stockStatus.innerHTML = '<small class="text-danger"><i class="fas fa-times-circle me-1"></i>Out of Stock</small>';
-                }
-            } else {
-                // Show available
-                if (stockStatus) {
-                    stockStatus.innerHTML = `<small class="text-success"><i class="fas fa-check-circle me-1"></i>Available</small>`;
+                } else {
+                    buyButton.disabled = false;
+                    buyButton.className = 'btn btn-buy-now';
+                    buyButton.innerHTML = '<i class="fas fa-shopping-cart me-1"></i>Buy Now';
+                    buyButton.onclick = function() {
+                        openPaymentModal(packageId, packageCard.querySelector('h6').textContent, 
+                                      parseInt(packageCard.querySelector('.text-primary').textContent.replace(/[^\d]/g, '')));
+                    };
                 }
             }
         }
         
-        // Check availability for all packages periodically
+        // Check availability for all packages with increased frequency
         function startAvailabilityChecking() {
             const packageIds = Array.from(document.querySelectorAll('[data-package-id]'))
                 .map(card => card.getAttribute('data-package-id'));
             
-            // Check availability every 30 seconds
+            // Check availability every 10 seconds for real-time updates
             availabilityCheckInterval = setInterval(() => {
                 packageIds.forEach(packageId => {
                     checkAvailability(packageId);
                 });
-            }, 30000);
+            }, 10000);
+            
+            // Also check immediately when page loads
+            packageIds.forEach(packageId => {
+                checkAvailability(packageId);
+            });
         }
         
         function openPaymentModal(packageId, packageName, packagePrice) {

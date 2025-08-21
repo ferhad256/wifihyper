@@ -52,7 +52,7 @@ return [
     */
 
     'webhook' => [
-        'secret' => env('RESEND_WEBHOOK_SECRET'),
+        'secret' => env('RESEND_WEBHOOK_SECRET', 'your_webhook_secret_here'),
         'tolerance' => env('RESEND_WEBHOOK_TOLERANCE', 300),
     ],
 
