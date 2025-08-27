@@ -130,7 +130,7 @@ Route::prefix('portal')->middleware('exclude.notifications')->group(function () 
 // Payment routes
 Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
 Route::post('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed.post')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
 Route::post('/payment/redeem-voucher', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem-voucher');
 Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');

@@ -63,7 +63,7 @@ class YoPaymentsService
                 'Narrative' => "WiFi Package - " . ($transaction->package->name ?? 'Unknown Package'),
                 'ExternalReference' => $transaction->transaction_id,
                 'InstantNotificationUrl' => route('payment.callback'),
-                'FailureNotificationUrl' => route('payment.failed'),
+                'FailureNotificationUrl' => route('payment.failed.post'),
             ];
 
             Log::info('YoPaymentsService: Payment parameters built', [

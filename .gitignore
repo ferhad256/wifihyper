@@ -98,5 +98,4 @@ config/services.php
 .env.staging
 .env.testing
 
-# Keep example files
-!.env.example
+
