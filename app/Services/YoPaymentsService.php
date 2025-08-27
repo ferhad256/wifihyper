@@ -299,9 +299,16 @@ class YoPaymentsService
 
             $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
 
+            Log::info('Yo Payments Transaction Status Check Request', [
+                'transaction_id' => $transactionId,
+                'method' => 'actransactioncheckstatus',
+                'parameters' => $parameters,
+                'xml_request' => $xmlRequest,
+            ]);
+
             $response = $this->makeXmlRequest($xmlRequest);
 
-            Log::info('Yo Payments Transaction Status Check', [
+            Log::info('Yo Payments Transaction Status Check Response', [
                 'transaction_id' => $transactionId,
                 'response' => $response,
             ]);
@@ -998,21 +1005,29 @@ class YoPaymentsService
     }
 
     /**
-     * Check transaction status using private transaction reference
+     * Check transaction status using transaction reference
      */
     public function checkTransactionByReference($externalReference, $depositType = 'PULL')
     {
         try {
             $parameters = [
-                'PrivateTransactionReference' => $externalReference,
+                'TransactionReference' => $externalReference,
                 'DepositTransactionType' => $depositType,
             ];
 
             $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
 
+            Log::info('Yo Payments Transaction Status Check by Reference Request', [
+                'external_reference' => $externalReference,
+                'deposit_type' => $depositType,
+                'method' => 'actransactioncheckstatus',
+                'parameters' => $parameters,
+                'xml_request' => $xmlRequest,
+            ]);
+
             $response = $this->makeXmlRequest($xmlRequest);
 
-            Log::info('Yo Payments Transaction Status Check by Reference', [
+            Log::info('Yo Payments Transaction Status Check by Reference Response', [
                 'external_reference' => $externalReference,
                 'deposit_type' => $depositType,
                 'response' => $response,
