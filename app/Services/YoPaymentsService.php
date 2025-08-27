@@ -47,11 +47,19 @@ class YoPaymentsService
     }
 
     /**
-     * Initialize a payment transaction
+     * Initialize a payment transaction using Yo Payments API 6.1 PULL METHOD
+     * 
+     * This method implements the official Yo Payments API specification for
+     * initiating pull-based deposits from mobile money accounts.
+     * 
+     * @param Transaction $transaction - Transaction model instance
+     * @param string $phoneNumber - Customer phone number
+     * @param array $additionalParams - Optional additional parameters
+     * @return array
      */
-    public function initiatePayment(Transaction $transaction, $phoneNumber)
+    public function initiatePayment(Transaction $transaction, $phoneNumber, $additionalParams = [])
     {
-        Log::info('YoPaymentsService: Payment initiation started', [
+        Log::info('YoPaymentsService: Payment initiation started (API 6.1 PULL METHOD)', [
             'transaction_id' => $transaction->transaction_id,
             'amount' => $transaction->amount,
             'phone_number' => $phoneNumber,
@@ -69,28 +77,36 @@ class YoPaymentsService
         }
 
         try {
-            Log::info('YoPaymentsService: Building payment parameters', [
+            // Validate mandatory parameters as per API specification
+            $this->validatePaymentParameters($transaction, $phoneNumber);
+
+            Log::info('YoPaymentsService: Building payment parameters (API 6.1 compliant)', [
                 'transaction_id' => $transaction->transaction_id,
                 'amount' => $transaction->amount,
                 'phone_number' => $phoneNumber
             ]);
 
+            // Build base parameters according to API 6.1 specification
             $parameters = [
-                'NonBlocking' => 'TRUE', // Use non-blocking for better performance
-                'Amount' => $transaction->amount,
-                'Account' => $this->formatPhoneNumberForDeposit($phoneNumber),
-                'AccountProviderCode' => 'MTN', // Default to MTN, can be made configurable
-                'Narrative' => "WiFi Package - " . ($transaction->package->name ?? 'Unknown Package'),
-                'ExternalReference' => $transaction->transaction_id,
-                'InstantNotificationUrl' => route('payment.callback'),
-                'FailureNotificationUrl' => route('payment.failed.post'),
+                'Method' => 'acdepositfunds', // Mandatory: Must be set to acdepositfunds
+                'NonBlocking' => 'TRUE', // Optional: Use non-blocking for better performance
+                'Amount' => $transaction->amount, // Mandatory: Amount to be deducted
+                'Account' => $this->formatPhoneNumberForDeposit($phoneNumber), // Mandatory: Mobile money account number
+                'AccountProviderCode' => $additionalParams['provider_code'] ?? 'MTN', // Optional: Mobile provider code
+                'Narrative' => $this->buildPaymentNarrative($transaction, $additionalParams), // Mandatory: Transaction description
+                'ExternalReference' => $transaction->transaction_id, // Optional: External transaction reference
+                'InstantNotificationUrl' => $this->buildNotificationUrl('success', $additionalParams), // Optional: Success notification URL
+                'FailureNotificationUrl' => $this->buildNotificationUrl('failure', $additionalParams), // Optional: Failure notification URL
             ];
 
-            Log::info('YoPaymentsService: Payment parameters built', [
+            // Add optional parameters if provided
+            $parameters = $this->addOptionalParameters($parameters, $additionalParams);
+
+            Log::info('YoPaymentsService: Payment parameters built (API 6.1 compliant)', [
                 'transaction_id' => $transaction->transaction_id,
                 'parameters' => $parameters,
-                'callback_url' => route('payment.callback'),
-                'failure_url' => route('payment.failed.post')
+                'callback_url' => $parameters['InstantNotificationUrl'],
+                'failure_url' => $parameters['FailureNotificationUrl']
             ]);
 
             // Add authentication signature if required
@@ -919,6 +935,171 @@ class YoPaymentsService
     }
 
     /**
+     * Format phone number for balance check
+     */
+    protected function formatPhoneNumberForBalance($phoneNumber)
+    {
+        return $this->formatPhoneNumberForDeposit($phoneNumber);
+    }
+
+    /**
+     * Format phone number for account validation
+     */
+    protected function formatPhoneNumberForValidation($phoneNumber)
+    {
+        return $this->formatPhoneNumberForDeposit($phoneNumber);
+    }
+
+    /**
+     * Format phone number for transaction history
+     */
+    protected function formatPhoneNumberForHistory($phoneNumber)
+    {
+        return $this->formatPhoneNumberForDeposit($phoneNumber);
+    }
+
+    /**
+     * Validate payment parameters according to Yo Payments API 6.1 specification
+     * 
+     * @param Transaction $transaction
+     * @param string $phoneNumber
+     * @throws \Exception
+     */
+    protected function validatePaymentParameters($transaction, $phoneNumber)
+    {
+        // Validate amount (must be greater than zero)
+        if (empty($transaction->amount) || $transaction->amount <= 0) {
+            throw new \Exception('Amount must be greater than zero as per API 6.1 specification');
+        }
+
+        // Validate phone number format
+        $formattedPhone = $this->formatPhoneNumberForDeposit($phoneNumber);
+        if (strlen($formattedPhone) !== 12 || substr($formattedPhone, 0, 3) !== '256') {
+            throw new \Exception('Phone number must be in international format (256XXXXXXXXX) as per API 6.1 specification');
+        }
+
+        // Validate narrative length (maximum 4096 characters)
+        $narrative = $this->buildPaymentNarrative($transaction, []);
+        if (strlen($narrative) > 4096) {
+            throw new \Exception('Narrative exceeds maximum length of 4096 characters as per API 6.1 specification');
+        }
+
+        Log::info('YoPaymentsService: Payment parameters validation passed', [
+            'transaction_id' => $transaction->transaction_id,
+            'amount' => $transaction->amount,
+            'phone_number' => $formattedPhone,
+            'narrative_length' => strlen($narrative)
+        ]);
+    }
+
+    /**
+     * Build payment narrative according to API 6.1 specification
+     * 
+     * @param Transaction $transaction
+     * @param array $additionalParams
+     * @return string
+     */
+    protected function buildPaymentNarrative($transaction, $additionalParams)
+    {
+        $baseNarrative = "WiFi Package - " . ($transaction->package->name ?? 'Unknown Package');
+        
+        // Add custom narrative if provided
+        if (!empty($additionalParams['custom_narrative'])) {
+            $baseNarrative = $additionalParams['custom_narrative'];
+        }
+        
+        // Add hotspot information if available
+        if (!empty($additionalParams['hotspot_name'])) {
+            $baseNarrative .= " at " . $additionalParams['hotspot_name'];
+        }
+        
+        // Ensure narrative doesn't exceed 4096 characters
+        if (strlen($baseNarrative) > 4096) {
+            $baseNarrative = substr($baseNarrative, 0, 4093) . '...';
+        }
+        
+        return $baseNarrative;
+    }
+
+    /**
+     * Build notification URLs with proper encoding as per API 6.1 specification
+     * 
+     * @param string $type - 'success' or 'failure'
+     * @param array $additionalParams
+     * @return string
+     */
+    protected function buildNotificationUrl($type, $additionalParams)
+    {
+        $baseUrl = $type === 'success' ? route('payment.callback') : route('payment.failed.post');
+        
+        // Add custom parameters if provided
+        if (!empty($additionalParams['notification_params'])) {
+            $queryParams = http_build_query($additionalParams['notification_params']);
+            $baseUrl .= (strpos($baseUrl, '?') === false ? '?' : '&') . $queryParams;
+        }
+        
+        // Properly encode the URL as per API 6.1 specification
+        // Replace special XML characters with escape sequences
+        $encodedUrl = str_replace(
+            ['&', '<', '>', '"', "'"],
+            ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'],
+            $baseUrl
+        );
+        
+        return $encodedUrl;
+    }
+
+    /**
+     * Add optional parameters according to API 6.1 specification
+     * 
+     * @param array $parameters
+     * @param array $additionalParams
+     * @return array
+     */
+    protected function addOptionalParameters($parameters, $additionalParams)
+    {
+        // Add internal reference if provided
+        if (!empty($additionalParams['internal_reference'])) {
+            $parameters['InternalReference'] = $additionalParams['internal_reference'];
+        }
+        
+        // Add provider reference text if provided
+        if (!empty($additionalParams['provider_reference_text'])) {
+            $parameters['ProviderReferenceText'] = $additionalParams['provider_reference_text'];
+        }
+        
+        // Add narrative file if provided
+        if (!empty($additionalParams['narrative_file_path']) && !empty($additionalParams['narrative_file_name'])) {
+            $parameters['NarrativeFileName'] = $additionalParams['narrative_file_name'];
+            $parameters['NarrativeFileBase64'] = $this->encodeFileToBase64($additionalParams['narrative_file_path']);
+        }
+        
+        return $parameters;
+    }
+
+    /**
+     * Encode file to base64 for narrative file attachment
+     * 
+     * @param string $filePath
+     * @return string
+     */
+    protected function encodeFileToBase64($filePath)
+    {
+        if (!file_exists($filePath)) {
+            Log::warning('YoPaymentsService: Narrative file not found', ['file_path' => $filePath]);
+            return '';
+        }
+        
+        $fileContent = file_get_contents($filePath);
+        if ($fileContent === false) {
+            Log::warning('YoPaymentsService: Failed to read narrative file', ['file_path' => $filePath]);
+            return '';
+        }
+        
+        return base64_encode($fileContent);
+    }
+
+    /**
      * Generate authentication signature for deposit requests
      */
     protected function generateDepositSignature($parameters)
@@ -939,7 +1120,8 @@ class YoPaymentsService
             // Get source IP address
             $sourceIp = request()->ip() ?? '127.0.0.1';
 
-            // Concatenate parameters as per Yo Payments specification for deposits
+            // Concatenate parameters as per Yo Payments API 6.1 specification for deposits
+            // Order: 1. APIUsername, 2. APIPassword, 3. Amount, 4. Account, 5. Narrative, 6. ExternalReference, 7. Source IP
             $concatenatedString = $this->username;
             $concatenatedString .= $this->password;
             $concatenatedString .= $parameters['Amount'];
@@ -1409,5 +1591,287 @@ class YoPaymentsService
             'comprehensive_verification' => true,
             'all_errors' => $failedResults,
         ];
+    }
+
+    /**
+     * Check account balance for a phone number
+     * 
+     * @param string $phoneNumber
+     * @param string $providerCode (MTN, AIRTEL, etc.)
+     * @return array
+     */
+    public function checkAccountBalance($phoneNumber, $providerCode = 'MTN')
+    {
+        try {
+            $parameters = [
+                'Account' => $this->formatPhoneNumberForBalance($phoneNumber),
+                'AccountProviderCode' => $providerCode,
+            ];
+
+            $xmlRequest = $this->buildXmlRequest('acgetbalance', $parameters);
+            
+            Log::info('Yo Payments Balance Check Request', [
+                'phone_number' => $phoneNumber,
+                'provider' => $providerCode,
+                'method' => 'acgetbalance',
+            ]);
+
+            $response = $this->makeXmlRequest($xmlRequest);
+
+            Log::info('Yo Payments Balance Check Response', [
+                'phone_number' => $phoneNumber,
+                'response' => $response,
+            ]);
+
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'balance' => $response['data']['Balance'] ?? 0,
+                    'currency' => $response['data']['Currency'] ?? 'UGX',
+                    'account_status' => $response['data']['AccountStatus'] ?? 'unknown',
+                    'message' => 'Balance retrieved successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Failed to check balance: ' . $response['message'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Balance Check Error', [
+                'phone_number' => $phoneNumber,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Balance check error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Validate account/phone number
+     * 
+     * @param string $phoneNumber
+     * @param string $providerCode
+     * @return array
+     */
+    public function validateAccount($phoneNumber, $providerCode = 'MTN')
+    {
+        try {
+            $parameters = [
+                'Account' => $this->formatPhoneNumberForValidation($phoneNumber),
+                'AccountProviderCode' => $providerCode,
+            ];
+
+            $xmlRequest = $this->buildXmlRequest('acvalidateaccount', $parameters);
+            
+            Log::info('Yo Payments Account Validation Request', [
+                'phone_number' => $phoneNumber,
+                'provider' => $providerCode,
+                'method' => 'acvalidateaccount',
+            ]);
+
+            $response = $this->makeXmlRequest($xmlRequest);
+
+            Log::info('Yo Payments Account Validation Response', [
+                'phone_number' => $phoneNumber,
+                'response' => $response,
+            ]);
+
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'is_valid' => true,
+                    'account_name' => $response['data']['AccountName'] ?? 'Unknown',
+                    'account_status' => $response['data']['AccountStatus'] ?? 'unknown',
+                    'message' => 'Account validated successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'is_valid' => false,
+                'message' => 'Account validation failed: ' . $response['message'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Account Validation Error', [
+                'phone_number' => $phoneNumber,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'is_valid' => false,
+                'message' => 'Account validation error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get transaction history for a phone number
+     * 
+     * @param string $phoneNumber
+     * @param string $providerCode
+     * @param int $limit
+     * @return array
+     */
+    public function getTransactionHistory($phoneNumber, $providerCode = 'MTN', $limit = 10)
+    {
+        try {
+            $parameters = [
+                'Account' => $this->formatPhoneNumberForHistory($phoneNumber),
+                'AccountProviderCode' => $providerCode,
+                'Limit' => $limit,
+            ];
+
+            $xmlRequest = $this->buildXmlRequest('acgettransactionhistory', $parameters);
+            
+            Log::info('Yo Payments Transaction History Request', [
+                'phone_number' => $phoneNumber,
+                'provider' => $providerCode,
+                'limit' => $limit,
+                'method' => 'acgettransactionhistory',
+            ]);
+
+            $response = $this->makeXmlRequest($xmlRequest);
+
+            Log::info('Yo Payments Transaction History Response', [
+                'phone_number' => $phoneNumber,
+                'response' => $response,
+            ]);
+
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'transactions' => $response['data']['Transactions'] ?? [],
+                    'total_count' => $response['data']['TotalCount'] ?? 0,
+                    'message' => 'Transaction history retrieved successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Failed to get transaction history: ' . $response['message'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Transaction History Error', [
+                'phone_number' => $phoneNumber,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Transaction history error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Cancel a pending transaction
+     * 
+     * @param string $transactionReference
+     * @return array
+     */
+    public function cancelTransaction($transactionReference)
+    {
+        try {
+            $parameters = [
+                'TransactionReference' => $transactionReference,
+            ];
+
+            $xmlRequest = $this->buildXmlRequest('accanceltransaction', $parameters);
+            
+            Log::info('Yo Payments Cancel Transaction Request', [
+                'transaction_reference' => $transactionReference,
+                'method' => 'accanceltransaction',
+            ]);
+
+            $response = $this->makeXmlRequest($xmlRequest);
+
+            Log::info('Yo Payments Cancel Transaction Response', [
+                'transaction_reference' => $transactionReference,
+                'response' => $response,
+            ]);
+
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'cancelled' => true,
+                    'message' => 'Transaction cancelled successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'cancelled' => false,
+                'message' => 'Failed to cancel transaction: ' . $response['message'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Cancel Transaction Error', [
+                'transaction_reference' => $transactionReference,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'cancelled' => false,
+                'message' => 'Cancel transaction error: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get API status and health check
+     * 
+     * @return array
+     */
+    public function getApiStatus()
+    {
+        try {
+            $parameters = [];
+
+            $xmlRequest = $this->buildXmlRequest('acgetstatus', $parameters);
+            
+            Log::info('Yo Payments API Status Check Request', [
+                'method' => 'acgetstatus',
+            ]);
+
+            $response = $this->makeXmlRequest($xmlRequest);
+
+            Log::info('Yo Payments API Status Check Response', [
+                'response' => $response,
+            ]);
+
+            if ($response['success']) {
+                return [
+                    'success' => true,
+                    'api_status' => $response['data']['Status'] ?? 'unknown',
+                    'server_time' => $response['data']['ServerTime'] ?? null,
+                    'version' => $response['data']['Version'] ?? 'unknown',
+                    'message' => 'API status retrieved successfully',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Failed to get API status: ' . $response['message'],
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments API Status Check Error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'API status check error: ' . $e->getMessage(),
+            ];
+        }
     }
 } 

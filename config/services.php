@@ -45,7 +45,20 @@ return [
         'base_url' => env('YO_PAYMENTS_BASE_URL', 'https://paymentsapi1.yo.co.ug/ybs/task.php'),
         'fallback_url' => env('YO_PAYMENTS_FALLBACK_URL', 'https://paymentsapi2.yo.co.ug/ybs/task.php'),
         'public_key_enabled' => env('YO_PAYMENTS_PUBLIC_KEY_ENABLED', false),
+        'public_key_path' => env('YO_PAYMENTS_PUBLIC_KEY_PATH', 'storage/keys/yo_payments_public_key.pem'),
         'private_key_path' => env('YO_PAYMENTS_PRIVATE_KEY_PATH', 'storage/keys/yo_payments_private_key.pem'),
+        
+        // IPN (Instant Payment Notification) URLs
+        'ipn_urls' => [
+            'success' => env('YO_PAYMENTS_IPN_SUCCESS_URL', 'https://yourdomain.com/payment/callback'),
+            'failure' => env('YO_PAYMENTS_IPN_FAILURE_URL', 'https://yourdomain.com/payment/failed'),
+            'pending' => env('YO_PAYMENTS_IPN_PENDING_URL', 'https://yourdomain.com/payment/callback'),
+        ],
+        
+        // IPN Configuration
+        'ipn_enabled' => env('YO_PAYMENTS_IPN_ENABLED', true),
+        'ipn_timeout' => env('YO_PAYMENTS_IPN_TIMEOUT', 30), // seconds
+        'ipn_retry_attempts' => env('YO_PAYMENTS_IPN_RETRY_ATTEMPTS', 3),
     ],
 
     /*

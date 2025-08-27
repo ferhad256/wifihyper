@@ -407,55 +407,186 @@ class PaymentController extends Controller
 
     /**
      * Handle failed payment notification from Yo Payments
+     * 
+     * According to Yo Payments API 6.4: Transaction Failure Notification API
+     * Parameters: failed_transaction_reference, transaction_init_date, verification
      */
     public function failed(Request $request)
     {
         try {
-            Log::info('Yo Payments Failure Notification', [
+            Log::info('Yo Payments Failure Notification Received', [
                 'request_data' => $request->all(),
                 'headers' => $request->headers->all(),
+                'ip' => $request->ip(),
             ]);
 
-            // Parse the failure notification data
-            $transactionId = $request->input('TransactionReference');
-            $failureReason = $request->input('FailureReason', 'Unknown failure');
-            $amount = $request->input('Amount');
-            $phoneNumber = $request->input('PhoneNumber');
+            // Extract parameters according to Yo Payments API specification
+            $failedTransactionReference = $request->input('failed_transaction_reference');
+            $transactionInitDate = $request->input('transaction_init_date');
+            $verification = $request->input('verification');
 
-            // Find the transaction
-            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            // Validate required parameters
+            if (!$failedTransactionReference || !$verification) {
+                Log::error('Yo Payments Failure: Missing required parameters', [
+                    'failed_transaction_reference' => $failedTransactionReference,
+                    'verification' => $verification,
+                ]);
+                return response('Missing required parameters', 400);
+            }
+
+            // Verify the signature if public key is configured
+            if (config('services.yo_payments.public_key_enabled', false)) {
+                $isValidSignature = $this->verifyFailureNotificationSignature(
+                    $failedTransactionReference,
+                    $transactionInitDate,
+                    $verification
+                );
+
+                if (!$isValidSignature) {
+                    Log::error('Yo Payments Failure: Invalid signature', [
+                        'failed_transaction_reference' => $failedTransactionReference,
+                        'verification' => $verification,
+                    ]);
+                    return response('Invalid signature', 401);
+                }
+
+                Log::info('Yo Payments Failure: Signature verified successfully');
+            } else {
+                Log::warning('Yo Payments Failure: Signature verification skipped (public key not configured)');
+            }
+
+            // Find the transaction using the failed_transaction_reference
+            $transaction = Transaction::where('transaction_id', $failedTransactionReference)
+                ->orWhere('payment_details->yo_payments_reference', $failedTransactionReference)
+                ->first();
             
             if (!$transaction) {
-                Log::error('Yo Payments Failure: Transaction not found', ['transaction_id' => $transactionId]);
+                Log::error('Yo Payments Failure: Transaction not found', [
+                    'failed_transaction_reference' => $failedTransactionReference,
+                    'search_criteria' => 'transaction_id or yo_payments_reference',
+                ]);
                 return response('Transaction not found', 404);
             }
 
             // Update transaction status to failed
+            $oldStatus = $transaction->status;
             $transaction->update([
                 'status' => 'failed',
+                'failed_at' => now(),
                 'payment_details' => array_merge($transaction->payment_details ?? [], [
-                    'failure_reason' => $failureReason,
                     'failure_notification_received_at' => now(),
-                    'failure_amount' => $amount,
-                    'failure_phone' => $phoneNumber,
+                    'failure_transaction_reference' => $failedTransactionReference,
+                    'failure_transaction_init_date' => $transactionInitDate,
+                    'failure_verification' => $verification,
+                    'failure_verification_status' => config('services.yo_payments.public_key_enabled', false) ? 'verified' : 'skipped',
+                    'failure_processing_timestamp' => now()->toISOString(),
                 ]),
             ]);
 
-            Log::info('Yo Payments Failure: Transaction updated', [
-                'transaction_id' => $transactionId,
-                'status' => 'failed',
-                'reason' => $failureReason,
+            Log::info('Yo Payments Failure: Transaction updated successfully', [
+                'transaction_id' => $transaction->transaction_id,
+                'old_status' => $oldStatus,
+                'new_status' => 'failed',
+                'failed_transaction_reference' => $failedTransactionReference,
+                'transaction_init_date' => $transactionInitDate,
             ]);
 
+            // Return 200 OK as required by Yo Payments API
             return response('OK', 200);
 
         } catch (\Exception $e) {
             Log::error('Yo Payments Failure Notification Error', [
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
+            // Return 500 error - Yo Payments will retry
             return response('Error processing failure notification', 500);
+        }
+    }
+
+    /**
+     * Verify the signature of failure notification according to Yo Payments API 6.4.3
+     * 
+     * @param string $failedTransactionReference
+     * @param string $transactionInitDate
+     * @param string $verification Base64 encoded RSA signature
+     * @return bool
+     */
+    private function verifyFailureNotificationSignature($failedTransactionReference, $transactionInitDate, $verification)
+    {
+        try {
+            // Get the public key path
+            $publicKeyPath = config('services.yo_payments.public_key_path');
+            
+            if (!file_exists($publicKeyPath)) {
+                Log::error('Yo Payments Failure: Public key file not found', [
+                    'public_key_path' => $publicKeyPath,
+                ]);
+                return false;
+            }
+
+            // Read the public key
+            $publicKey = openssl_pkey_get_public(file_get_contents($publicKeyPath));
+            
+            if (!$publicKey) {
+                Log::error('Yo Payments Failure: Invalid public key', [
+                    'public_key_path' => $publicKeyPath,
+                ]);
+                return false;
+            }
+
+            // Concatenate parameters in order as per API spec 6.4.2
+            $messageToVerify = $failedTransactionReference . $transactionInitDate;
+            
+            // Decode base64 signature
+            $decodedSignature = base64_decode($verification);
+            
+            if ($decodedSignature === false) {
+                Log::error('Yo Payments Failure: Invalid base64 signature', [
+                    'verification' => $verification,
+                ]);
+                return false;
+            }
+
+            // Verify the signature
+            $verificationResult = openssl_verify(
+                $messageToVerify,
+                $decodedSignature,
+                $publicKey,
+                OPENSSL_ALGO_SHA1
+            );
+
+            // Free the key
+            openssl_free_key($publicKey);
+
+            if ($verificationResult === 1) {
+                Log::info('Yo Payments Failure: Signature verification successful', [
+                    'failed_transaction_reference' => $failedTransactionReference,
+                    'transaction_init_date' => $transactionInitDate,
+                ]);
+                return true;
+            } elseif ($verificationResult === 0) {
+                Log::error('Yo Payments Failure: Signature verification failed', [
+                    'failed_transaction_reference' => $failedTransactionReference,
+                    'transaction_init_date' => $transactionInitDate,
+                    'verification' => $verification,
+                ]);
+                return false;
+            } else {
+                Log::error('Yo Payments Failure: Signature verification error', [
+                    'error' => openssl_error_string(),
+                ]);
+                return false;
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Failure: Signature verification exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return false;
         }
     }
 
