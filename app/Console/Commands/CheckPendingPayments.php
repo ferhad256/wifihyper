@@ -67,8 +67,8 @@ class CheckPendingPayments extends Command
             $this->line("Checking transaction: {$transaction->transaction_id}");
             
             try {
-                // Check status using Yo Payments API
-                $statusResult = $yoPayments->verifyPayment($transaction->transaction_id);
+                // Check status using Yo Payments API with comprehensive verification
+                $statusResult = $yoPayments->comprehensiveTransactionVerification($transaction);
                 
                 if ($statusResult['success']) {
                     $oldStatus = $transaction->status;

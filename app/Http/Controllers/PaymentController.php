@@ -508,9 +508,9 @@ class PaymentController extends Controller
                 ], 404);
             }
 
-            // Check status using Yo Payments API
+            // Check status using Yo Payments API with comprehensive verification
             $yoPaymentsService = new \App\Services\YoPaymentsService();
-            $statusResult = $yoPaymentsService->verifyPayment($transactionId);
+            $statusResult = $yoPaymentsService->comprehensiveTransactionVerification($transaction);
 
             if ($statusResult['success']) {
                 $oldStatus = $transaction->status;

@@ -289,11 +289,47 @@ class YoPaymentsService
     /**
      * Verify payment status
      */
-    public function verifyPayment($transactionId)
+    public function verifyPayment($transactionIdOrTransaction)
     {
         try {
+            // If we received a transaction object, extract the Yo Payments reference
+            if (is_object($transactionIdOrTransaction) && method_exists($transactionIdOrTransaction, 'payment_details')) {
+                $transaction = $transactionIdOrTransaction;
+                $yoPaymentsReference = $transaction->payment_details['yo_payments_reference'] ?? null;
+                
+                if (!$yoPaymentsReference) {
+                    Log::warning('YoPaymentsService: No Yo Payments reference found for transaction', [
+                        'transaction_id' => $transaction->transaction_id,
+                        'payment_details' => $transaction->payment_details,
+                    ]);
+                    
+                    return [
+                        'success' => false,
+                        'message' => 'No Yo Payments reference found. Cannot verify payment.',
+                        'error_type' => 'missing_reference',
+                    ];
+                }
+                
+                $referenceToUse = $yoPaymentsReference;
+                $transactionId = $transaction->transaction_id;
+                
+                Log::info('YoPaymentsService: Using stored Yo Payments reference for verification', [
+                    'transaction_id' => $transactionId,
+                    'yo_payments_reference' => $yoPaymentsReference,
+                ]);
+            } else {
+                // Fallback: use the provided ID directly (for backward compatibility)
+                $referenceToUse = $transactionIdOrTransaction;
+                $transactionId = $transactionIdOrTransaction;
+                
+                Log::warning('YoPaymentsService: Using transaction ID directly for verification (fallback mode)', [
+                    'transaction_id' => $transactionId,
+                    'note' => 'This may fail if the ID is not a valid Yo Payments reference',
+                ]);
+            }
+
             $parameters = [
-                'TransactionReference' => $transactionId,
+                'TransactionReference' => $referenceToUse,
                 'DepositTransactionType' => 'PULL', // Default to pull deposit (acdepositfunds)
             ];
 
@@ -301,6 +337,7 @@ class YoPaymentsService
 
             Log::info('Yo Payments Transaction Status Check Request', [
                 'transaction_id' => $transactionId,
+                'yo_payments_reference' => $referenceToUse,
                 'method' => 'actransactioncheckstatus',
                 'parameters' => $parameters,
                 'xml_request' => $xmlRequest,
@@ -310,6 +347,7 @@ class YoPaymentsService
 
             Log::info('Yo Payments Transaction Status Check Response', [
                 'transaction_id' => $transactionId,
+                'yo_payments_reference' => $referenceToUse,
                 'response' => $response,
             ]);
 
@@ -345,23 +383,30 @@ class YoPaymentsService
                     'data' => $data,
                     'transaction_details' => $transactionDetails,
                     'message' => $response['message'] ?? 'Payment status retrieved successfully',
+                    'verification_method' => 'yo_payments_reference',
+                    'yo_payments_reference' => $referenceToUse,
                 ];
             }
 
             return [
                 'success' => false,
                 'message' => 'Failed to verify payment: ' . $response['message'],
+                'verification_method' => 'yo_payments_reference',
+                'yo_payments_reference' => $referenceToUse,
             ];
 
         } catch (\Exception $e) {
             Log::error('Yo Payments Transaction Status Check Error', [
-                'transaction_id' => $transactionId,
+                'transaction_id' => $transactionId ?? 'unknown',
+                'yo_payments_reference' => $referenceToUse ?? 'unknown',
                 'error' => $e->getMessage(),
             ]);
 
             return [
                 'success' => false,
                 'message' => 'Payment verification error: ' . $e->getMessage(),
+                'verification_method' => 'yo_payments_reference',
+                'yo_payments_reference' => $referenceToUse ?? 'unknown',
             ];
         }
     }
@@ -1084,5 +1129,184 @@ class YoPaymentsService
                 'message' => 'Transaction status check error: ' . $e->getMessage(),
             ];
         }
+    }
+
+    /**
+     * Comprehensive transaction verification using multiple methods
+     * This method tries different approaches to verify transaction status
+     */
+    public function comprehensiveTransactionVerification($transactionIdOrTransaction, $externalReference = null)
+    {
+        try {
+            // If we received a transaction object, extract the Yo Payments reference
+            if (is_object($transactionIdOrTransaction) && method_exists($transactionIdOrTransaction, 'transaction_id')) {
+                $transaction = $transactionIdOrTransaction;
+                $transactionId = $transaction->transaction_id;
+                $yoPaymentsReference = $transaction->payment_details['yo_payments_reference'] ?? null;
+                
+                Log::info('YoPaymentsService: Starting comprehensive transaction verification', [
+                    'transaction_id' => $transactionId,
+                    'yo_payments_reference' => $yoPaymentsReference,
+                    'external_reference' => $externalReference,
+                ]);
+            } else {
+                // Fallback: use the provided ID directly
+                $transactionId = $transactionIdOrTransaction;
+                $yoPaymentsReference = $externalReference;
+                
+                Log::info('YoPaymentsService: Starting comprehensive transaction verification (fallback mode)', [
+                    'transaction_id' => $transactionId,
+                    'external_reference' => $externalReference,
+                ]);
+            }
+
+            $verificationResults = [];
+            
+            // Method 1: Verify using Yo Payments reference (most reliable)
+            if ($yoPaymentsReference) {
+                try {
+                    $result1 = $this->verifyPayment($transactionIdOrTransaction);
+                    $verificationResults['method_1_yo_payments_reference'] = $result1;
+                    
+                    Log::info('YoPaymentsService: Method 1 (Yo Payments Reference) result', [
+                        'transaction_id' => $transactionId,
+                        'yo_payments_reference' => $yoPaymentsReference,
+                        'success' => $result1['success'],
+                        'status' => $result1['status'] ?? 'unknown',
+                    ]);
+                } catch (\Exception $e) {
+                    Log::warning('YoPaymentsService: Method 1 failed', [
+                        'transaction_id' => $transactionId,
+                        'yo_payments_reference' => $yoPaymentsReference,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $verificationResults['method_1_yo_payments_reference'] = [
+                        'success' => false,
+                        'message' => 'Method 1 failed: ' . $e->getMessage(),
+                    ];
+                }
+            }
+
+            // Method 2: Verify using transaction ID as external reference
+            try {
+                $result2 = $this->checkTransactionByReference($transactionId, 'PULL');
+                $verificationResults['method_2_transaction_id_as_reference'] = $result2;
+                
+                Log::info('YoPaymentsService: Method 2 (Transaction ID as Reference) result', [
+                    'transaction_id' => $transactionId,
+                    'success' => $result2['success'],
+                    'status' => $result2['status'] ?? 'unknown',
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('YoPaymentsService: Method 2 failed', [
+                    'transaction_id' => $transactionId,
+                    'error' => $e->getMessage(),
+                ]);
+                $verificationResults['method_2_transaction_id_as_reference'] = [
+                    'success' => false,
+                    'message' => 'Method 2 failed: ' . $e->getMessage(),
+                ];
+            }
+
+            // Method 3: Try with different deposit types
+            try {
+                $result3 = $this->checkTransactionByReference($transactionId, 'PUSH');
+                $verificationResults['method_3_push_type'] = $result3;
+                
+                Log::info('YoPaymentsService: Method 3 (PUSH type) result', [
+                    'transaction_id' => $transactionId,
+                    'success' => $result3['success'],
+                    'status' => $result3['status'] ?? 'unknown',
+                ]);
+            } catch (\Exception $e) {
+                Log::warning('YoPaymentsService: Method 3 failed', [
+                    'transaction_id' => $transactionId,
+                    'error' => $e->getMessage(),
+                ]);
+                $verificationResults['method_3_push_type'] = [
+                    'success' => false,
+                    'message' => 'Method 3 failed: ' . $e->getMessage(),
+                ];
+            }
+
+            // Analyze results and return the best available status
+            $bestResult = $this->analyzeVerificationResults($verificationResults);
+            
+            Log::info('YoPaymentsService: Comprehensive verification completed', [
+                'transaction_id' => $transactionId,
+                'yo_payments_reference' => $yoPaymentsReference,
+                'best_result' => $bestResult,
+                'all_results' => $verificationResults,
+            ]);
+
+            return $bestResult;
+
+        } catch (\Exception $e) {
+            Log::error('YoPaymentsService: Comprehensive verification failed', [
+                'transaction_id' => $transactionId ?? 'unknown',
+                'yo_payments_reference' => $yoPaymentsReference ?? 'unknown',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Comprehensive verification failed: ' . $e->getMessage(),
+                'verification_methods_tried' => array_keys($verificationResults ?? []),
+            ];
+        }
+    }
+
+    /**
+     * Analyze verification results and return the best available status
+     */
+    private function analyzeVerificationResults($verificationResults)
+    {
+        $successfulResults = [];
+        $failedResults = [];
+
+        foreach ($verificationResults as $method => $result) {
+            if ($result['success']) {
+                $successfulResults[$method] = $result;
+            } else {
+                $failedResults[$method] = $result;
+            }
+        }
+
+        // If we have successful results, return the best one
+        if (!empty($successfulResults)) {
+            // Prioritize completed status
+            foreach ($successfulResults as $method => $result) {
+                if (($result['status'] ?? '') === 'completed') {
+                    return array_merge($result, [
+                        'verification_method' => $method,
+                        'verification_methods_tried' => array_keys($verificationResults),
+                        'comprehensive_verification' => true,
+                    ]);
+                }
+            }
+
+            // Return the first successful result
+            $firstSuccessful = reset($successfulResults);
+            return array_merge($firstSuccessful, [
+                'verification_method' => array_key_first($successfulResults),
+                'verification_methods_tried' => array_keys($verificationResults),
+                'comprehensive_verification' => true,
+            ]);
+        }
+
+        // If all methods failed, return a comprehensive error
+        $errorMessages = [];
+        foreach ($failedResults as $method => $result) {
+            $errorMessages[] = "{$method}: {$result['message']}";
+        }
+
+        return [
+            'success' => false,
+            'message' => 'All verification methods failed. ' . implode('; ', $errorMessages),
+            'verification_methods_tried' => array_keys($verificationResults),
+            'comprehensive_verification' => true,
+            'all_errors' => $failedResults,
+        ];
     }
 } 
