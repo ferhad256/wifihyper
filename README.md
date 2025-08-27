@@ -138,9 +138,10 @@ DB_PASSWORD=
 
 #### Payment API Configuration
 ```env
-YO_PAYMENTS_API_URL=https://pay.yo.co.ug/api/deposit
-YO_PAYMENTS_MERCHANT_ID=your_merchant_id
-YO_PAYMENTS_SECRET_KEY=your_secret_key
+YO_PAYMENTS_USERNAME=your_username
+YO_PAYMENTS_PASSWORD=your_password
+YO_PAYMENTS_BASE_URL=https://paymentsapi1.yo.co.ug/ybs/task.php
+YO_PAYMENTS_FALLBACK_URL=https://paymentsapi2.yo.co.ug/ybs/task.php
 ```
 
 #### SMS API Configuration

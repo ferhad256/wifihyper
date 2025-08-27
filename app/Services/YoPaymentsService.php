@@ -18,12 +18,32 @@ class YoPaymentsService
 
     public function __construct()
     {
+        // Debug configuration loading
+        $username = config('services.yo_payments.username');
+        $password = config('services.yo_payments.password');
+        
+        Log::info('YoPaymentsService: Configuration loaded', [
+            'username' => $username ? 'SET' : 'NOT SET',
+            'password' => $password ? 'SET' : 'NOT SET',
+            'base_url' => config('services.yo_payments.base_url'),
+            'fallback_url' => config('services.yo_payments.fallback_url'),
+        ]);
+        
         $this->baseUrl = config('services.yo_payments.base_url', 'https://paymentsapi1.yo.co.ug/ybs/task.php');
         $this->fallbackUrl = config('services.yo_payments.fallback_url', 'https://paymentsapi2.yo.co.ug/ybs/task.php');
-        $this->username = config('services.yo_payments.username');
-        $this->password = config('services.yo_payments.password');
+        $this->username = $username;
+        $this->password = $password;
         $this->privateKeyPath = config('services.yo_payments.private_key_path');
         $this->publicKeyEnabled = config('services.yo_payments.public_key_enabled', false);
+        
+        // Validate required credentials
+        if (empty($this->username) || empty($this->password)) {
+            Log::error('YoPaymentsService: Missing required credentials', [
+                'username_set' => !empty($this->username),
+                'password_set' => !empty($this->password),
+                'config_services' => config('services'),
+            ]);
+        }
     }
 
     /**
@@ -70,7 +90,7 @@ class YoPaymentsService
                 'transaction_id' => $transaction->transaction_id,
                 'parameters' => $parameters,
                 'callback_url' => route('payment.callback'),
-                'failure_url' => route('payment.failed')
+                'failure_url' => route('payment.failed.post')
             ]);
 
             // Add authentication signature if required
