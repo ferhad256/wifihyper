@@ -230,7 +230,11 @@ class YoPaymentsService
         $transaction->update([
             'status' => 'completed',
             'paid_at' => now(),
-            'payment_details' => $simulatedResponse['data'],
+            'payment_details' => array_merge($simulatedResponse['data'], [
+                'yo_payments_reference' => 'SIM_' . $transaction->transaction_id,
+                'simulation_mode' => true,
+                'simulated_at' => now()->toISOString(),
+            ]),
         ]);
 
         // Mark voucher as used in simulation
@@ -332,6 +336,11 @@ class YoPaymentsService
                 'TransactionReference' => $referenceToUse,
                 'DepositTransactionType' => 'PULL', // Default to pull deposit (acdepositfunds)
             ];
+            
+            // Add PrivateTransactionReference if we have the transaction object and it has an external reference
+            if (isset($transaction) && isset($transaction->external_reference)) {
+                $parameters['PrivateTransactionReference'] = $transaction->external_reference;
+            }
 
             $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
 
@@ -580,7 +589,17 @@ class YoPaymentsService
     }
 
     /**
-     * Build XML request
+     * Build XML request compliant with Yo Payments API specification
+     * 
+     * Format: <?xml version="1.0" encoding="UTF-8"?>
+     *         <AutoCreate>
+     *           <Request>
+     *             <APIUsername></APIUsername>
+     *             <APIPassword></APIPassword>
+     *             <Method></Method>
+     *             [Additional parameters...]
+     *           </Request>
+     *         </AutoCreate>
      */
     protected function buildXmlRequest($method, $parameters = [])
     {
@@ -1051,14 +1070,23 @@ class YoPaymentsService
 
     /**
      * Check transaction status using transaction reference
+     * 
+     * @param string $externalReference The Yo Payments transaction reference
+     * @param string $depositType The deposit type (PULL or PUSH)
+     * @param string|null $privateReference Optional private transaction reference
      */
-    public function checkTransactionByReference($externalReference, $depositType = 'PULL')
+    public function checkTransactionByReference($externalReference, $depositType = 'PULL', $privateReference = null)
     {
         try {
             $parameters = [
                 'TransactionReference' => $externalReference,
                 'DepositTransactionType' => $depositType,
             ];
+            
+            // Add PrivateTransactionReference if provided (optional parameter)
+            if ($privateReference) {
+                $parameters['PrivateTransactionReference'] = $privateReference;
+            }
 
             $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
 
@@ -1138,23 +1166,87 @@ class YoPaymentsService
     public function comprehensiveTransactionVerification($transactionIdOrTransaction, $externalReference = null)
     {
         try {
+            // Debug logging to see what we received
+            Log::info('YoPaymentsService: comprehensiveTransactionVerification called', [
+                'received_type' => gettype($transactionIdOrTransaction),
+                'is_object' => is_object($transactionIdOrTransaction),
+                'has_transaction_id_method' => is_object($transactionIdOrTransaction) ? method_exists($transactionIdOrTransaction, 'transaction_id') : 'N/A',
+                'has_transaction_id_property' => is_object($transactionIdOrTransaction) ? property_exists($transactionIdOrTransaction, 'transaction_id') : 'N/A',
+                'class_name' => is_object($transactionIdOrTransaction) ? get_class($transactionIdOrTransaction) : 'N/A',
+                'received_value' => is_object($transactionIdOrTransaction) ? ($transactionIdOrTransaction->transaction_id ?? 'PROPERTY_NOT_ACCESSIBLE') : $transactionIdOrTransaction,
+            ]);
+
             // If we received a transaction object, extract the Yo Payments reference
-            if (is_object($transactionIdOrTransaction) && method_exists($transactionIdOrTransaction, 'transaction_id')) {
+            if (is_object($transactionIdOrTransaction)) {
                 $transaction = $transactionIdOrTransaction;
-                $transactionId = $transaction->transaction_id;
-                $yoPaymentsReference = $transaction->payment_details['yo_payments_reference'] ?? null;
                 
-                Log::info('YoPaymentsService: Starting comprehensive transaction verification', [
-                    'transaction_id' => $transactionId,
-                    'yo_payments_reference' => $yoPaymentsReference,
-                    'external_reference' => $externalReference,
-                ]);
+                // Try to get transaction_id from various possible sources
+                $transactionId = null;
+                if (method_exists($transaction, 'transaction_id')) {
+                    $transactionId = $transaction->transaction_id;
+                } elseif (property_exists($transaction, 'transaction_id')) {
+                    $transactionId = $transaction->transaction_id;
+                } elseif (isset($transaction->transaction_id)) {
+                    $transactionId = $transaction->transaction_id;
+                } elseif (is_string($transactionIdOrTransaction)) {
+                    $transactionId = $transactionIdOrTransaction;
+                }
+                
+                if ($transactionId && $transaction->payment_details) {
+                    $yoPaymentsReference = $transaction->payment_details['yo_payments_reference'] ?? null;
+                    $simulationModeValue = $transaction->payment_details['simulation_mode'] ?? false;
+                    $isSimulated = $simulationModeValue === true || $simulationModeValue === 1 || $simulationModeValue === '1' || $simulationModeValue === 'true';
+                    
+                    Log::info('YoPaymentsService: Transaction object detected', [
+                        'transaction_id' => $transactionId,
+                        'yo_payments_reference' => $yoPaymentsReference,
+                        'is_simulated' => $isSimulated,
+                        'payment_details_keys' => $transaction->payment_details ? array_keys($transaction->payment_details) : 'null',
+                        'simulation_mode_value' => $transaction->payment_details['simulation_mode'] ?? 'NOT_SET',
+                        'simulation_mode_type' => isset($transaction->payment_details['simulation_mode']) ? gettype($transaction->payment_details['simulation_mode']) : 'NOT_SET',
+                    ]);
+
+                    // If this is a simulated transaction, return early with success
+                    if ($isSimulated) {
+                        Log::info('YoPaymentsService: Transaction is simulated, returning success', [
+                            'transaction_id' => $transactionId,
+                            'simulation_reference' => $yoPaymentsReference,
+                        ]);
+
+                        return [
+                            'success' => true,
+                            'status' => 'completed',
+                            'message' => 'Payment verified successfully (Simulated Transaction)',
+                            'verification_method' => 'simulation_mode',
+                            'yo_payments_reference' => $yoPaymentsReference,
+                            'simulation_mode' => true,
+                            'verification_methods_tried' => ['simulation_detected'],
+                            'comprehensive_verification' => true,
+                        ];
+                    } else {
+                        Log::info('YoPaymentsService: Transaction is NOT simulated, proceeding with verification', [
+                            'transaction_id' => $transactionId,
+                            'simulation_mode_value' => $isSimulated,
+                        ]);
+                    }
+                } else {
+                    // Fallback: use the provided ID directly
+                    $transactionId = $transactionIdOrTransaction;
+                    $yoPaymentsReference = $externalReference;
+                    $isSimulated = false;
+                    
+                    Log::info('YoPaymentsService: Transaction object but no payment_details, using fallback', [
+                        'transaction_id' => $transactionId,
+                        'external_reference' => $externalReference,
+                    ]);
+                }
             } else {
                 // Fallback: use the provided ID directly
                 $transactionId = $transactionIdOrTransaction;
                 $yoPaymentsReference = $externalReference;
+                $isSimulated = false;
                 
-                Log::info('YoPaymentsService: Starting comprehensive transaction verification (fallback mode)', [
+                Log::info('YoPaymentsService: Using fallback mode (no transaction object)', [
                     'transaction_id' => $transactionId,
                     'external_reference' => $externalReference,
                 ]);
@@ -1163,7 +1255,7 @@ class YoPaymentsService
             $verificationResults = [];
             
             // Method 1: Verify using Yo Payments reference (most reliable)
-            if ($yoPaymentsReference) {
+            if ($yoPaymentsReference && !$isSimulated) {
                 try {
                     $result1 = $this->verifyPayment($transactionIdOrTransaction);
                     $verificationResults['method_1_yo_payments_reference'] = $result1;
@@ -1185,11 +1277,18 @@ class YoPaymentsService
                         'message' => 'Method 1 failed: ' . $e->getMessage(),
                     ];
                 }
+            } else {
+                Log::info('YoPaymentsService: Skipping Method 1', [
+                    'transaction_id' => $transactionId,
+                    'yo_payments_reference' => $yoPaymentsReference,
+                    'is_simulated' => $isSimulated,
+                    'reason' => $isSimulated ? 'transaction_is_simulated' : 'no_reference',
+                ]);
             }
 
             // Method 2: Verify using transaction ID as external reference
             try {
-                $result2 = $this->checkTransactionByReference($transactionId, 'PULL');
+                $result2 = $this->checkTransactionByReference($transactionId, 'PULL', $transactionId);
                 $verificationResults['method_2_transaction_id_as_reference'] = $result2;
                 
                 Log::info('YoPaymentsService: Method 2 (Transaction ID as Reference) result', [
@@ -1210,7 +1309,7 @@ class YoPaymentsService
 
             // Method 3: Try with different deposit types
             try {
-                $result3 = $this->checkTransactionByReference($transactionId, 'PUSH');
+                $result3 = $this->checkTransactionByReference($transactionId, 'PUSH', $transactionId);
                 $verificationResults['method_3_push_type'] = $result3;
                 
                 Log::info('YoPaymentsService: Method 3 (PUSH type) result', [
@@ -1235,6 +1334,7 @@ class YoPaymentsService
             Log::info('YoPaymentsService: Comprehensive verification completed', [
                 'transaction_id' => $transactionId,
                 'yo_payments_reference' => $yoPaymentsReference,
+                'is_simulated' => $isSimulated,
                 'best_result' => $bestResult,
                 'all_results' => $verificationResults,
             ]);
@@ -1245,6 +1345,7 @@ class YoPaymentsService
             Log::error('YoPaymentsService: Comprehensive verification failed', [
                 'transaction_id' => $transactionId ?? 'unknown',
                 'yo_payments_reference' => $yoPaymentsReference ?? 'unknown',
+                'is_simulated' => $isSimulated ?? false,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);

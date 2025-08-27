@@ -92,7 +92,14 @@ class TestTransactionVerification extends Command
         $this->line('Using: comprehensiveTransactionVerification()');
         
         try {
-            $result4 = $yoPayments->comprehensiveTransactionVerification($transactionId);
+            // Get the transaction object for comprehensive verification
+            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            if ($transaction) {
+                $result4 = $yoPayments->comprehensiveTransactionVerification($transaction);
+            } else {
+                $result4 = $yoPayments->comprehensiveTransactionVerification($transactionId);
+            }
+            
             $this->line("Result: " . ($result4['success'] ? '✅ Success' : '❌ Failed'));
             $this->line("Status: " . ($result4['status'] ?? 'Unknown'));
             $this->line("Message: " . ($result4['message'] ?? 'No message'));
