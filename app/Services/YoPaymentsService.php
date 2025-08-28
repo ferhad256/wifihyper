@@ -349,12 +349,13 @@ class YoPaymentsService
 
             $parameters = [
                 'TransactionReference' => $referenceToUse,
-                'DepositTransactionType' => 'PULL', // Default to pull deposit (acdepositfunds)
+                'DepositTransactionType' => 'PULL', // Use PULL for transaction checking
             ];
             
             // Add PrivateTransactionReference if we have the transaction object
             if (isset($transaction)) {
-                // Use transaction_id as private reference, not the entire object
+                // Use ExternalReference (transaction_id) as PrivateTransactionReference
+                // This should contain the value that was originally sent in ExternalReference
                 $parameters['PrivateTransactionReference'] = $transaction->transaction_id;
             }
 
@@ -1268,8 +1269,8 @@ class YoPaymentsService
      * Check transaction status using transaction reference
      * 
      * @param string $externalReference The Yo Payments transaction reference
-     * @param string $depositType The deposit type (PULL or PUSH)
-     * @param string|null $privateReference Optional private transaction reference
+     * @param string $depositType The deposit type (PULL or PUSH) - Defaults to PULL for transaction checking
+     * @param string|null $privateReference Optional private transaction reference (should contain ExternalReference from original transaction)
      */
     public function checkTransactionByReference($externalReference, $depositType = 'PULL', $privateReference = null)
     {
@@ -1512,12 +1513,12 @@ class YoPaymentsService
                 ]);
             }
 
-            // Method 2: Verify using transaction ID as external reference
+            // Method 2: Verify using transaction ID as external reference (PULL type - preferred for transaction checking)
             try {
                 $result2 = $this->checkTransactionByReference($transactionId, 'PULL', $transactionId);
                 $verificationResults['method_2_transaction_id_as_reference'] = $result2;
                 
-                Log::info('YoPaymentsService: Method 2 (Transaction ID as Reference) result', [
+                Log::info('YoPaymentsService: Method 2 (Transaction ID as Reference - PULL) result', [
                     'transaction_id' => $transactionId,
                     'success' => $result2['success'],
                     'status' => $result2['status'] ?? 'unknown',
@@ -1533,12 +1534,12 @@ class YoPaymentsService
                 ];
             }
 
-            // Method 3: Try with different deposit types
+            // Method 3: Try with PUSH type as fallback (though PULL is preferred for transaction checking)
             try {
                 $result3 = $this->checkTransactionByReference($transactionId, 'PUSH', $transactionId);
                 $verificationResults['method_3_push_type'] = $result3;
                 
-                Log::info('YoPaymentsService: Method 3 (PUSH type) result', [
+                Log::info('YoPaymentsService: Method 3 (PUSH type - fallback) result', [
                     'transaction_id' => $transactionId,
                     'success' => $result3['success'],
                     'status' => $result3['status'] ?? 'unknown',
