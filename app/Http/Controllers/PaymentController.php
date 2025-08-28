@@ -315,6 +315,9 @@ class PaymentController extends Controller
 
     /**
      * Handle payment callback from Yo Payments
+     * 
+     * This method receives Instant Payment Notifications (IPN) from Yo Payments
+     * when payment status changes (success, failure, pending)
      */
     public function callback(Request $request)
     {
@@ -322,13 +325,23 @@ class PaymentController extends Controller
             Log::info('Yo Payments Callback Received', [
                 'request_data' => $request->all(),
                 'headers' => $request->headers->all(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString(),
             ]);
 
+            // Process the callback data
             $result = $this->yoPayments->processCallback($request->getContent());
             
             if ($result['success']) {
                 $transactionId = $result['transaction_id'];
                 $status = $result['status'];
+                
+                Log::info('Callback processed successfully', [
+                    'transaction_id' => $transactionId,
+                    'status' => $status,
+                    'result' => $result,
+                ]);
                 
                 // Find the transaction
                 $transaction = Transaction::where('transaction_id', $transactionId)->first();
@@ -336,6 +349,13 @@ class PaymentController extends Controller
                 if ($transaction) {
                     $oldStatus = $transaction->status;
                     $newStatus = $this->yoPayments->mapPaymentStatus($status);
+                    
+                    Log::info('Transaction status update', [
+                        'transaction_id' => $transactionId,
+                        'old_status' => $oldStatus,
+                        'new_status' => $newStatus,
+                        'yo_status' => $status,
+                    ]);
                     
                     // Update transaction with callback data and billing information
                     $updateData = [
@@ -351,6 +371,8 @@ class PaymentController extends Controller
                             'yo_payments_receipt' => $request->input('IssuedReceiptNumber'),
                             'yo_payments_initiation_date' => $request->input('TransactionInitiationDate'),
                             'yo_payments_completion_date' => $request->input('TransactionCompletionDate'),
+                            'ipn_processed_at' => now()->toISOString(),
+                            'ipn_source' => 'callback',
                         ]),
                     ];
 
@@ -358,21 +380,35 @@ class PaymentController extends Controller
                     if ($newStatus === 'completed' && $oldStatus !== 'completed') {
                         $updateData['paid_at'] = now();
                         
-                        // Update wallet balance and send SMS
-                        $this->updateWalletBalance($transactionId);
-                        $this->sendVoucherSms($transactionId);
-                        
-                        // Store transaction ID in session for success page
-                        session(['last_transaction_id' => $transactionId]);
-                        
-                        Log::info('Payment completed via callback', [
+                        Log::info('Payment completed via callback - starting workflow completion', [
                             'transaction_id' => $transactionId,
-                            'old_status' => $oldStatus,
-                            'new_status' => $newStatus,
                             'amount' => $transaction->amount,
                             'phone_number' => $transaction->phone_number,
-                            'receipt_number' => $request->input('IssuedReceiptNumber'),
                         ]);
+                        
+                        try {
+                            // Update wallet balance and send SMS
+                            $this->updateWalletBalance($transactionId);
+                            $this->sendVoucherSms($transactionId);
+                            
+                            // Store transaction ID in session for success page
+                            session(['last_transaction_id' => $transactionId]);
+                            
+                            Log::info('Payment workflow completed successfully', [
+                                'transaction_id' => $transactionId,
+                                'wallet_updated' => true,
+                                'sms_sent' => true,
+                            ]);
+                        } catch (\Exception $workflowError) {
+                            Log::error('Payment workflow completion failed', [
+                                'transaction_id' => $transactionId,
+                                'error' => $workflowError->getMessage(),
+                                'trace' => $workflowError->getTraceAsString(),
+                            ]);
+                            
+                            // Still update the transaction status, but log the workflow error
+                            $updateData['payment_details']['workflow_error'] = $workflowError->getMessage();
+                        }
                     }
 
                     // If payment failed, add failure timestamp
@@ -388,20 +424,42 @@ class PaymentController extends Controller
                         ]);
                     }
 
+                    // Update the transaction
                     $transaction->update($updateData);
+                    
+                    Log::info('Transaction updated successfully', [
+                        'transaction_id' => $transactionId,
+                        'status' => $newStatus,
+                        'update_data' => $updateData,
+                    ]);
+                } else {
+                    Log::warning('Transaction not found for callback', [
+                        'transaction_id' => $transactionId,
+                        'status' => $status,
+                    ]);
                 }
+            } else {
+                Log::error('Callback processing failed', [
+                    'result' => $result,
+                    'request_data' => $request->all(),
+                ]);
             }
             
-            return response()->json(['status' => 'success']);
+            // Always return success to Yo Payments to prevent retries
+            return response('OK', 200);
             
         } catch (\Exception $e) {
             Log::error('Yo Payments Callback Error', [
                 'error' => $e->getMessage(),
                 'request_data' => $request->all(),
                 'trace' => $e->getTraceAsString(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
             ]);
             
-            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            // Return 200 OK even on error to prevent Yo Payments from retrying
+            // This prevents infinite retry loops
+            return response('OK', 200);
         }
     }
 

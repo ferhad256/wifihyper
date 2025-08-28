@@ -50,9 +50,9 @@ return [
         
         // IPN (Instant Payment Notification) URLs
         'ipn_urls' => [
-            'success' => env('YO_PAYMENTS_IPN_SUCCESS_URL', 'https://yourdomain.com/payment/callback'),
-            'failure' => env('YO_PAYMENTS_IPN_FAILURE_URL', 'https://yourdomain.com/payment/failed'),
-            'pending' => env('YO_PAYMENTS_IPN_PENDING_URL', 'https://yourdomain.com/payment/callback'),
+            'success' => env('YO_PAYMENTS_IPN_SUCCESS_URL', 'https://wifihyper.com/payment/callback'),
+            'failure' => env('YO_PAYMENTS_IPN_FAILURE_URL', 'https://wifihyper.com/payment/failed'),
+            'pending' => env('YO_PAYMENTS_IPN_PENDING_URL', 'https://wifihyper.com/payment/callback'),
         ],
         
         // IPN Configuration

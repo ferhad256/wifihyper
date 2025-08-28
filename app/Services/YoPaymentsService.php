@@ -91,7 +91,7 @@ class YoPaymentsService
                 'NonBlocking' => 'TRUE', // Optional: Use non-blocking for better performance
                 'Amount' => $transaction->amount, // Mandatory: Amount to be deducted
                 'Account' => $this->formatPhoneNumberForDeposit($phoneNumber), // Mandatory: Mobile money account number
-                'AccountProviderCode' => $additionalParams['provider_code'] ?? 'MTN', // Optional: Mobile provider code
+                'AccountProviderCode' => $this->getProviderCode($additionalParams['provider_code'] ?? 'MTN'), // Optional: Mobile provider code
                 'Narrative' => $this->buildPaymentNarrative($transaction, $additionalParams), // Mandatory: Transaction description
                 'ExternalReference' => $transaction->transaction_id, // Optional: External transaction reference
                 'InstantNotificationUrl' => $this->buildNotificationUrl('success', $additionalParams), // Optional: Success notification URL
@@ -550,7 +550,7 @@ class YoPaymentsService
                 'NonBlocking' => 'TRUE', // Use non-blocking for better performance
                 'Amount' => $amount,
                 'Account' => $this->formatPhoneNumberForWithdrawal($phoneNumber),
-                'AccountProviderCode' => 'MTN', // Default to MTN, can be made configurable
+                'AccountProviderCode' => $this->getProviderCode('MTN'), // Default to MTN, can be made configurable
                 'Narrative' => $narrative,
                 'ExternalReference' => $externalReference ?? 'WITHDRAW_' . time() . '_' . rand(1000, 9999),
             ];
@@ -1021,7 +1021,7 @@ class YoPaymentsService
     }
 
     /**
-     * Build notification URLs with proper encoding as per API 6.1 specification
+     * Build notification URLs with proper encoding as per Yo Payments API specification
      * 
      * @param string $type - 'success' or 'failure'
      * @param array $additionalParams
@@ -1029,7 +1029,14 @@ class YoPaymentsService
      */
     protected function buildNotificationUrl($type, $additionalParams)
     {
-        $baseUrl = $type === 'success' ? route('payment.callback') : route('payment.failed.post');
+        // Use config values for IPN URLs with fallback to route generation
+        $configKey = $type === 'success' ? 'success' : 'failure';
+        $baseUrl = config("services.yo_payments.ipn_urls.{$configKey}");
+        
+        if (!$baseUrl) {
+            // Fallback to route generation if config not set
+            $baseUrl = $type === 'success' ? route('payment.callback') : route('payment.failed.post');
+        }
         
         // Add custom parameters if provided
         if (!empty($additionalParams['notification_params'])) {
@@ -1037,13 +1044,20 @@ class YoPaymentsService
             $baseUrl .= (strpos($baseUrl, '?') === false ? '?' : '&') . $queryParams;
         }
         
-        // Properly encode the URL as per API 6.1 specification
+        // Properly encode the URL as per Yo Payments API specification
         // Replace special XML characters with escape sequences
         $encodedUrl = str_replace(
             ['&', '<', '>', '"', "'"],
             ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'],
             $baseUrl
         );
+        
+        Log::info('YoPaymentsService: Notification URL built', [
+            'type' => $type,
+            'original_url' => $baseUrl,
+            'encoded_url' => $encodedUrl,
+            'config_key' => $configKey
+        ]);
         
         return $encodedUrl;
     }
@@ -1596,7 +1610,7 @@ class YoPaymentsService
      * Check account balance for a phone number
      * 
      * @param string $phoneNumber
-     * @param string $providerCode (MTN, AIRTEL, etc.)
+     * @param string $providerCode (MTN, AIRTEL, etc.) - Will be converted to MTN_UGANDA or AIRTEL_UGANDA
      * @return array
      */
     public function checkAccountBalance($phoneNumber, $providerCode = 'MTN')
@@ -1604,7 +1618,7 @@ class YoPaymentsService
         try {
             $parameters = [
                 'Account' => $this->formatPhoneNumberForBalance($phoneNumber),
-                'AccountProviderCode' => $providerCode,
+                'AccountProviderCode' => $this->getProviderCode($providerCode),
             ];
 
             $xmlRequest = $this->buildXmlRequest('acgetbalance', $parameters);
@@ -1662,7 +1676,7 @@ class YoPaymentsService
         try {
             $parameters = [
                 'Account' => $this->formatPhoneNumberForValidation($phoneNumber),
-                'AccountProviderCode' => $providerCode,
+                'AccountProviderCode' => $this->getProviderCode($providerCode),
             ];
 
             $xmlRequest = $this->buildXmlRequest('acvalidateaccount', $parameters);
@@ -1723,7 +1737,7 @@ class YoPaymentsService
         try {
             $parameters = [
                 'Account' => $this->formatPhoneNumberForHistory($phoneNumber),
-                'AccountProviderCode' => $providerCode,
+                'AccountProviderCode' => $this->getProviderCode($providerCode),
                 'Limit' => $limit,
             ];
 
@@ -1871,6 +1885,29 @@ class YoPaymentsService
                 'success' => false,
                 'message' => 'API status check error: ' . $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Get the correct provider code format for Yo Payments API
+     * 
+     * @param string $providerCode
+     * @return string
+     */
+    protected function getProviderCode($providerCode)
+    {
+        $providerCode = strtoupper(trim($providerCode));
+        
+        switch ($providerCode) {
+            case 'MTN':
+            case 'MTN_UGANDA':
+                return 'MTN_UGANDA';
+            case 'AIRTEL':
+            case 'AIRTEL_UGANDA':
+                return 'AIRTEL_UGANDA';
+            default:
+                // Return as-is for any other provider codes
+                return $providerCode;
         }
     }
 } 
