@@ -88,7 +88,6 @@ class YoPaymentsService
 
             // Build base parameters according to API 6.1 specification
             $parameters = [
-                'Method' => 'acdepositfunds', // Mandatory: Must be set to acdepositfunds
                 'NonBlocking' => 'TRUE', // Optional: Use non-blocking for better performance
                 'Amount' => $transaction->amount, // Mandatory: Amount to be deducted
                 'Account' => $this->formatPhoneNumberForDeposit($phoneNumber), // Mandatory: Mobile money account number
