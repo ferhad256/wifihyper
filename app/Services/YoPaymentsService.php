@@ -352,9 +352,10 @@ class YoPaymentsService
                 'DepositTransactionType' => 'PULL', // Default to pull deposit (acdepositfunds)
             ];
             
-            // Add PrivateTransactionReference if we have the transaction object and it has an external reference
-            if (isset($transaction) && isset($transaction->external_reference)) {
-                $parameters['PrivateTransactionReference'] = $transaction->external_reference;
+            // Add PrivateTransactionReference if we have the transaction object
+            if (isset($transaction)) {
+                // Use transaction_id as private reference, not the entire object
+                $parameters['PrivateTransactionReference'] = $transaction->transaction_id;
             }
 
             $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
@@ -1273,6 +1274,36 @@ class YoPaymentsService
     public function checkTransactionByReference($externalReference, $depositType = 'PULL', $privateReference = null)
     {
         try {
+            // Validate that externalReference is a string, not an object
+            if (is_object($externalReference)) {
+                Log::error('YoPaymentsService: checkTransactionByReference received object instead of string', [
+                    'received_type' => gettype($externalReference),
+                    'class_name' => get_class($externalReference),
+                    'transaction_id' => $externalReference->transaction_id ?? 'unknown',
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Invalid parameter: externalReference must be a string, not an object',
+                    'error_type' => 'invalid_parameter_type',
+                ];
+            }
+            
+            // Validate that privateReference is a string if provided
+            if ($privateReference && is_object($privateReference)) {
+                Log::error('YoPaymentsService: checkTransactionByReference received object for privateReference', [
+                    'received_type' => gettype($privateReference),
+                    'class_name' => get_class($privateReference),
+                    'transaction_id' => $privateReference->transaction_id ?? 'unknown',
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Invalid parameter: privateReference must be a string, not an object',
+                    'error_type' => 'invalid_parameter_type',
+                ];
+            }
+            
             $parameters = [
                 'TransactionReference' => $externalReference,
                 'DepositTransactionType' => $depositType,
@@ -1425,8 +1456,8 @@ class YoPaymentsService
                         ]);
                     }
                 } else {
-                    // Fallback: use the provided ID directly
-                    $transactionId = $transactionIdOrTransaction;
+                    // Fallback: extract transaction_id from the transaction object
+                    $transactionId = $transaction->transaction_id ?? 'unknown';
                     $yoPaymentsReference = $externalReference;
                     $isSimulated = false;
                     
@@ -1436,7 +1467,7 @@ class YoPaymentsService
                     ]);
                 }
             } else {
-                // Fallback: use the provided ID directly
+                // Fallback: use the provided ID directly (should be a string)
                 $transactionId = $transactionIdOrTransaction;
                 $yoPaymentsReference = $externalReference;
                 $isSimulated = false;
