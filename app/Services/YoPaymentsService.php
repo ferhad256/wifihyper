@@ -94,8 +94,8 @@ class YoPaymentsService
                 'AccountProviderCode' => $this->getProviderCode($additionalParams['provider_code'] ?? 'MTN'), // Optional: Mobile provider code
                 'Narrative' => $this->buildPaymentNarrative($transaction, $additionalParams), // Mandatory: Transaction description
                 'PrivateTransactionReference' => $transaction->transaction_id, // Use PrivateTransactionReference instead of ExternalReference
-                'InstantNotificationUrl' => $this->buildNotificationUrl('success', $additionalParams), // Optional: Success notification URL
-                'FailureNotificationUrl' => $this->buildNotificationUrl('failure', $additionalParams), // Optional: Failure notification URL
+                'InstantNotificationUrl' => $this->buildUnifiedNotificationUrl($additionalParams), // Unified IPN URL for all responses
+                'FailureNotificationUrl' => $this->buildUnifiedNotificationUrl($additionalParams), // Same unified URL for failures
             ];
 
             // Add optional parameters if provided
@@ -303,138 +303,6 @@ class YoPaymentsService
         }
 
         return $simulatedResponse;
-    }
-
-    /**
-     * Verify payment status
-     */
-    public function verifyPayment($transactionIdOrTransaction)
-    {
-        try {
-            // If we received a transaction object, extract the Yo Payments reference
-            if (is_object($transactionIdOrTransaction) && method_exists($transactionIdOrTransaction, 'payment_details')) {
-                $transaction = $transactionIdOrTransaction;
-                $yoPaymentsReference = $transaction->payment_details['yo_payments_reference'] ?? null;
-                
-                if (!$yoPaymentsReference) {
-                    Log::warning('YoPaymentsService: No Yo Payments reference found for transaction', [
-                        'transaction_id' => $transaction->transaction_id,
-                        'payment_details' => $transaction->payment_details,
-                    ]);
-                    
-                    return [
-                        'success' => false,
-                        'message' => 'No Yo Payments reference found. Cannot verify payment.',
-                        'error_type' => 'missing_reference',
-                    ];
-                }
-                
-                $referenceToUse = $yoPaymentsReference;
-                $transactionId = $transaction->transaction_id;
-                
-                Log::info('YoPaymentsService: Using stored Yo Payments reference for verification', [
-                    'transaction_id' => $transactionId,
-                    'yo_payments_reference' => $yoPaymentsReference,
-                ]);
-            } else {
-                // Fallback: use the provided ID directly (for backward compatibility)
-                $referenceToUse = $transactionIdOrTransaction;
-                $transactionId = $transactionIdOrTransaction;
-                
-                Log::warning('YoPaymentsService: Using transaction ID directly for verification (fallback mode)', [
-                    'transaction_id' => $transactionId,
-                    'note' => 'This may fail if the ID is not a valid Yo Payments reference',
-                ]);
-            }
-
-            $parameters = [
-                'TransactionReference' => $referenceToUse,
-                'DepositTransactionType' => 'PULL', // Use PULL for transaction checking
-            ];
-            
-            // Add PrivateTransactionReference if we have the transaction object
-            if (isset($transaction)) {
-                // Use ExternalReference (transaction_id) as PrivateTransactionReference
-                // This should contain the value that was originally sent in ExternalReference
-                $parameters['PrivateTransactionReference'] = $transaction->transaction_id;
-            }
-
-            $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
-
-            Log::info('Yo Payments Transaction Status Check Request', [
-                'transaction_id' => $transactionId,
-                'yo_payments_reference' => $referenceToUse,
-                'method' => 'actransactioncheckstatus',
-                'parameters' => $parameters,
-                'xml_request' => $xmlRequest,
-            ]);
-
-            $response = $this->makeXmlRequest($xmlRequest);
-
-            Log::info('Yo Payments Transaction Status Check Response', [
-                'transaction_id' => $transactionId,
-                'yo_payments_reference' => $referenceToUse,
-                'response' => $response,
-            ]);
-
-            if ($response['success']) {
-                $data = $response['data'];
-                $transactionStatus = $response['transaction_status'] ?? 'unknown';
-                
-                // Extract additional transaction details if available
-                $transactionDetails = [];
-                if (isset($data['Amount'])) {
-                    $transactionDetails['amount'] = $data['Amount'];
-                }
-                if (isset($data['AmountFormatted'])) {
-                    $transactionDetails['amount_formatted'] = $data['AmountFormatted'];
-                }
-                if (isset($data['CurrencyCode'])) {
-                    $transactionDetails['currency_code'] = $data['CurrencyCode'];
-                }
-                if (isset($data['TransactionInitiationDate'])) {
-                    $transactionDetails['initiation_date'] = $data['TransactionInitiationDate'];
-                }
-                if (isset($data['TransactionCompletionDate'])) {
-                    $transactionDetails['completion_date'] = $data['TransactionCompletionDate'];
-                }
-                if (isset($data['IssuedReceiptNumber'])) {
-                    $transactionDetails['receipt_number'] = $data['IssuedReceiptNumber'];
-                }
-                
-                return [
-                    'success' => true,
-                    'status' => $this->mapPaymentStatus($transactionStatus),
-                    'is_pending' => $response['is_pending'] ?? false,
-                    'data' => $data,
-                    'transaction_details' => $transactionDetails,
-                    'message' => $response['message'] ?? 'Payment status retrieved successfully',
-                    'verification_method' => 'yo_payments_reference',
-                    'yo_payments_reference' => $referenceToUse,
-                ];
-            }
-
-            return [
-                'success' => false,
-                'message' => 'Failed to verify payment: ' . $response['message'],
-                'verification_method' => 'yo_payments_reference',
-                'yo_payments_reference' => $referenceToUse,
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Yo Payments Transaction Status Check Error', [
-                'transaction_id' => $transactionId ?? 'unknown',
-                'yo_payments_reference' => $referenceToUse ?? 'unknown',
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Payment verification error: ' . $e->getMessage(),
-                'verification_method' => 'yo_payments_reference',
-                'yo_payments_reference' => $referenceToUse ?? 'unknown',
-            ];
-        }
     }
 
     /**
@@ -1266,132 +1134,6 @@ class YoPaymentsService
     }
 
     /**
-     * Check transaction status using transaction reference
-     * 
-     * @param string $externalReference The Yo Payments transaction reference
-     * @param string $depositType The deposit type (PULL or PUSH) - Defaults to PULL for transaction checking
-     * @param string|null $privateReference Optional private transaction reference (should contain ExternalReference from original transaction)
-     */
-    public function checkTransactionByReference($externalReference, $depositType = 'PULL', $privateReference = null)
-    {
-        try {
-            // Validate that externalReference is a string, not an object
-            if (is_object($externalReference)) {
-                Log::error('YoPaymentsService: checkTransactionByReference received object instead of string', [
-                    'received_type' => gettype($externalReference),
-                    'class_name' => get_class($externalReference),
-                    'transaction_id' => $externalReference->transaction_id ?? 'unknown',
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Invalid parameter: externalReference must be a string, not an object',
-                    'error_type' => 'invalid_parameter_type',
-                ];
-            }
-            
-            // Validate that privateReference is a string if provided
-            if ($privateReference && is_object($privateReference)) {
-                Log::error('YoPaymentsService: checkTransactionByReference received object for privateReference', [
-                    'received_type' => gettype($privateReference),
-                    'class_name' => get_class($privateReference),
-                    'transaction_id' => $privateReference->transaction_id ?? 'unknown',
-                ]);
-                
-                return [
-                    'success' => false,
-                    'message' => 'Invalid parameter: privateReference must be a string, not an object',
-                    'error_type' => 'invalid_parameter_type',
-                ];
-            }
-            
-            $parameters = [
-                'DepositTransactionType' => $depositType,
-            ];
-            
-            // When checking transaction status, the transaction reference should be put under PrivateTransactionReference
-            // TransactionReference is the reference generated by Yo! Payments gateway
-            if ($externalReference) {
-                $parameters['PrivateTransactionReference'] = $externalReference;
-            }
-            
-            // Add PrivateTransactionReference if provided as additional parameter (optional)
-            if ($privateReference) {
-                $parameters['PrivateTransactionReference'] = $privateReference;
-            }
-
-            $xmlRequest = $this->buildXmlRequest('actransactioncheckstatus', $parameters);
-
-            Log::info('Yo Payments Transaction Status Check by Reference Request', [
-                'external_reference' => $externalReference,
-                'deposit_type' => $depositType,
-                'method' => 'actransactioncheckstatus',
-                'parameters' => $parameters,
-                'xml_request' => $xmlRequest,
-            ]);
-
-            $response = $this->makeXmlRequest($xmlRequest);
-
-            Log::info('Yo Payments Transaction Status Check by Reference Response', [
-                'external_reference' => $externalReference,
-                'deposit_type' => $depositType,
-                'response' => $response,
-            ]);
-
-            if ($response['success']) {
-                $data = $response['data'];
-                $transactionStatus = $response['transaction_status'] ?? 'unknown';
-                
-                // Extract additional transaction details if available
-                $transactionDetails = [];
-                if (isset($data['Amount'])) {
-                    $transactionDetails['amount'] = $data['Amount'];
-                }
-                if (isset($data['AmountFormatted'])) {
-                    $transactionDetails['amount_formatted'] = $data['AmountFormatted'];
-                }
-                if (isset($data['CurrencyCode'])) {
-                    $transactionDetails['currency_code'] = $data['CurrencyCode'];
-                }
-                if (isset($data['TransactionInitiationDate'])) {
-                    $transactionDetails['initiation_date'] = $data['TransactionInitiationDate'];
-                }
-                if (isset($data['TransactionCompletionDate'])) {
-                    $transactionDetails['completion_date'] = $data['TransactionCompletionDate'];
-                }
-                if (isset($data['IssuedReceiptNumber'])) {
-                    $transactionDetails['receipt_number'] = $data['IssuedReceiptNumber'];
-                }
-                
-                return [
-                    'success' => true,
-                    'status' => $this->mapPaymentStatus($transactionStatus),
-                    'is_pending' => $response['is_pending'] ?? false,
-                    'data' => $data,
-                    'transaction_details' => $transactionDetails,
-                    'message' => $response['message'] ?? 'Transaction status retrieved successfully',
-                ];
-            }
-
-            return [
-                'success' => false,
-                'message' => 'Failed to check transaction status: ' . $response['message'],
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('Yo Payments Transaction Status Check by Reference Error', [
-                'external_reference' => $externalReference,
-                'error' => $e->getMessage(),
-            ]);
-
-            return [
-                'success' => false,
-                'message' => 'Transaction status check error: ' . $e->getMessage(),
-            ];
-        }
-    }
-
-    /**
      * Comprehensive transaction verification using multiple methods
      * This method tries different approaches to verify transaction status
      */
@@ -1946,5 +1688,80 @@ class YoPaymentsService
                 // Return as-is for any other provider codes
                 return $providerCode;
         }
+    }
+
+    /**
+     * Build unified notification URL for all payment responses
+     * 
+     * @param array $additionalParams
+     * @return string
+     */
+    protected function buildUnifiedNotificationUrl($additionalParams)
+    {
+        // Use unified IPN URL from config
+        $baseUrl = config("services.yo_payments.ipn_urls.unified", route('payment.ipn'));
+        
+        // Add custom parameters if provided
+        if (!empty($additionalParams['notification_params'])) {
+            $queryParams = http_build_query($additionalParams['notification_params']);
+            $baseUrl .= (strpos($baseUrl, '?') === false ? '?' : '&') . $queryParams;
+        }
+        
+        // Properly encode the URL as per Yo Payments API specification
+        $encodedUrl = str_replace(
+            ['&', '<', '>', '"', "'"],
+            ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'],
+            $baseUrl
+        );
+        
+        Log::info('YoPaymentsService: Unified notification URL built', [
+            'original_url' => $baseUrl,
+            'encoded_url' => $encodedUrl,
+        ]);
+        
+        return $encodedUrl;
+    }
+
+    /**
+     * Determine the type of notification based on request data
+     * 
+     * @param Request $request
+     * @return string
+     */
+    protected function determineNotificationType($request)
+    {
+        $data = $request->all();
+        
+        // Check for separate failure notification (has failed_transaction_reference)
+        if ($request->has('failed_transaction_reference')) {
+            return 'failure_separate';
+        }
+        
+        // Check for standard notification with TransactionStatus
+        if ($request->has('TransactionStatus')) {
+            $status = strtoupper($request->input('TransactionStatus'));
+            
+            switch ($status) {
+                case 'SUCCEEDED':
+                    return 'success';
+                case 'FAILED':
+                    return 'failure';
+                case 'PENDING':
+                    return 'pending';
+                default:
+                    return 'unknown';
+            }
+        }
+        
+        // Check for other indicators
+        if ($request->has('IssuedReceiptNumber')) {
+            return 'success';
+        }
+        
+        if ($request->has('verification')) {
+            return 'failure_separate';
+        }
+        
+        return 'unknown';
     }
 } 

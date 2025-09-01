@@ -129,13 +129,25 @@ Route::prefix('portal')->middleware('exclude.notifications')->group(function () 
 
 // Payment routes
 Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
-Route::post('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-Route::post('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed.post')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
 Route::post('/payment/redeem-voucher', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem-voucher');
 Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
 Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
 Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+
+// Unified IPN endpoint for all payment responses (success, failure, pending)
+Route::post('/payment/ipn', [PaymentController::class, 'unifiedIpn'])
+    ->name('payment.ipn')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Legacy IPN endpoints (for backward compatibility - will be deprecated)
+Route::post('/payment/callback', [PaymentController::class, 'callback'])
+    ->name('payment.callback')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+Route::post('/payment/failed', [PaymentController::class, 'failed'])
+    ->name('payment.failed.post')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // Resend webhook routes (excluded from CSRF)
 Route::post('/webhooks/resend', [App\Http\Controllers\ResendWebhookController::class, 'handle'])->name('webhooks.resend')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);

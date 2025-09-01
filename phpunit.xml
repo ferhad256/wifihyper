@@ -3,6 +3,9 @@
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
          bootstrap="vendor/autoload.php"
          colors="true"
+         processIsolation="false"
+         stopOnFailure="false"
+         cacheDirectory=".phpunit.cache"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -30,5 +33,24 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="YO_PAYMENTS_IPN_ENABLED" value="false"/>
+        <env name="UG_SMS_USERNAME" value="test"/>
+        <env name="UG_SMS_PASSWORD" value="test"/>
+        <env name="YO_PAYMENTS_USERNAME" value="test"/>
+        <env name="YO_PAYMENTS_PASSWORD" value="test"/>
     </php>
+    <coverage>
+        <include>
+            <directory suffix=".php">app</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">app/Console</directory>
+            <directory suffix=".php">app/Exceptions</directory>
+            <directory suffix=".php">app/Providers</directory>
+        </exclude>
+        <report>
+            <html outputDirectory="coverage"/>
+            <xml outputFile="coverage.xml"/>
+        </report>
+    </coverage>
 </phpunit>

@@ -1193,4 +1193,463 @@ class PaymentController extends Controller
         return redirect()->route('subscription.index')
             ->with('success', 'Subscription upgraded successfully!');
     }
+
+    /**
+     * Unified IPN handler for all payment responses (success, failure, pending)
+     * 
+     * This method handles all types of payment notifications from Yo! Payments:
+     * - Success notifications (TransactionStatus: SUCCEEDED)
+     * - Failure notifications (TransactionStatus: FAILED)
+     * - Pending notifications (TransactionStatus: PENDING)
+     * - Failure notifications (separate endpoint with different parameters)
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    public function unifiedIpn(Request $request)
+    {
+        try {
+            Log::info('Yo Payments Unified IPN Received', [
+                'request_data' => $request->all(),
+                'headers' => $request->headers->all(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'timestamp' => now()->toISOString(),
+            ]);
+
+            // Determine the type of notification based on the request data
+            $notificationType = $this->determineNotificationType($request);
+            
+            Log::info('Yo Payments IPN Type Determined', [
+                'notification_type' => $notificationType,
+                'request_data' => $request->all(),
+            ]);
+
+            switch ($notificationType) {
+                case 'success':
+                    return $this->handleSuccessNotification($request);
+                    
+                case 'failure':
+                    return $this->handleFailureNotification($request);
+                    
+                case 'pending':
+                    return $this->handlePendingNotification($request);
+                    
+                case 'failure_separate':
+                    return $this->handleSeparateFailureNotification($request);
+                    
+                default:
+                    Log::warning('Yo Payments IPN: Unknown notification type', [
+                        'notification_type' => $notificationType,
+                        'request_data' => $request->all(),
+                    ]);
+                    return response('Unknown notification type', 400);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Yo Payments Unified IPN Error', [
+                'error' => $e->getMessage(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response('Error processing IPN', 500);
+        }
+    }
+
+    /**
+     * Determine the type of notification based on request data
+     * 
+     * @param Request $request
+     * @return string
+     */
+    protected function determineNotificationType(Request $request)
+    {
+        $data = $request->all();
+        
+        // Check for separate failure notification (has failed_transaction_reference)
+        if ($request->has('failed_transaction_reference')) {
+            return 'failure_separate';
+        }
+        
+        // Check for standard notification with TransactionStatus
+        if ($request->has('TransactionStatus')) {
+            $status = strtoupper($request->input('TransactionStatus'));
+            
+            switch ($status) {
+                case 'SUCCEEDED':
+                    return 'success';
+                case 'FAILED':
+                    return 'failure';
+                case 'PENDING':
+                    return 'pending';
+                default:
+                    return 'unknown';
+            }
+        }
+        
+        // Check for other indicators
+        if ($request->has('IssuedReceiptNumber')) {
+            return 'success';
+        }
+        
+        if ($request->has('verification')) {
+            return 'failure_separate';
+        }
+        
+        return 'unknown';
+    }
+
+    /**
+     * Handle success notification
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    protected function handleSuccessNotification(Request $request)
+    {
+        Log::info('Yo Payments Success IPN Processing', [
+            'request_data' => $request->all(),
+        ]);
+
+        // Process the callback data
+        $result = $this->yoPayments->processCallback($request->getContent());
+        
+        if ($result['success']) {
+            $transactionId = $result['transaction_id'];
+            $status = $result['status'];
+            
+            Log::info('Success IPN processed successfully', [
+                'transaction_id' => $transactionId,
+                'status' => $status,
+                'result' => $result,
+            ]);
+            
+            // Find the transaction
+            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            
+            if ($transaction) {
+                $oldStatus = $transaction->status;
+                $newStatus = $this->yoPayments->mapPaymentStatus($status);
+                
+                Log::info('Transaction status update', [
+                    'transaction_id' => $transactionId,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'yo_status' => $status,
+                ]);
+                
+                // Update transaction with callback data
+                $updateData = [
+                    'status' => $newStatus,
+                    'payment_details' => array_merge($transaction->payment_details ?? [], [
+                        'ipn_received_at' => now(),
+                        'ipn_type' => 'success',
+                        'ipn_status' => $status,
+                        'ipn_amount' => $request->input('Amount'),
+                        'ipn_currency' => $request->input('Currency', 'UGX'),
+                        'yo_payments_status' => $status,
+                        'yo_payments_amount' => $request->input('Amount'),
+                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                        'yo_payments_receipt' => $request->input('IssuedReceiptNumber'),
+                        'yo_payments_initiation_date' => $request->input('TransactionInitiationDate'),
+                        'yo_payments_completion_date' => $request->input('TransactionCompletionDate'),
+                        'ipn_processed_at' => now()->toISOString(),
+                        'ipn_source' => 'unified_callback',
+                    ]),
+                ];
+
+                // If payment is completed, add completion timestamp and process
+                if ($newStatus === 'completed' && $oldStatus !== 'completed') {
+                    $updateData['paid_at'] = now();
+                    
+                    Log::info('Payment completed via unified IPN - starting workflow completion', [
+                        'transaction_id' => $transactionId,
+                        'amount' => $transaction->amount,
+                        'phone_number' => $transaction->phone_number,
+                    ]);
+                    
+                    try {
+                        // Update wallet balance and send SMS
+                        $this->updateWalletBalance($transactionId);
+                        $this->sendVoucherSms($transactionId);
+                        
+                        // Store transaction ID in session for success page
+                        session(['last_transaction_id' => $transactionId]);
+                        
+                        Log::info('Payment workflow completed successfully', [
+                            'transaction_id' => $transactionId,
+                            'wallet_updated' => true,
+                            'sms_sent' => true,
+                        ]);
+                    } catch (\Exception $workflowError) {
+                        Log::error('Payment workflow completion failed', [
+                            'transaction_id' => $transactionId,
+                            'error' => $workflowError->getMessage(),
+                            'trace' => $workflowError->getTraceAsString(),
+                        ]);
+                        
+                        // Still update the transaction status, but log the workflow error
+                        $updateData['payment_details']['workflow_error'] = $workflowError->getMessage();
+                    }
+                }
+
+                $transaction->update($updateData);
+                
+                Log::info('Success IPN processed and transaction updated', [
+                    'transaction_id' => $transactionId,
+                    'new_status' => $newStatus,
+                ]);
+            } else {
+                Log::error('Success IPN: Transaction not found', [
+                    'transaction_id' => $transactionId,
+                ]);
+            }
+        } else {
+            Log::error('Success IPN: Failed to process callback', [
+                'result' => $result,
+            ]);
+        }
+        
+        return response('OK', 200);
+    }
+
+    /**
+     * Handle failure notification
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    protected function handleFailureNotification(Request $request)
+    {
+        Log::info('Yo Payments Failure IPN Processing', [
+            'request_data' => $request->all(),
+        ]);
+
+        // Process the callback data
+        $result = $this->yoPayments->processCallback($request->getContent());
+        
+        if ($result['success']) {
+            $transactionId = $result['transaction_id'];
+            $status = $result['status'];
+            
+            Log::info('Failure IPN processed successfully', [
+                'transaction_id' => $transactionId,
+                'status' => $status,
+                'result' => $result,
+            ]);
+            
+            // Find the transaction
+            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            
+            if ($transaction) {
+                $oldStatus = $transaction->status;
+                $newStatus = $this->yoPayments->mapPaymentStatus($status);
+                
+                Log::info('Transaction status update (failure)', [
+                    'transaction_id' => $transactionId,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'yo_status' => $status,
+                ]);
+                
+                // Update transaction with failure data
+                $transaction->update([
+                    'status' => $newStatus,
+                    'failed_at' => now(),
+                    'payment_details' => array_merge($transaction->payment_details ?? [], [
+                        'ipn_received_at' => now(),
+                        'ipn_type' => 'failure',
+                        'ipn_status' => $status,
+                        'ipn_amount' => $request->input('Amount'),
+                        'ipn_currency' => $request->input('Currency', 'UGX'),
+                        'yo_payments_status' => $status,
+                        'yo_payments_amount' => $request->input('Amount'),
+                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                        'ipn_processed_at' => now()->toISOString(),
+                        'ipn_source' => 'unified_callback',
+                        'failure_reason' => $request->input('StatusMessage', 'Payment failed'),
+                    ]),
+                ]);
+                
+                Log::info('Failure IPN processed and transaction updated', [
+                    'transaction_id' => $transactionId,
+                    'new_status' => $newStatus,
+                ]);
+            } else {
+                Log::error('Failure IPN: Transaction not found', [
+                    'transaction_id' => $transactionId,
+                ]);
+            }
+        } else {
+            Log::error('Failure IPN: Failed to process callback', [
+                'result' => $result,
+            ]);
+        }
+        
+        return response('OK', 200);
+    }
+
+    /**
+     * Handle pending notification
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    protected function handlePendingNotification(Request $request)
+    {
+        Log::info('Yo Payments Pending IPN Processing', [
+            'request_data' => $request->all(),
+        ]);
+
+        // Process the callback data
+        $result = $this->yoPayments->processCallback($request->getContent());
+        
+        if ($result['success']) {
+            $transactionId = $result['transaction_id'];
+            $status = $result['status'];
+            
+            Log::info('Pending IPN processed successfully', [
+                'transaction_id' => $transactionId,
+                'status' => $status,
+                'result' => $result,
+            ]);
+            
+            // Find the transaction
+            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            
+            if ($transaction) {
+                $oldStatus = $transaction->status;
+                $newStatus = $this->yoPayments->mapPaymentStatus($status);
+                
+                Log::info('Transaction status update (pending)', [
+                    'transaction_id' => $transactionId,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'yo_status' => $status,
+                ]);
+                
+                // Update transaction with pending data
+                $transaction->update([
+                    'status' => $newStatus,
+                    'payment_details' => array_merge($transaction->payment_details ?? [], [
+                        'ipn_received_at' => now(),
+                        'ipn_type' => 'pending',
+                        'ipn_status' => $status,
+                        'ipn_amount' => $request->input('Amount'),
+                        'ipn_currency' => $request->input('Currency', 'UGX'),
+                        'yo_payments_status' => $status,
+                        'yo_payments_amount' => $request->input('Amount'),
+                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                        'ipn_processed_at' => now()->toISOString(),
+                        'ipn_source' => 'unified_callback',
+                    ]),
+                ]);
+                
+                Log::info('Pending IPN processed and transaction updated', [
+                    'transaction_id' => $transactionId,
+                    'new_status' => $newStatus,
+                ]);
+            } else {
+                Log::error('Pending IPN: Transaction not found', [
+                    'transaction_id' => $transactionId,
+                ]);
+            }
+        } else {
+            Log::error('Pending IPN: Failed to process callback', [
+                'result' => $result,
+            ]);
+        }
+        
+        return response('OK', 200);
+    }
+
+    /**
+     * Handle separate failure notification (different format)
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\Response
+     */
+    protected function handleSeparateFailureNotification(Request $request)
+    {
+        Log::info('Yo Payments Separate Failure IPN Processing', [
+            'request_data' => $request->all(),
+        ]);
+
+        // Extract parameters according to Yo Payments API specification
+        $failedTransactionReference = $request->input('failed_transaction_reference');
+        $transactionInitDate = $request->input('transaction_init_date');
+        $verification = $request->input('verification');
+
+        // Validate required parameters
+        if (!$failedTransactionReference || !$verification) {
+            Log::error('Yo Payments Separate Failure: Missing required parameters', [
+                'failed_transaction_reference' => $failedTransactionReference,
+                'verification' => $verification,
+            ]);
+            return response('Missing required parameters', 400);
+        }
+
+        // Verify the signature if public key is configured
+        if (config('services.yo_payments.public_key_enabled', false)) {
+            $isValidSignature = $this->verifyFailureNotificationSignature(
+                $failedTransactionReference,
+                $transactionInitDate,
+                $verification
+            );
+
+            if (!$isValidSignature) {
+                Log::error('Yo Payments Separate Failure: Invalid signature', [
+                    'failed_transaction_reference' => $failedTransactionReference,
+                    'verification' => $verification,
+                ]);
+                return response('Invalid signature', 401);
+            }
+
+            Log::info('Yo Payments Separate Failure: Signature verified successfully');
+        } else {
+            Log::warning('Yo Payments Separate Failure: Signature verification skipped (public key not configured)');
+        }
+
+        // Find the transaction using the failed_transaction_reference
+        $transaction = Transaction::where('transaction_id', $failedTransactionReference)
+            ->orWhere('payment_details->yo_payments_reference', $failedTransactionReference)
+            ->first();
+        
+        if (!$transaction) {
+            Log::error('Yo Payments Separate Failure: Transaction not found', [
+                'failed_transaction_reference' => $failedTransactionReference,
+                'search_criteria' => 'transaction_id or yo_payments_reference',
+            ]);
+            return response('Transaction not found', 404);
+        }
+
+        // Update transaction status to failed
+        $oldStatus = $transaction->status;
+        $transaction->update([
+            'status' => 'failed',
+            'failed_at' => now(),
+            'payment_details' => array_merge($transaction->payment_details ?? [], [
+                'ipn_received_at' => now(),
+                'ipn_type' => 'failure_separate',
+                'failure_notification_received_at' => now(),
+                'failure_transaction_reference' => $failedTransactionReference,
+                'failure_transaction_init_date' => $transactionInitDate,
+                'failure_verification' => $verification,
+                'failure_verification_status' => config('services.yo_payments.public_key_enabled', false) ? 'verified' : 'skipped',
+                'ipn_processed_at' => now()->toISOString(),
+                'ipn_source' => 'unified_callback',
+            ]),
+        ]);
+
+        Log::info('Yo Payments Separate Failure: Transaction updated successfully', [
+            'transaction_id' => $transaction->transaction_id,
+            'old_status' => $oldStatus,
+            'new_status' => 'failed',
+            'failed_transaction_reference' => $failedTransactionReference,
+            'transaction_init_date' => $transactionInitDate,
+        ]);
+
+        return response('OK', 200);
+    }
 }

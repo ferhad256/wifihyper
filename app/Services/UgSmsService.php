@@ -39,22 +39,15 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $options = [
-                'http' => [
-                    'header' => "Content-Type: application/json\r\n",
-                    'method' => 'POST',
-                    'content' => json_encode($data)
-                ]
-            ];
+            $response = Http::post($this->baseUrl, $data);
 
-            $context = stream_context_create($options);
-            $result = file_get_contents($this->baseUrl, false, $context);
-
-            if ($result === FALSE) {
+            if (!$response->successful()) {
                 Log::error('UG SMS API Error', [
                     'phone_number' => $phoneNumber,
                     'voucher_code' => $voucherCode,
-                    'error' => 'Failed to connect to SMS API'
+                    'error' => 'Failed to connect to SMS API',
+                    'status' => $response->status(),
+                    'body' => $response->body()
                 ]);
 
                 return [
@@ -63,21 +56,21 @@ class UgSmsService
                 ];
             }
 
-            $response = json_decode($result, true);
+            $responseData = $response->json();
 
             Log::info('UG SMS API Response', [
                 'phone_number' => $phoneNumber,
                 'voucher_code' => $voucherCode,
-                'response' => $response,
-                'raw_result' => $result
+                'response' => $responseData,
+                'status' => $response->status()
             ]);
 
             // Log SMS
-            $this->logSms($phoneNumber, $message, $response, $voucherCode);
+            $this->logSms($phoneNumber, $message, $responseData, $voucherCode);
 
             return [
                 'success' => true,
-                'data' => $response,
+                'data' => $responseData,
                 'message' => 'SMS sent successfully',
             ];
 
@@ -108,29 +101,20 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $options = [
-                'http' => [
-                    'header' => "Content-Type: application/json\r\n",
-                    'method' => 'POST',
-                    'content' => json_encode($data)
-                ]
-            ];
+            $response = Http::post($this->baseUrl, $data);
 
-            $context = stream_context_create($options);
-            $result = file_get_contents($this->baseUrl, false, $context);
-
-            if ($result === FALSE) {
+            if (!$response->successful()) {
                 return [
                     'success' => false,
                     'message' => 'Failed to connect to SMS API'
                 ];
             }
 
-            $response = json_decode($result, true);
+            $responseData = $response->json();
 
             return [
                 'success' => true,
-                'data' => $response,
+                'data' => $responseData,
                 'message' => 'Bulk SMS sent successfully',
             ];
 
@@ -158,30 +142,21 @@ class UgSmsService
                 'password' => $this->password,
             ];
 
-            $options = [
-                'http' => [
-                    'header' => "Content-Type: application/json\r\n",
-                    'method' => 'POST',
-                    'content' => json_encode($data)
-                ]
-            ];
+            $response = Http::post('https://ugsms.com/v1/sms/balance', $data);
 
-            $context = stream_context_create($options);
-            $result = file_get_contents('https://ugsms.com/v1/sms/balance', false, $context);
-
-            if ($result === FALSE) {
+            if (!$response->successful()) {
                 return [
                     'success' => false,
                     'message' => 'Failed to check balance'
                 ];
             }
 
-            $response = json_decode($result, true);
+            $responseData = $response->json();
 
             return [
                 'success' => true,
-                'data' => $response,
-                'balance' => $response['balance'] ?? 0,
+                'data' => $responseData,
+                'balance' => $responseData['balance'] ?? 0,
             ];
 
         } catch (\Exception $e) {
@@ -299,29 +274,20 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $options = [
-                'http' => [
-                    'header' => "Content-Type: application/json\r\n",
-                    'method' => 'POST',
-                    'content' => json_encode($data)
-                ]
-            ];
+            $response = Http::post($this->baseUrl, $data);
 
-            $context = stream_context_create($options);
-            $result = file_get_contents($this->baseUrl, false, $context);
-
-            if ($result === FALSE) {
+            if (!$response->successful()) {
                 return [
                     'success' => false,
                     'message' => 'Failed to send SMS'
                 ];
             }
 
-            $response = json_decode($result, true);
+            $responseData = $response->json();
 
             return [
                 'success' => true,
-                'data' => $response,
+                'data' => $responseData,
                 'message' => 'SMS sent successfully',
             ];
 
