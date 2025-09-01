@@ -342,13 +342,13 @@ class YoPaymentsService
                 parse_str($data, $formData);
                 
                 // Map Yo Payments actual field names to our expected format
-                $transactionId = $formData['TransactionReference'] ?? $formData['external_ref'] ?? '';
+                $transactionId = $formData['external_ref'] ?? $formData['TransactionReference'] ?? '';
                 $status = $formData['Status'] ?? 'OK'; // Default to OK if no status field
                 $amount = $formData['amount'] ?? $formData['Amount'] ?? '';
                 $currency = $formData['Currency'] ?? 'UGX';
                 
-                // If we have TransactionReference, this is a successful payment
-                if ($formData['TransactionReference'] && !$status) {
+                // If we have external_ref, this is a successful payment
+                if ($formData['external_ref'] && !$status) {
                     $status = 'OK';
                 }
                 
