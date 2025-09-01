@@ -8,6 +8,8 @@ This directory contains the test suite for the WIFIHYPER WiFi billing system.
 - **SimpleUnitTest.php** - Basic application tests
 - **IpnConfigurationTest.php** - IPN configuration validation
 - **YoPaymentsServiceTest.php** - Payment service functionality
+- **TransactionIdGenerationTest.php** - Unique transaction ID generation
+- **PaymentRetryTest.php** - Payment retry mechanism validation
 
 ### Feature Tests (`tests/Feature/`)
 - **BasicApplicationTest.php** - Application routing and page accessibility
@@ -80,6 +82,8 @@ The test suite aims to cover:
 - ✅ Payment service core functionality
 - ✅ Basic routing and page accessibility
 - ✅ Environment variable loading
+- ✅ Simple transaction ID generation
+- ✅ Payment retry mechanism
 
 ## Continuous Integration
 

@@ -142,7 +142,7 @@ class PaymentController extends Controller
                 'fee_calculation' => $feeCalculation
             ]);
             
-            // Create transaction
+            // Create transaction with unique ID
             $transaction = Transaction::create([
                 'tenant_id' => $tenant->id,
                 'hotspot_id' => $hotspot->id,
@@ -211,14 +211,64 @@ class PaymentController extends Controller
                     'yo_payments_response' => $result
                 ]);
 
+                // Check if this is a duplicate transaction error
+                if (strpos($result['message'] ?? '', 'duplicate transaction') !== false || 
+                    strpos($result['message'] ?? '', 'Duplicate transaction') !== false) {
+                    
+                    Log::warning('Duplicate transaction detected, attempting retry with new transaction ID', [
+                        'original_transaction_id' => $transaction->transaction_id,
+                        'yo_payments_error' => $result['message']
+                    ]);
+                    
+                    // Generate a completely new transaction ID with different timestamp
+                    sleep(1); // Wait 1 second to ensure different timestamp
+                    $newTransactionId = 'TXN_' . time() . '_' . rand(1000, 9999);
+                    
+                    // Update the transaction with the new ID
+                    $transaction->update([
+                        'transaction_id' => $newTransactionId,
+                        'payment_details' => array_merge($transaction->payment_details ?? [], [
+                            'original_transaction_id' => $transaction->transaction_id,
+                            'retry_attempt' => 1,
+                            'retry_reason' => 'duplicate_transaction',
+                            'yo_payments_error' => $result['message'],
+                            'retry_timestamp' => now()->toISOString()
+                        ])
+                    ]);
+                    
+                    Log::info('Retrying payment with new transaction ID', [
+                        'original_transaction_id' => $transaction->transaction_id,
+                        'new_transaction_id' => $newTransactionId
+                    ]);
+                    
+                    // Try the payment again with the new transaction ID
+                    $retryResult = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
+                    
+                    if ($retryResult['success']) {
+                        Log::info('Payment retry successful', [
+                            'original_transaction_id' => $transaction->transaction_id,
+                            'new_transaction_id' => $newTransactionId,
+                            'yo_payments_reference' => $retryResult['transaction_reference'] ?? null
+                        ]);
+                        
+                        return redirect()->route('payment.pending', $newTransactionId);
+                    } else {
+                        Log::error('Payment retry failed', [
+                            'original_transaction_id' => $transaction->transaction_id,
+                            'new_transaction_id' => $newTransactionId,
+                            'retry_error' => $retryResult['message']
+                        ]);
+                    }
+                }
+
                 // Update transaction status to failed
                 $transaction->update([
                     'status' => 'failed',
-                    'payment_details' => [
+                    'payment_details' => array_merge($transaction->payment_details ?? [], [
                         'yo_payments_error' => $result['message'] ?? 'Unknown error',
                         'yo_payments_response' => $result,
                         'failed_at' => now()
-                    ]
+                    ])
                 ]);
 
                 return back()->with('error', $result['message'])->withInput();

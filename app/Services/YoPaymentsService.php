@@ -653,6 +653,17 @@ class YoPaymentsService
                 if ($errorMessage) {
                     $errorMsg .= ' - ' . $errorMessage;
                 }
+                
+                // Handle specific error codes
+                if ($statusCode === '-8') {
+                    $errorMsg = 'Duplicate transaction detected. Please try again with a different transaction reference.';
+                    Log::warning('YoPaymentsService: Duplicate transaction detected', [
+                        'transaction_id' => $response['transaction_reference'] ?? 'unknown',
+                        'status_code' => $statusCode,
+                        'status_message' => $statusMessage
+                    ]);
+                }
+                
                 $response['message'] = $errorMsg;
                 
                 // Log detailed error information
