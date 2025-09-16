@@ -148,19 +148,6 @@
                                 <strong>SMS Sent!</strong> The voucher code has also been sent to your phone number: {{ $transaction->phone_number }}
                             </div>
                         </div>
-                    @else
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Transaction Information Not Available</strong>
-                            <p class="mb-0 mt-2">Your payment was successful, but we couldn't retrieve the voucher details. Please check your phone for the SMS with your WiFi code.</p>
-                        </div>
-                        
-                        <div class="mt-4">
-                            <a href="{{ route('portal.index', $hotspotName ?? 'default') }}" class="btn btn-primary btn-lg">
-                                <i class="fas fa-home me-2"></i>Back to Portal
-                            </a>
-                        </div>
-                    @endif
                 </div>
             </div>
         </div>
