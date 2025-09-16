@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\Log;
 
 class DashboardController extends Controller
 {
+    protected $jpesaService;
+
+    public function __construct(JpesaService $jpesaService)
+    {
+        $this->jpesaService = $jpesaService;
+    }
+
     /**
      * Show the main dashboard
      */
@@ -194,10 +201,11 @@ class DashboardController extends Controller
             ]);
 
             // Initialize JPesa withdrawal
-                $amount,
+            $withdrawalResponse = $this->jpesaService->initiateWithdrawal(
                 $phoneNumber,
-                "WIFIHYPER Withdrawal - " . $tenant->business_name,
-                $transaction->transaction_id
+                $amount,
+                $transaction->transaction_id,
+                "WIFIHYPER Withdrawal - " . $tenant->business_name
             );
 
             if ($withdrawalResponse['success']) {

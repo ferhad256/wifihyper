@@ -33,6 +33,7 @@ DB_NAME="wifihyper"
 DB_USER="wifihyper"
 DB_PASS=""
 SKIP_SSL=false
+SKIP_APACHE=false
 SKIP_BACKUP=false
 FORCE=false
 DEPLOYMENT_DIR="/var/www/wifihyper"
@@ -100,6 +101,10 @@ parse_arguments() {
                 SKIP_SSL=true
                 shift
                 ;;
+            --skip-apache)
+                SKIP_APACHE=true
+                shift
+                ;;
             --skip-backup)
                 SKIP_BACKUP=true
                 shift
@@ -117,6 +122,7 @@ parse_arguments() {
                 echo "  --db-user=wifihyper      Set database user"
                 echo "  --db-pass=password       Set database password"
                 echo "  --skip-ssl               Skip SSL certificate setup"
+                echo "  --skip-apache            Skip Apache configuration"
                 echo "  --skip-backup            Skip database backup"
                 echo "  --force                  Force deployment without confirmation"
                 exit 0
@@ -192,11 +198,15 @@ install_packages() {
     # Essential packages
     apt install -y curl wget git unzip software-properties-common apt-transport-https ca-certificates gnupg lsb-release
     
-    # Nginx
-    apt install -y nginx
+    # Apache (skip if already installed)
+    if ! command -v apache2 &> /dev/null; then
+        apt install -y apache2
+    else
+        print_warning "Apache is already installed, skipping installation"
+    fi
     
     # PHP 8.2 and extensions
-    apt install -y php8.2-fpm php8.2-cli php8.2-mysql php8.2-xml php8.2-curl php8.2-mbstring php8.2-zip php8.2-gd php8.2-bcmath php8.2-intl php8.2-redis php8.2-ldap
+    apt install -y php8.2 php8.2-cli php8.2-mysql php8.2-xml php8.2-curl php8.2-mbstring php8.2-zip php8.2-gd php8.2-bcmath php8.2-intl php8.2-redis php8.2-ldap libapache2-mod-php8.2
     
     # MySQL
     apt install -y mysql-server
@@ -204,9 +214,13 @@ install_packages() {
     # Redis
     apt install -y redis-server
     
-    # Certbot for SSL
+    # Certbot for SSL (skip if already installed)
     if [[ "$SKIP_SSL" == false ]]; then
-        apt install -y certbot python3-certbot-nginx
+        if ! command -v certbot &> /dev/null; then
+            apt install -y certbot python3-certbot-apache
+        else
+            print_warning "Certbot is already installed, skipping installation"
+        fi
     fi
     
     # Supervisor for process management
@@ -251,78 +265,78 @@ EOF
 configure_php() {
     print_status "Configuring PHP..."
     
-    # PHP-FPM configuration
-    sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 100M/' /etc/php/8.2/fpm/php.ini
-    sed -i 's/post_max_size = 8M/post_max_size = 100M/' /etc/php/8.2/fpm/php.ini
-    sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php/8.2/fpm/php.ini
-    sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/8.2/fpm/php.ini
+    # PHP configuration for Apache
+    sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 100M/' /etc/php/8.2/apache2/php.ini
+    sed -i 's/post_max_size = 8M/post_max_size = 100M/' /etc/php/8.2/apache2/php.ini
+    sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php/8.2/apache2/php.ini
+    sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/8.2/apache2/php.ini
     
-    # Restart PHP-FPM
-    systemctl restart php8.2-fpm
+    # Enable Apache modules
+    a2enmod rewrite
+    a2enmod ssl
+    a2enmod headers
     
     print_success "PHP configured"
 }
 
-# Function to configure Nginx
-configure_nginx() {
-    print_status "Configuring Nginx..."
+# Function to configure Apache
+configure_apache() {
+    if [[ "$SKIP_APACHE" == true ]]; then
+        print_warning "Apache configuration skipped"
+        return 0
+    fi
     
-    # Create Nginx configuration
-    cat > /etc/nginx/sites-available/wifihyper <<EOF
-server {
-    listen 80;
-    server_name $DOMAIN www.$DOMAIN;
-    root $DEPLOYMENT_DIR/public;
-    index index.php index.html index.htm;
+    print_status "Configuring Apache..."
+    
+    # Check if Apache virtual host already exists
+    if [[ -f "/etc/apache2/sites-available/wifihyper.conf" ]]; then
+        print_warning "Apache virtual host already exists, skipping configuration"
+        return 0
+    fi
+    
+    # Create Apache virtual host configuration
+    cat > /etc/apache2/sites-available/wifihyper.conf <<EOF
+<VirtualHost *:80>
+    ServerName $DOMAIN
+    ServerAlias www.$DOMAIN
+    DocumentRoot $DEPLOYMENT_DIR/public
+    
+    <Directory $DEPLOYMENT_DIR/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
     
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer-when-downgrade"
+    Header always set Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'"
     
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate auth;
-    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
-    
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-    
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-    
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
+    # Logging
+    ErrorLog \${APACHE_LOG_DIR}/wifihyper_error.log
+    CustomLog \${APACHE_LOG_DIR}/wifihyper_access.log combined
     
     # Cache static files
-    location ~* \.(jpg|jpeg|png|gif|ico|css|js|pdf|txt)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+    <LocationMatch "\.(jpg|jpeg|png|gif|ico|css|js|pdf|txt)$">
+        ExpiresActive On
+        ExpiresDefault "access plus 1 year"
+        Header append Cache-Control "public, immutable"
+    </LocationMatch>
+</VirtualHost>
 EOF
     
     # Enable site
-    ln -sf /etc/nginx/sites-available/wifihyper /etc/nginx/sites-enabled/
-    rm -f /etc/nginx/sites-enabled/default
+    a2ensite wifihyper.conf
+    a2dissite 000-default.conf
     
-    # Test Nginx configuration
-    nginx -t
+    # Test Apache configuration
+    apache2ctl configtest
     
-    # Reload Nginx
-    systemctl reload nginx
+    # Restart Apache
+    systemctl restart apache2
     
-    print_success "Nginx configured"
+    print_success "Apache configured"
 }
 
 # Function to setup SSL certificate
@@ -332,83 +346,78 @@ setup_ssl() {
         return 0
     fi
     
+    # Check if SSL certificate already exists
+    if [[ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]]; then
+        print_warning "SSL certificate already exists for $DOMAIN, skipping SSL setup"
+        return 0
+    fi
+    
     print_status "Setting up SSL certificate..."
     
-    # Stop Nginx temporarily
-    systemctl stop nginx
+    # Stop Apache temporarily
+    systemctl stop apache2
     
     # Obtain SSL certificate
     certbot certonly --standalone -d $DOMAIN -d www.$DOMAIN --email $ADMIN_EMAIL --agree-tos --non-interactive
     
-    # Update Nginx configuration for SSL
-    cat > /etc/nginx/sites-available/wifihyper <<EOF
-server {
-    listen 80;
-    server_name $DOMAIN www.$DOMAIN;
-    return 301 https://\$server_name\$request_uri;
-}
+    # Update Apache configuration for SSL
+    cat > /etc/apache2/sites-available/wifihyper.conf <<EOF
+<VirtualHost *:80>
+    ServerName $DOMAIN
+    ServerAlias www.$DOMAIN
+    Redirect permanent / https://$DOMAIN/
+</VirtualHost>
 
-server {
-    listen 443 ssl http2;
-    server_name $DOMAIN www.$DOMAIN;
-    root $DEPLOYMENT_DIR/public;
-    index index.php index.html index.htm;
+<VirtualHost *:443>
+    ServerName $DOMAIN
+    ServerAlias www.$DOMAIN
+    DocumentRoot $DEPLOYMENT_DIR/public
     
     # SSL configuration
-    ssl_certificate /etc/letsencrypt/live/$DOMAIN/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/$DOMAIN/privkey.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-SHA256:ECDHE-RSA-AES256-SHA384;
-    ssl_prefer_server_ciphers off;
-    ssl_session_cache shared:SSL:10m;
-    ssl_session_timeout 10m;
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/$DOMAIN/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/$DOMAIN/privkey.pem
+    
+    # SSL Security
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384
+    SSLHonorCipherOrder off
+    SSLSessionTickets off
+    
+    <Directory $DEPLOYMENT_DIR/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
     
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "no-referrer-when-downgrade"
+    Header always set Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
     
-    # Gzip compression
-    gzip on;
-    gzip_vary on;
-    gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate auth;
-    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
-    
-    location / {
-        try_files \$uri \$uri/ /index.php?\$query_string;
-    }
-    
-    location ~ \.php$ {
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_index index.php;
-        fastcgi_param SCRIPT_FILENAME \$realpath_root\$fastcgi_script_name;
-        include fastcgi_params;
-    }
-    
-    location ~ /\.(?!well-known).* {
-        deny all;
-    }
+    # Logging
+    ErrorLog \${APACHE_LOG_DIR}/wifihyper_ssl_error.log
+    CustomLog \${APACHE_LOG_DIR}/wifihyper_ssl_access.log combined
     
     # Cache static files
-    location ~* \.(jpg|jpeg|png|gif|ico|css|js|pdf|txt)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
+    <LocationMatch "\.(jpg|jpeg|png|gif|ico|css|js|pdf|txt)$">
+        ExpiresActive On
+        ExpiresDefault "access plus 1 year"
+        Header append Cache-Control "public, immutable"
+    </LocationMatch>
+</VirtualHost>
 EOF
     
-    # Start Nginx
-    systemctl start nginx
+    # Start Apache
+    systemctl start apache2
     
-    # Test Nginx configuration
-    nginx -t
+    # Test Apache configuration
+    apache2ctl configtest
     
-    # Reload Nginx
-    systemctl reload nginx
+    # Restart Apache
+    systemctl restart apache2
     
     # Setup auto-renewal
     echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
@@ -627,14 +636,12 @@ finalize_deployment() {
     chown -R www-data:www-data $DEPLOYMENT_DIR
     
     # Restart services
-    systemctl restart php8.2-fpm
-    systemctl restart nginx
+    systemctl restart apache2
     systemctl restart redis-server
     systemctl restart mysql
     
     # Enable services on boot
-    systemctl enable php8.2-fpm
-    systemctl enable nginx
+    systemctl enable apache2
     systemctl enable redis-server
     systemctl enable mysql
     systemctl enable supervisor
@@ -647,17 +654,10 @@ run_health_checks() {
     print_status "Running health checks..."
     
     # Check if services are running
-    if systemctl is-active --quiet nginx; then
-        print_success "Nginx is running"
+    if systemctl is-active --quiet apache2; then
+        print_success "Apache is running"
     else
-        print_error "Nginx is not running"
-        exit 1
-    fi
-    
-    if systemctl is-active --quiet php8.2-fpm; then
-        print_success "PHP-FPM is running"
-    else
-        print_error "PHP-FPM is not running"
+        print_error "Apache is not running"
         exit 1
     fi
     
@@ -701,7 +701,7 @@ display_summary() {
     echo "- Logs: $DEPLOYMENT_DIR/storage/logs/"
     echo "- Cron jobs: crontab -l"
     echo "- Supervisor: supervisorctl status"
-    echo "- Services: systemctl status nginx php8.2-fpm mysql redis-server"
+    echo "- Services: systemctl status apache2 mysql redis-server"
     echo ""
     echo "Support: Check the logs if you encounter any issues"
     echo -e "${NC}"
@@ -735,7 +735,7 @@ main() {
     deploy_application
     configure_environment
     setup_database
-    configure_nginx
+    configure_apache
     setup_ssl
     configure_cron
     configure_supervisor

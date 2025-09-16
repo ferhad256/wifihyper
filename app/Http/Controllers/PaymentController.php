@@ -439,32 +439,32 @@ class PaymentController extends Controller
                     'message' => 'Transaction not found'
                 ], 404);
             }
-            
+
             Log::info('Payment status check', [
-                'transaction_id' => $transactionId,
+                        'transaction_id' => $transactionId,
                 'current_status' => $transaction->status,
                 'paid_at' => $transaction->paid_at,
                 'created_at' => $transaction->created_at
             ]);
-            
-            return response()->json([
-                'success' => true,
+
+                return response()->json([
+                    'success' => true,
                 'status' => $transaction->status,
                 'message' => $this->getStatusMessage($transaction->status),
                 'transaction_id' => $transaction->transaction_id,
-                'amount' => $transaction->amount,
+                        'amount' => $transaction->amount,
                 'paid_at' => $transaction->paid_at,
                 'voucher_code' => $transaction->voucher ? $transaction->voucher->code : null,
                 'package_name' => $transaction->package ? $transaction->package->name : null
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Payment status check failed', [
                 'transaction_id' => $transactionId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error checking payment status'
