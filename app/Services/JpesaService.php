@@ -612,10 +612,19 @@ class JpesaService
             // Extract transaction details from callback
             $transactionId = $callbackData['tx'] ?? null;
             $jpesaTid = $callbackData['tid'] ?? null;
-            $status = $callbackData['api_status'] ?? 'unknown';
+            // Check both 'api_status' and 'status' fields for backward compatibility
+            $status = $callbackData['api_status'] ?? $callbackData['status'] ?? 'unknown';
             $message = $callbackData['msg'] ?? '';
             $memo = $callbackData['memo'] ?? null;
             $apiLog = $callbackData['_api_log_'] ?? null;
+
+            Log::info('JpesaService: Callback status extracted', [
+                'transaction_id' => $transactionId,
+                'status' => $status,
+                'api_status' => $callbackData['api_status'] ?? 'not_set',
+                'status_field' => $callbackData['status'] ?? 'not_set',
+                'callback_keys' => array_keys($callbackData)
+            ]);
 
             // Validate required callback data
             if (!$transactionId) {
@@ -666,7 +675,8 @@ class JpesaService
             ];
 
             // Handle different callback statuses
-            if ($status === 'success') {
+            // JPesa uses 'success' for API responses and 'closed' for callback notifications
+            if ($status === 'success' || $status === 'closed') {
                 if ($transaction->status !== 'completed') {
                     $updateData['status'] = 'completed';
                     $updateData['paid_at'] = now();
