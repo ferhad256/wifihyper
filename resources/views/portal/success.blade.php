@@ -109,37 +109,6 @@
                             Your WiFi voucher code has been sent to your phone via SMS.
                         </div>
                         
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Next Steps:</strong>
-                            <ul class="mb-0 mt-2 text-start">
-                                <li>Check your phone for the SMS with your WiFi code</li>
-                                <li>Use the code to connect to the WiFi network</li>
-                                <li>Enjoy your internet access!</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Instructions:</strong>
-                            <ul class="mb-0 mt-2 text-start">
-                                <li>Connect to the WiFi network</li>
-                                <li>Enter the voucher code to get connected</li>
-                                <li>Enjoy your internet access!</li>
-                            </ul>
-                        </div>
-                        
-                        <div class="mt-4">
-                            <button class="btn btn-primary btn-lg" onclick="copyCode()">
-                                <i class="fas fa-copy me-2"></i>Copy Code
-                            </button>
-                        </div>
-                        
-                        <div class="mt-3">
-                            <small class="text-muted">
-                                <i class="fas fa-clock me-1"></i>Code valid for your selected duration
-                            </small>
-                        </div>
                         
                         <div class="mt-3">
                             <div class="alert alert-warning">
@@ -156,22 +125,5 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <script>
-        function copyCode() {
-            const code = document.getElementById('voucherCode').textContent;
-            navigator.clipboard.writeText(code).then(function() {
-                alert('WiFi code copied to clipboard!');
-            }).catch(function() {
-                // Fallback for older browsers
-                const textArea = document.createElement('textarea');
-                textArea.value = code;
-                document.body.appendChild(textArea);
-                textArea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textArea);
-                alert('WiFi code copied to clipboard!');
-            });
-        }
-    </script>
 </body>
 </html> 
