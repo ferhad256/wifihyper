@@ -140,14 +140,21 @@ Route::post('/payment/ipn', [PaymentController::class, 'unifiedIpn'])
     ->name('payment.ipn')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
-// Legacy IPN endpoints (for backward compatibility - will be deprecated)
-Route::post('/payment/callback', [PaymentController::class, 'callback'])
-    ->name('payment.callback')
+// JPesa callback route
+Route::post('/payment/jpesa/callback', [PaymentController::class, 'jpesaCallback'])
+    ->name('payment.jpesa.callback')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
-Route::post('/payment/failed', [PaymentController::class, 'failed'])
-    ->name('payment.failed.post')
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+// JPesa callback test route (for testing purposes)
+Route::get('/payment/jpesa/test-callback', function() {
+    return response()->json([
+        'status' => 'callback_endpoint_ready',
+        'url' => route('payment.jpesa.callback'),
+        'method' => 'POST',
+        'timestamp' => now()->toISOString(),
+        'message' => 'JPesa callback endpoint is ready to receive callbacks'
+    ]);
+})->name('payment.jpesa.test-callback');
 
 // Resend webhook routes (excluded from CSRF)
 Route::post('/webhooks/resend', [App\Http\Controllers\ResendWebhookController::class, 'handle'])->name('webhooks.resend')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);

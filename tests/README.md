@@ -7,7 +7,6 @@ This directory contains the test suite for the WIFIHYPER WiFi billing system.
 ### Unit Tests (`tests/Unit/`)
 - **SimpleUnitTest.php** - Basic application tests
 - **IpnConfigurationTest.php** - IPN configuration validation
-- **YoPaymentsServiceTest.php** - Payment service functionality
 - **TransactionIdGenerationTest.php** - Unique transaction ID generation
 - **PaymentRetryTest.php** - Payment retry mechanism validation
 
@@ -47,7 +46,6 @@ Tests use the following configuration:
 - `SESSION_DRIVER=array`
 - `QUEUE_CONNECTION=sync`
 - `MAIL_MAILER=array`
-- `YO_PAYMENTS_IPN_ENABLED=false` (disabled for testing)
 - Test credentials for external services
 
 ### Database

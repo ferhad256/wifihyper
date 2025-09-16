@@ -693,7 +693,7 @@ display_summary() {
     echo "Next Steps:"
     echo "1. Access your application at https://$DOMAIN"
     echo "2. Complete the initial setup in the admin panel"
-    echo "3. Configure your payment gateways (Yo! Payments, UG SMS)"
+    echo "3. Configure your payment gateways (JPesa, UG SMS)"
     echo "4. Set up your Resend email configuration"
     echo "5. Test the complete workflow"
     echo ""

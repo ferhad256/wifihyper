@@ -33,33 +33,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Yo! Payments Configuration
+    | JPesa Configuration
     |--------------------------------------------------------------------------
     |
-    | Configuration for Yo! Payments mobile money gateway
+    | Configuration for JPesa mobile money gateway
     |
     */
-    'yo_payments' => [
-        'username' => env('YO_PAYMENTS_USERNAME'),
-        'password' => env('YO_PAYMENTS_PASSWORD'),
-        'base_url' => env('YO_PAYMENTS_BASE_URL', 'https://paymentsapi1.yo.co.ug/ybs/task.php'),
-        'fallback_url' => env('YO_PAYMENTS_FALLBACK_URL', 'https://paymentsapi2.yo.co.ug/ybs/task.php'),
-        'public_key_enabled' => env('YO_PAYMENTS_PUBLIC_KEY_ENABLED', false),
-        'public_key_path' => env('YO_PAYMENTS_PUBLIC_KEY_PATH', 'storage/keys/yo_payments_public_key.pem'),
-        'private_key_path' => env('YO_PAYMENTS_PRIVATE_KEY_PATH', 'storage/keys/yo_payments_private_key.pem'),
+    'jpesa' => [
+        'enabled' => env('JPESA_ENABLED', true), // Enabled by default
+        'api_key' => env('JPESA_API_KEY'),
+        'base_url' => env('JPESA_BASE_URL', 'https://my.jpesa.com/api/'),
+        'callback_url' => env('JPESA_CALLBACK_URL', 'https://wifihyper.com/payment/jpesa/callback'),
+        'timeout' => env('JPESA_TIMEOUT', 400),
         
-        // IPN (Instant Payment Notification) URLs
-        'ipn_urls' => [
-            'unified' => env('YO_PAYMENTS_IPN_UNIFIED_URL', 'https://wifihyper.com/payment/ipn'),
-            'success' => env('YO_PAYMENTS_IPN_SUCCESS_URL', 'https://wifihyper.com/payment/callback'),
-            'failure' => env('YO_PAYMENTS_IPN_FAILURE_URL', 'https://wifihyper.com/payment/failed'),
-            'pending' => env('YO_PAYMENTS_IPN_PENDING_URL', 'https://wifihyper.com/payment/callback'),
-        ],
-        
-        // IPN Configuration
-        'ipn_enabled' => env('YO_PAYMENTS_IPN_ENABLED', true),
-        'ipn_timeout' => env('YO_PAYMENTS_IPN_TIMEOUT', 30), // seconds
-        'ipn_retry_attempts' => env('YO_PAYMENTS_IPN_RETRY_ATTEMPTS', 3),
+        // Development settings
+        'test_mode' => env('JPESA_TEST_MODE', false),
+        'test_phone_prefix' => env('JPESA_TEST_PHONE_PREFIX', '256700'),
     ],
 
     /*

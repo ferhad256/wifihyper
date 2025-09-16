@@ -28,7 +28,6 @@ class SimpleUnitTest extends TestCase
      */
     public function test_services_configuration_exists()
     {
-        $this->assertIsArray(config('services.yo_payments'));
         $this->assertIsArray(config('services.ug_sms'));
     }
 } 

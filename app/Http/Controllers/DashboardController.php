@@ -7,7 +7,7 @@ use App\Models\Transaction;
 use App\Models\Hotspot;
 use App\Models\Voucher;
 use App\Models\Notification;
-use App\Services\YoPaymentsService;
+use App\Services\JpesaService;
 use App\Services\VoucherAvailabilityService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
@@ -193,9 +193,7 @@ class DashboardController extends Controller
                 ],
             ]);
 
-            // Initialize Yo Payments withdrawal
-            $yoPayments = new YoPaymentsService();
-            $withdrawalResponse = $yoPayments->initiateWithdrawal(
+            // Initialize JPesa withdrawal
                 $amount,
                 $phoneNumber,
                 "WIFIHYPER Withdrawal - " . $tenant->business_name,
@@ -203,10 +201,10 @@ class DashboardController extends Controller
             );
 
             if ($withdrawalResponse['success']) {
-                // Update transaction with Yo Payments details
+                // Update transaction with JPesa details
                 $transaction->update([
                     'payment_details' => array_merge($transaction->payment_details, [
-                        'yo_payments_response' => $withdrawalResponse['data'],
+                        'jpesa_response' => $withdrawalResponse['data'],
                         'yo_transaction_reference' => $withdrawalResponse['transaction_reference'] ?? null,
                         'withdrawal_initiated_at' => now(),
                     ]),
@@ -216,7 +214,7 @@ class DashboardController extends Controller
 
                 return redirect()->back()->with('success', 'Withdrawal request submitted successfully. You will receive the funds shortly.');
             } else {
-                // If Yo Payments fails, revert the wallet balance
+                // If JPesa fails, revert the wallet balance
                 $tenant->wallet_balance += $amount;
                 $tenant->save();
 
@@ -224,7 +222,7 @@ class DashboardController extends Controller
                 $transaction->update([
                     'status' => 'failed',
                     'payment_details' => array_merge($transaction->payment_details, [
-                        'yo_payments_error' => $withdrawalResponse['message'],
+                        'jpesa_error' => $withdrawalResponse['message'],
                         'withdrawal_failed_at' => now(),
                     ]),
                 ]);

@@ -26,7 +26,7 @@ A comprehensive WiFi hotspot billing and voucher management system built with La
 - **Isolated Data**: Each tenant's data is completely separated
 
 ### 💳 Payment System
-- **Yo! Payments Integration**: Secure mobile money payments
+- **JPesa Integration**: Secure mobile money payments
 - **Automatic Voucher Distribution**: SMS delivery of WiFi codes
 - **Transaction Tracking**: Complete payment history and status
 - **Fee Calculation**: Automatic transaction fee handling
@@ -49,7 +49,7 @@ A comprehensive WiFi hotspot billing and voucher management system built with La
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Captive Portal│    │  Admin Dashboard│    │  Payment System │
-│   (User Access) │    │  (Management)   │    │  (Yo Payments)  │
+│   (User Access) │    │  (Management)   │    │  (JPesa)  │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -69,7 +69,7 @@ A comprehensive WiFi hotspot billing and voucher management system built with La
 - **Frontend**: Bootstrap 5, responsive design
 - **Backend**: Laravel 10, PHP 8.1+
 - **Database**: MySQL with proper relationships
-- **Payments**: Yo! Payments API integration
+- **Payments**: JPesa API integration
 - **SMS**: UGSMS API for voucher delivery
 - **Email**: Resend API for notifications
 
@@ -138,10 +138,14 @@ DB_PASSWORD=
 
 #### Payment API Configuration
 ```env
-YO_PAYMENTS_USERNAME=your_username
-YO_PAYMENTS_PASSWORD=your_password
-YO_PAYMENTS_BASE_URL=https://paymentsapi1.yo.co.ug/ybs/task.php
-YO_PAYMENTS_FALLBACK_URL=https://paymentsapi2.yo.co.ug/ybs/task.php
+# JPesa Payment Gateway Configuration
+JPESA_ENABLED=true
+JPESA_API_KEY=your_jpesa_api_key
+JPESA_BASE_URL=https://my.jpesa.com/api/
+JPESA_CALLBACK_URL=https://wifihyper.com/payment/jpesa/callback
+JPESA_TIMEOUT=400
+JPESA_TEST_MODE=false
+JPESA_TEST_PHONE_PREFIX=256700
 ```
 
 #### SMS API Configuration
@@ -221,11 +225,11 @@ Tenant (1) ── (Many) Transactions
 3. **Payment Initiation**
    - User enters phone number (local format: 0744744888)
    - System converts to international format (256744744888)
-   - Payment request sent to Yo! Payments
+   - Payment request sent to JPesa
 
 4. **Payment Processing**
    - User completes payment via mobile money
-   - Yo! Payments sends callback to system
+   - JPesa sends callback to system
    - Transaction status updated
 
 5. **Voucher Delivery**
@@ -358,7 +362,7 @@ echo '✅ Deployment complete!'
 - **HTTPS Enforcement**: SSL certificate required
 
 #### Payment Security
-- **Yo! Payments Integration**: Secure payment gateway
+- **JPesa Integration**: Secure payment gateway
 - **Transaction Validation**: Server-side payment verification
 - **Callback Verification**: Secure payment confirmation
 - **Error Handling**: Comprehensive error logging
@@ -375,7 +379,7 @@ echo '✅ Deployment complete!'
 
 ## 🔌 API Integrations
 
-### Yo! Payments API
+### JPesa API
 ```php
 // Payment initiation
 $paymentData = [
@@ -385,7 +389,7 @@ $paymentData = [
     'description' => 'WiFi voucher payment'
 ];
 
-$response = $yoPayments->initiatePayment($paymentData);
+$response = $jpesa->initiatePayment($paymentData);
 ```
 
 ### UGSMS API
@@ -426,7 +430,7 @@ $response = $resend->sendEmail($emailData);
 #### Payment Flow Issues
 **Problem**: Payment initiation fails
 **Solution**:
-1. Verify Yo! Payments API credentials
+1. Verify JPesa API credentials
 2. Check phone number format (256XXXXXXXX)
 3. Ensure voucher availability
 4. Check network connectivity
@@ -464,7 +468,7 @@ php artisan optimize:clear
 
 ### Log Files
 - **Application Logs**: `storage/logs/laravel.log`
-- **Payment Logs**: Check Yo! Payments dashboard
+- **Payment Logs**: Check JPesa dashboard
 - **SMS Logs**: Check UGSMS dashboard
 - **Error Logs**: `storage/logs/error.log`
 
@@ -523,7 +527,7 @@ Log::error('Payment failed', [
 
 ### Version 1.0.0 (Latest)
 - ✅ **Multi-tenant architecture** implemented
-- ✅ **Payment system** with Yo! Payments integration
+- ✅ **Payment system** with JPesa integration
 - ✅ **SMS delivery** with UGSMS integration
 - ✅ **Mobile responsive** design
 - ✅ **Captive portal** with real-time availability

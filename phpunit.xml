@@ -33,11 +33,8 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="YO_PAYMENTS_IPN_ENABLED" value="false"/>
         <env name="UG_SMS_USERNAME" value="test"/>
         <env name="UG_SMS_PASSWORD" value="test"/>
-        <env name="YO_PAYMENTS_USERNAME" value="test"/>
-        <env name="YO_PAYMENTS_PASSWORD" value="test"/>
     </php>
     <coverage>
         <include>

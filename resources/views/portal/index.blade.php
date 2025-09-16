@@ -188,7 +188,7 @@
                         
                         <div class="text-center mt-4">
                             <small class="text-muted">
-                                <i class="fas fa-shield-alt me-1"></i>Secure payment via Yo Payments
+                                <i class="fas fa-shield-alt me-1"></i>Secure payment via JPesa
                             </small>
                         </div>
                     @else
@@ -247,7 +247,7 @@
                             <strong>Payment Process:</strong>
                             <ul class="mb-0 mt-2">
                                 <li>Enter your phone number</li>
-                                <li>Complete payment via Yo Payments</li>
+                                <li>Complete payment via JPesa</li>
                                 <li>Receive WiFi voucher code via SMS</li>
                                 <li>Use the code to connect to WiFi</li>
                             </ul>

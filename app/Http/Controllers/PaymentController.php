@@ -8,7 +8,7 @@ use App\Models\Package;
 use App\Models\Voucher;
 use App\Models\Notification;
 use App\Models\SubscriptionPlan;
-use App\Services\YoPaymentsService;
+use App\Services\JpesaService;
 use App\Services\UgSmsService;
 use App\Services\VoucherAvailabilityService;
 use App\Services\TransactionFeeService;
@@ -19,13 +19,13 @@ use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
-    protected $yoPayments;
+    protected $jpesaService;
     protected $voucherAvailabilityService;
     protected $transactionFeeService;
 
     public function __construct()
     {
-        $this->yoPayments = new YoPaymentsService();
+        $this->jpesaService = new JpesaService();
         $this->voucherAvailabilityService = new VoucherAvailabilityService();
         $this->transactionFeeService = new TransactionFeeService();
     }
@@ -56,6 +56,7 @@ class PaymentController extends Controller
             'package_id' => 'required|exists:packages,id',
             'phone_number' => 'required|string',
             'hotspot_id' => 'required|exists:hotspots,id',
+            'payment_gateway' => 'nullable|string|in:jpesa',
         ]);
 
         if ($validator->fails()) {
@@ -166,25 +167,29 @@ class PaymentController extends Controller
                 'phone_number' => $request->phone_number
             ]);
 
-            // Process payment via Yo Payments
-            Log::info('Initiating Yo Payments request', [
+            // Use JPesa as the only payment gateway
+            $paymentGateway = 'jpesa';
+            
+            Log::info('Initiating payment request', [
                 'transaction_id' => $transaction->transaction_id,
                 'amount' => $transaction->amount,
-                'phone_number' => $request->phone_number
+                'phone_number' => $request->phone_number,
+                'payment_gateway' => $paymentGateway
             ]);
 
-            $result = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
+            // Process payment via JPesa
+            $result = $this->jpesaService->initiatePayment($transaction, $request->phone_number);
 
-            Log::info('Yo Payments response received', [
+            Log::info('JPesa response received', [
                 'transaction_id' => $transaction->transaction_id,
-                'yo_payments_result' => $result,
+                'jpesa_result' => $result,
                 'success' => $result['success'] ?? false
             ]);
 
             if ($result['success']) {
                 Log::info('Payment initiated successfully', [
                     'transaction_id' => $transaction->transaction_id,
-                    'yo_payments_reference' => $result['transaction_reference'] ?? null
+                    'jpesa_reference' => $result['data']['jpesa_tid'] ?? null
                 ]);
 
                 // Check if this is a simulated payment (development mode)
@@ -207,8 +212,8 @@ class PaymentController extends Controller
             } else {
                 Log::error('Payment initiation failed', [
                     'transaction_id' => $transaction->transaction_id,
-                    'yo_payments_error' => $result['message'] ?? 'Unknown error',
-                    'yo_payments_response' => $result
+                    'jpesa_error' => $result['message'] ?? 'Unknown error',
+                    'jpesa_response' => $result
                 ]);
 
                 // Check if this is a duplicate transaction error
@@ -217,7 +222,7 @@ class PaymentController extends Controller
                     
                     Log::warning('Duplicate transaction detected, attempting retry with new transaction ID', [
                         'original_transaction_id' => $transaction->transaction_id,
-                        'yo_payments_error' => $result['message']
+                        'jpesa_error' => $result['message']
                     ]);
                     
                     // Generate a completely new transaction ID with different timestamp
@@ -231,7 +236,7 @@ class PaymentController extends Controller
                             'original_transaction_id' => $transaction->transaction_id,
                             'retry_attempt' => 1,
                             'retry_reason' => 'duplicate_transaction',
-                            'yo_payments_error' => $result['message'],
+                            'jpesa_error' => $result['message'],
                             'retry_timestamp' => now()->toISOString()
                         ])
                     ]);
@@ -242,13 +247,12 @@ class PaymentController extends Controller
                     ]);
                     
                     // Try the payment again with the new transaction ID
-                    $retryResult = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
                     
                     if ($retryResult['success']) {
                         Log::info('Payment retry successful', [
                             'original_transaction_id' => $transaction->transaction_id,
                             'new_transaction_id' => $newTransactionId,
-                            'yo_payments_reference' => $retryResult['transaction_reference'] ?? null
+                            'jpesa_reference' => $retryResult['transaction_reference'] ?? null
                         ]);
                         
                         return redirect()->route('payment.pending', $newTransactionId);
@@ -265,8 +269,8 @@ class PaymentController extends Controller
                 $transaction->update([
                     'status' => 'failed',
                     'payment_details' => array_merge($transaction->payment_details ?? [], [
-                        'yo_payments_error' => $result['message'] ?? 'Unknown error',
-                        'yo_payments_response' => $result,
+                        'jpesa_error' => $result['message'] ?? 'Unknown error',
+                        'jpesa_response' => $result,
                         'failed_at' => now()
                     ])
                 ]);
@@ -288,334 +292,23 @@ class PaymentController extends Controller
     /**
      * Process payment
      */
-    public function processPayment(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'package_id' => 'required|exists:packages,id',
-            'phone_number' => 'required|string',
-            'hotspot_id' => 'required|exists:hotspots,id',
-        ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $package = Package::findOrFail($request->package_id);
-        $hotspot = $package->hotspot;
-        $tenant = $hotspot->tenant;
-
-        // Enhanced voucher availability check with notification
-        $availability = $this->voucherAvailabilityService->checkVoucherAvailability($tenant, $package);
-        
-        if (!$availability['has_vouchers']) {
-            // Create notification for admin about voucher shortage
-            $this->createVoucherShortageNotification($tenant, $package);
-            
-            return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
-        }
-
-        // Find an available voucher for the specific package with enhanced validation
-        $voucher = $tenant->vouchers()
-            ->where('status', 'unused')
-            ->where('package_id', $package->id)
-            ->whereNull('used_at')
-            ->where(function($query) {
-                $query->whereNull('expires_at')
-                      ->orWhere('expires_at', '>', now());
-            })
-            ->lockForUpdate() // Prevent race conditions
-            ->first();
-
-        if (!$voucher) {
-            // Create notification for admin about voucher shortage
-            $this->createVoucherShortageNotification($tenant, $package);
-            
-            return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
-        }
-
-        // Calculate transaction fees
-        $feeCalculation = $this->transactionFeeService->calculateFee($package->price);
-        
-        // Create transaction
-        $transaction = Transaction::create([
-            'tenant_id' => $tenant->id,
-            'hotspot_id' => $hotspot->id,
-            'package_id' => $package->id,
-            'voucher_id' => $voucher->id,
-            'transaction_id' => YoPaymentsService::generateTransactionId(),
-            'amount' => $feeCalculation['amount'],
-            'transaction_fee' => $feeCalculation['transaction_fee'],
-            'net_amount' => $feeCalculation['net_amount'],
-            'fee_percentage' => $feeCalculation['fee_percentage'],
-            'currency' => 'UGX',
-            'status' => 'pending',
-            'phone_number' => $request->phone_number,
-        ]);
-
-        // Process payment via Yo Payments
-        $result = $this->yoPayments->initiatePayment($transaction, $request->phone_number);
-
-        if ($result['success']) {
-            // Redirect to payment URL
-            return redirect($result['data']['payment_url'] ?? route('payment.pending', $transaction->transaction_id));
-        } else {
-            return back()->with('error', $result['message'])->withInput();
-        }
-    }
 
     /**
-     * Handle payment callback from Yo Payments
+     * Handle payment callback from JPesa
      * 
-     * This method receives Instant Payment Notifications (IPN) from Yo Payments
+     * This method receives Instant Payment Notifications (IPN) from JPesa
      * when payment status changes (success, failure, pending)
      */
-    public function callback(Request $request)
-    {
-        try {
-            Log::info('Yo Payments Callback Received', [
-                'request_data' => $request->all(),
-                'headers' => $request->headers->all(),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'timestamp' => now()->toISOString(),
-            ]);
-
-            // Process the callback data
-            $result = $this->yoPayments->processCallback($request->getContent());
-            
-            if ($result['success']) {
-                $transactionId = $result['transaction_id'];
-                $status = $result['status'];
-                
-                Log::info('Callback processed successfully', [
-                    'transaction_id' => $transactionId,
-                    'status' => $status,
-                    'result' => $result,
-                ]);
-                
-                // Find the transaction
-                $transaction = Transaction::where('transaction_id', $transactionId)->first();
-                
-                if ($transaction) {
-                    $oldStatus = $transaction->status;
-                    $newStatus = $this->yoPayments->mapPaymentStatus($status);
-                    
-                    Log::info('Transaction status update', [
-                        'transaction_id' => $transactionId,
-                        'old_status' => $oldStatus,
-                        'new_status' => $newStatus,
-                        'yo_status' => $status,
-                    ]);
-                    
-                    // Update transaction with callback data and billing information
-                    $updateData = [
-                        'status' => $newStatus,
-                        'payment_details' => array_merge($transaction->payment_details ?? [], [
-                            'callback_received_at' => now(),
-                            'callback_status' => $status,
-                            'callback_amount' => $request->input('Amount'),
-                            'callback_currency' => $request->input('Currency', 'UGX'),
-                            'yo_payments_status' => $status,
-                            'yo_payments_amount' => $request->input('Amount'),
-                            'yo_payments_currency' => $request->input('Currency', 'UGX'),
-                            'yo_payments_receipt' => $request->input('IssuedReceiptNumber'),
-                            'yo_payments_initiation_date' => $request->input('TransactionInitiationDate'),
-                            'yo_payments_completion_date' => $request->input('TransactionCompletionDate'),
-                            'ipn_processed_at' => now()->toISOString(),
-                            'ipn_source' => 'callback',
-                        ]),
-                    ];
-
-                    // If payment is completed, add completion timestamp and process
-                    if ($newStatus === 'completed' && $oldStatus !== 'completed') {
-                        $updateData['paid_at'] = now();
-                        
-                        Log::info('Payment completed via callback - starting workflow completion', [
-                            'transaction_id' => $transactionId,
-                            'amount' => $transaction->amount,
-                            'phone_number' => $transaction->phone_number,
-                        ]);
-                        
-                        try {
-                            // Update wallet balance and send SMS
-                            $this->updateWalletBalance($transactionId);
-                            $this->sendVoucherSms($transactionId);
-                            
-                            // Store transaction ID in session for success page
-                            session(['last_transaction_id' => $transactionId]);
-                            
-                            Log::info('Payment workflow completed successfully', [
-                                'transaction_id' => $transactionId,
-                                'wallet_updated' => true,
-                                'sms_sent' => true,
-                            ]);
-                        } catch (\Exception $workflowError) {
-                            Log::error('Payment workflow completion failed', [
-                                'transaction_id' => $transactionId,
-                                'error' => $workflowError->getMessage(),
-                                'trace' => $workflowError->getTraceAsString(),
-                            ]);
-                            
-                            // Still update the transaction status, but log the workflow error
-                            $updateData['payment_details']['workflow_error'] = $workflowError->getMessage();
-                        }
-                    }
-
-                    // If payment failed, add failure timestamp
-                    if ($newStatus === 'failed' && $oldStatus !== 'failed') {
-                        $updateData['failed_at'] = now();
-                        
-                        Log::warning('Payment failed via callback', [
-                            'transaction_id' => $transactionId,
-                            'old_status' => $oldStatus,
-                            'new_status' => $newStatus,
-                            'amount' => $transaction->amount,
-                            'phone_number' => $transaction->phone_number,
-                        ]);
-                    }
-
-                    // Update the transaction
-                    $transaction->update($updateData);
-                    
-                    Log::info('Transaction updated successfully', [
-                        'transaction_id' => $transactionId,
-                        'status' => $newStatus,
-                        'update_data' => $updateData,
-                    ]);
-                } else {
-                    Log::warning('Transaction not found for callback', [
-                        'transaction_id' => $transactionId,
-                        'status' => $status,
-                    ]);
-                }
-            } else {
-                Log::error('Callback processing failed', [
-                    'result' => $result,
-                    'request_data' => $request->all(),
-                ]);
-            }
-            
-            // Always return success to Yo Payments to prevent retries
-            return response('OK', 200);
-            
-        } catch (\Exception $e) {
-            Log::error('Yo Payments Callback Error', [
-                'error' => $e->getMessage(),
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString(),
-                'line' => $e->getLine(),
-                'file' => $e->getFile(),
-            ]);
-            
-            // Return 200 OK even on error to prevent Yo Payments from retrying
-            // This prevents infinite retry loops
-            return response('OK', 200);
-        }
-    }
 
     /**
-     * Handle failed payment notification from Yo Payments
+     * Handle failed payment notification from JPesa
      * 
-     * According to Yo Payments API 6.4: Transaction Failure Notification API
+     * According to JPesa API specification
      * Parameters: failed_transaction_reference, transaction_init_date, verification
      */
-    public function failed(Request $request)
-    {
-        try {
-            Log::info('Yo Payments Failure Notification Received', [
-                'request_data' => $request->all(),
-                'headers' => $request->headers->all(),
-                'ip' => $request->ip(),
-            ]);
-
-            // Extract parameters according to Yo Payments API specification
-            $failedTransactionReference = $request->input('failed_transaction_reference');
-            $transactionInitDate = $request->input('transaction_init_date');
-            $verification = $request->input('verification');
-
-            // Validate required parameters
-            if (!$failedTransactionReference || !$verification) {
-                Log::error('Yo Payments Failure: Missing required parameters', [
-                    'failed_transaction_reference' => $failedTransactionReference,
-                    'verification' => $verification,
-                ]);
-                return response('Missing required parameters', 400);
-            }
-
-            // Verify the signature if public key is configured
-            if (config('services.yo_payments.public_key_enabled', false)) {
-                $isValidSignature = $this->verifyFailureNotificationSignature(
-                    $failedTransactionReference,
-                    $transactionInitDate,
-                    $verification
-                );
-
-                if (!$isValidSignature) {
-                    Log::error('Yo Payments Failure: Invalid signature', [
-                        'failed_transaction_reference' => $failedTransactionReference,
-                        'verification' => $verification,
-                    ]);
-                    return response('Invalid signature', 401);
-                }
-
-                Log::info('Yo Payments Failure: Signature verified successfully');
-            } else {
-                Log::warning('Yo Payments Failure: Signature verification skipped (public key not configured)');
-            }
-
-            // Find the transaction using the failed_transaction_reference
-            $transaction = Transaction::where('transaction_id', $failedTransactionReference)
-                ->orWhere('payment_details->yo_payments_reference', $failedTransactionReference)
-                ->first();
-            
-            if (!$transaction) {
-                Log::error('Yo Payments Failure: Transaction not found', [
-                    'failed_transaction_reference' => $failedTransactionReference,
-                    'search_criteria' => 'transaction_id or yo_payments_reference',
-                ]);
-                return response('Transaction not found', 404);
-            }
-
-            // Update transaction status to failed
-            $oldStatus = $transaction->status;
-            $transaction->update([
-                'status' => 'failed',
-                'failed_at' => now(),
-                'payment_details' => array_merge($transaction->payment_details ?? [], [
-                    'failure_notification_received_at' => now(),
-                    'failure_transaction_reference' => $failedTransactionReference,
-                    'failure_transaction_init_date' => $transactionInitDate,
-                    'failure_verification' => $verification,
-                    'failure_verification_status' => config('services.yo_payments.public_key_enabled', false) ? 'verified' : 'skipped',
-                    'failure_processing_timestamp' => now()->toISOString(),
-                ]),
-            ]);
-
-            Log::info('Yo Payments Failure: Transaction updated successfully', [
-                'transaction_id' => $transaction->transaction_id,
-                'old_status' => $oldStatus,
-                'new_status' => 'failed',
-                'failed_transaction_reference' => $failedTransactionReference,
-                'transaction_init_date' => $transactionInitDate,
-            ]);
-
-            // Return 200 OK as required by Yo Payments API
-            return response('OK', 200);
-
-        } catch (\Exception $e) {
-            Log::error('Yo Payments Failure Notification Error', [
-                'error' => $e->getMessage(),
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            // Return 500 error - Yo Payments will retry
-            return response('Error processing failure notification', 500);
-        }
-    }
 
     /**
-     * Verify the signature of failure notification according to Yo Payments API 6.4.3
+     * Verify the signature of failure notification according to JPesa API specification
      * 
      * @param string $failedTransactionReference
      * @param string $transactionInitDate
@@ -626,10 +319,10 @@ class PaymentController extends Controller
     {
         try {
             // Get the public key path
-            $publicKeyPath = config('services.yo_payments.public_key_path');
+            $publicKeyPath = config('services.jpesa.public_key_path');
             
             if (!file_exists($publicKeyPath)) {
-                Log::error('Yo Payments Failure: Public key file not found', [
+                Log::error('JPesa Failure: Public key file not found', [
                     'public_key_path' => $publicKeyPath,
                 ]);
                 return false;
@@ -639,7 +332,7 @@ class PaymentController extends Controller
             $publicKey = openssl_pkey_get_public(file_get_contents($publicKeyPath));
             
             if (!$publicKey) {
-                Log::error('Yo Payments Failure: Invalid public key', [
+                Log::error('JPesa Failure: Invalid public key', [
                     'public_key_path' => $publicKeyPath,
                 ]);
                 return false;
@@ -652,7 +345,7 @@ class PaymentController extends Controller
             $decodedSignature = base64_decode($verification);
             
             if ($decodedSignature === false) {
-                Log::error('Yo Payments Failure: Invalid base64 signature', [
+                Log::error('JPesa Failure: Invalid base64 signature', [
                     'verification' => $verification,
                 ]);
                 return false;
@@ -670,27 +363,27 @@ class PaymentController extends Controller
             openssl_free_key($publicKey);
 
             if ($verificationResult === 1) {
-                Log::info('Yo Payments Failure: Signature verification successful', [
+                Log::info('JPesa Failure: Signature verification successful', [
                     'failed_transaction_reference' => $failedTransactionReference,
                     'transaction_init_date' => $transactionInitDate,
                 ]);
                 return true;
             } elseif ($verificationResult === 0) {
-                Log::error('Yo Payments Failure: Signature verification failed', [
+                Log::error('JPesa Failure: Signature verification failed', [
                     'failed_transaction_reference' => $failedTransactionReference,
                     'transaction_init_date' => $transactionInitDate,
                     'verification' => $verification,
                 ]);
                 return false;
             } else {
-                Log::error('Yo Payments Failure: Signature verification error', [
+                Log::error('JPesa Failure: Signature verification error', [
                     'error' => openssl_error_string(),
                 ]);
                 return false;
             }
 
         } catch (\Exception $e) {
-            Log::error('Yo Payments Failure: Signature verification exception', [
+            Log::error('JPesa Failure: Signature verification exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -733,115 +426,8 @@ class PaymentController extends Controller
     }
 
     /**
-     * Check payment status using Yo Payments API
+     * Check payment status using JPesa API
      */
-    public function checkStatus($transactionId)
-    {
-        try {
-            $transaction = Transaction::where('transaction_id', $transactionId)->first();
-            
-            if (!$transaction) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Transaction not found'
-                ], 404);
-            }
-
-            // Check status using Yo Payments API with comprehensive verification
-            $yoPaymentsService = new \App\Services\YoPaymentsService();
-            $statusResult = $yoPaymentsService->comprehensiveTransactionVerification($transaction);
-
-            if ($statusResult['success']) {
-                $oldStatus = $transaction->status;
-                $newStatus = $statusResult['status'];
-                
-                // Update transaction with latest status and billing details
-                $updateData = [
-                    'status' => $newStatus,
-                    'payment_details' => array_merge($transaction->payment_details ?? [], [
-                        'last_status_check' => now(),
-                        'status_check_result' => $statusResult['data'],
-                        'transaction_details' => $statusResult['transaction_details'] ?? [],
-                        'yo_payments_status' => $statusResult['data']['Status'] ?? 'unknown',
-                        'yo_payments_amount' => $statusResult['data']['Amount'] ?? null,
-                        'yo_payments_currency' => $statusResult['data']['Currency'] ?? 'UGX',
-                        'yo_payments_receipt' => $statusResult['transaction_details']['receipt_number'] ?? null,
-                        'yo_payments_initiation_date' => $statusResult['transaction_details']['initiation_date'] ?? null,
-                        'yo_payments_completion_date' => $statusResult['transaction_details']['completion_date'] ?? null,
-                    ]),
-                ];
-
-                // If payment is completed, add completion timestamp
-                if ($newStatus === 'completed' && $oldStatus !== 'completed') {
-                    $updateData['paid_at'] = now();
-                    
-                    // Update wallet balance and send SMS
-                    $this->updateWalletBalance($transactionId);
-                    $this->sendVoucherSms($transactionId);
-                    
-                    // Store transaction ID in session for success page
-                    session(['last_transaction_id' => $transactionId]);
-                    
-                    Log::info('Payment completed successfully', [
-                        'transaction_id' => $transactionId,
-                        'old_status' => $oldStatus,
-                        'new_status' => $newStatus,
-                        'amount' => $transaction->amount,
-                        'phone_number' => $transaction->phone_number,
-                    ]);
-                }
-
-                // If payment failed, add failure timestamp
-                if ($newStatus === 'failed' && $oldStatus !== 'failed') {
-                    $updateData['failed_at'] = now();
-                    
-                    Log::warning('Payment failed', [
-                        'transaction_id' => $transactionId,
-                        'old_status' => $oldStatus,
-                        'new_status' => $newStatus,
-                        'amount' => $transaction->amount,
-                        'phone_number' => $transaction->phone_number,
-                    ]);
-                }
-
-                $transaction->update($updateData);
-
-                return response()->json([
-                    'success' => true,
-                    'status' => $newStatus,
-                    'is_pending' => $statusResult['is_pending'] ?? false,
-                    'transaction_details' => $statusResult['transaction_details'] ?? [],
-                    'billing_info' => [
-                        'amount' => $transaction->amount,
-                        'transaction_fee' => $transaction->transaction_fee,
-                        'net_amount' => $transaction->net_amount,
-                        'currency' => $transaction->currency,
-                        'receipt_number' => $statusResult['transaction_details']['receipt_number'] ?? null,
-                        'initiation_date' => $statusResult['transaction_details']['initiation_date'] ?? null,
-                        'completion_date' => $statusResult['transaction_details']['completion_date'] ?? null,
-                    ],
-                    'message' => $statusResult['message'],
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => $statusResult['message'],
-            ], 400);
-
-        } catch (\Exception $e) {
-            Log::error('Payment Status Check Error', [
-                'transaction_id' => $transactionId,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Error checking payment status: ' . $e->getMessage(),
-            ], 500);
-        }
-    }
 
     /**
      * Manual voucher redemption
@@ -1046,208 +632,27 @@ class PaymentController extends Controller
     /**
      * Show subscription payment form
      */
-    public function showSubscriptionPayment(Request $request)
-    {
-        $tenant = Tenant::find(session('tenant_id'));
-        
-        if (!$tenant) {
-            return redirect()->route('login');
-        }
-
-        $planId = $request->get('plan_id');
-        $plan = SubscriptionPlan::findOrFail($planId);
-        
-        if ($plan->slug === 'starter') {
-            return back()->with('error', 'Starter plan is free and does not require payment.');
-        }
-
-        return view('dashboard.subscription.payment', compact('tenant', 'plan'));
-    }
 
     /**
      * Initiate subscription payment
      */
-    public function initiateSubscriptionPayment(Request $request)
-    {
-        $tenant = Tenant::find(session('tenant_id'));
-        
-        if (!$tenant) {
-            return redirect()->route('login');
-        }
-
-        $validator = Validator::make($request->all(), [
-            'plan_id' => 'required|exists:subscription_plans,id',
-            'phone_number' => 'required|string',
-        ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $plan = SubscriptionPlan::findOrFail($request->plan_id);
-        
-        if ($plan->slug === 'starter') {
-            return back()->with('error', 'Starter plan is free and does not require payment.');
-        }
-
-        if ($plan->slug === 'enterprise') {
-            return back()->with('error', 'Enterprise plan requires contacting sales team.');
-        }
-
-        // Create subscription transaction
-        $transaction = Transaction::create([
-            'tenant_id' => $tenant->id,
-            'transaction_id' => 'SUBS_' . time() . '_' . rand(1000, 9999),
-            'amount' => $plan->monthly_price,
-            'phone_number' => $request->phone_number,
-            'status' => 'pending',
-            'type' => 'subscription',
-            'data' => [
-                'plan_id' => $plan->id,
-                'plan_name' => $plan->name,
-                'plan_slug' => $plan->slug,
-                'subscription_period' => 'monthly',
-            ],
-        ]);
-
-        // Initiate payment with Yo! Payments
-        $paymentData = [
-            'amount' => $plan->monthly_price,
-            'phone_number' => $request->phone_number,
-            'transaction_id' => $transaction->transaction_id,
-            'description' => "Subscription payment for {$plan->name} plan",
-        ];
-
-        try {
-            $response = $this->yoPayments->initiatePayment($paymentData);
-            
-            if ($response['success']) {
-                return redirect()->away($response['payment_url']);
-            } else {
-                $transaction->update(['status' => 'failed']);
-                return back()->with('error', 'Failed to initiate payment: ' . $response['message']);
-            }
-        } catch (\Exception $e) {
-            $transaction->update(['status' => 'failed']);
-            Log::error('Subscription payment initiation failed', [
-                'tenant_id' => $tenant->id,
-                'plan_id' => $plan->id,
-                'error' => $e->getMessage(),
-            ]);
-            return back()->with('error', 'Failed to initiate payment. Please try again.');
-        }
-    }
 
     /**
      * Handle subscription payment callback
      */
-    public function subscriptionCallback(Request $request)
-    {
-        $transactionId = $request->get('transaction_id');
-        $transaction = Transaction::where('transaction_id', $transactionId)
-            ->where('type', 'subscription')
-            ->first();
-
-        if (!$transaction) {
-            return response()->json(['error' => 'Transaction not found'], 404);
-        }
-
-        $tenant = $transaction->tenant;
-        $planData = $transaction->data;
-        $plan = SubscriptionPlan::find($planData['plan_id']);
-
-        if (!$plan) {
-            return response()->json(['error' => 'Plan not found'], 404);
-        }
-
-        // Verify payment with Yo! Payments
-        $verificationData = [
-            'transaction_id' => $transactionId,
-        ];
-
-        try {
-            $response = $this->yoPayments->verifyPayment($verificationData);
-            
-            if ($response['success'] && $response['status'] === 'successful') {
-                // Update transaction status
-                $transaction->update([
-                    'status' => 'completed',
-                    'completed_at' => now(),
-                ]);
-
-                // Update tenant subscription
-                $tenant->update([
-                    'subscription_plan_id' => $plan->id,
-                    'subscription_expires_at' => now()->addMonth(),
-                ]);
-
-                // Create success notification
-                $tenant->notifications()->create([
-                    'title' => 'Subscription Upgraded',
-                    'message' => "Successfully upgraded to {$plan->name} plan. Your subscription expires on " . now()->addMonth()->format('M d, Y'),
-                    'type' => 'subscription_upgrade',
-                    'data' => [
-                        'plan_name' => $plan->name,
-                        'expires_at' => now()->addMonth()->toISOString(),
-                    ],
-                    'is_read' => false,
-                ]);
-
-                return response()->json(['success' => true, 'message' => 'Subscription upgraded successfully']);
-            } else {
-                $transaction->update(['status' => 'failed']);
-                return response()->json(['error' => 'Payment verification failed'], 400);
-            }
-        } catch (\Exception $e) {
-            Log::error('Subscription payment verification failed', [
-                'transaction_id' => $transactionId,
-                'error' => $e->getMessage(),
-            ]);
-            return response()->json(['error' => 'Payment verification failed'], 500);
-        }
-    }
 
     /**
      * Handle subscription payment failure
      */
-    public function subscriptionFailed(Request $request)
-    {
-        $transactionId = $request->get('transaction_id');
-        $transaction = Transaction::where('transaction_id', $transactionId)
-            ->where('type', 'subscription')
-            ->first();
-
-        if ($transaction) {
-            $transaction->update(['status' => 'failed']);
-        }
-
-        return redirect()->route('subscription.plans')
-            ->with('error', 'Subscription payment failed. Please try again.');
-    }
 
     /**
      * Handle subscription payment success
      */
-    public function subscriptionSuccess(Request $request)
-    {
-        $transactionId = $request->get('transaction_id');
-        $transaction = Transaction::where('transaction_id', $transactionId)
-            ->where('type', 'subscription')
-            ->first();
-
-        if (!$transaction || $transaction->status !== 'completed') {
-            return redirect()->route('subscription.plans')
-                ->with('error', 'Payment verification failed. Please contact support.');
-        }
-
-        return redirect()->route('subscription.index')
-            ->with('success', 'Subscription upgraded successfully!');
-    }
 
     /**
      * Unified IPN handler for all payment responses (success, failure, pending)
      * 
-     * This method handles all types of payment notifications from Yo! Payments:
+     * This method handles all types of payment notifications from JPesa:
      * - Success notifications (TransactionStatus: SUCCEEDED)
      * - Failure notifications (TransactionStatus: FAILED)
      * - Pending notifications (TransactionStatus: PENDING)
@@ -1256,56 +661,6 @@ class PaymentController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\Response
      */
-    public function unifiedIpn(Request $request)
-    {
-        try {
-            Log::info('Yo Payments Unified IPN Received', [
-                'request_data' => $request->all(),
-                'headers' => $request->headers->all(),
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'timestamp' => now()->toISOString(),
-            ]);
-
-            // Determine the type of notification based on the request data
-            $notificationType = $this->determineNotificationType($request);
-            
-            Log::info('Yo Payments IPN Type Determined', [
-                'notification_type' => $notificationType,
-                'request_data' => $request->all(),
-            ]);
-
-            switch ($notificationType) {
-                case 'success':
-                    return $this->handleSuccessNotification($request);
-                    
-                case 'failure':
-                    return $this->handleFailureNotification($request);
-                    
-                case 'pending':
-                    return $this->handlePendingNotification($request);
-                    
-                case 'failure_separate':
-                    return $this->handleSeparateFailureNotification($request);
-                    
-                default:
-                    Log::warning('Yo Payments IPN: Unknown notification type', [
-                        'notification_type' => $notificationType,
-                        'request_data' => $request->all(),
-                    ]);
-                    return response('Unknown notification type', 400);
-            }
-
-        } catch (\Exception $e) {
-            Log::error('Yo Payments Unified IPN Error', [
-                'error' => $e->getMessage(),
-                'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return response('Error processing IPN', 500);
-        }
-    }
 
     /**
      * Determine the type of notification based on request data
@@ -1358,12 +713,11 @@ class PaymentController extends Controller
      */
     protected function handleSuccessNotification(Request $request)
     {
-        Log::info('Yo Payments Success IPN Processing', [
+        Log::info('JPesa Success IPN Processing', [
             'request_data' => $request->all(),
         ]);
 
         // Process the callback data
-        $result = $this->yoPayments->processCallback($request->getContent());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
@@ -1380,7 +734,6 @@ class PaymentController extends Controller
             
             if ($transaction) {
                 $oldStatus = $transaction->status;
-                $newStatus = $this->yoPayments->mapPaymentStatus($status);
                 
                 Log::info('Transaction status update', [
                     'transaction_id' => $transactionId,
@@ -1398,12 +751,12 @@ class PaymentController extends Controller
                         'ipn_status' => $status,
                         'ipn_amount' => $request->input('Amount'),
                         'ipn_currency' => $request->input('Currency', 'UGX'),
-                        'yo_payments_status' => $status,
-                        'yo_payments_amount' => $request->input('Amount'),
-                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
-                        'yo_payments_receipt' => $request->input('IssuedReceiptNumber'),
-                        'yo_payments_initiation_date' => $request->input('TransactionInitiationDate'),
-                        'yo_payments_completion_date' => $request->input('TransactionCompletionDate'),
+                        'jpesa_status' => $status,
+                        'jpesa_amount' => $request->input('Amount'),
+                        'jpesa_currency' => $request->input('Currency', 'UGX'),
+                        'jpesa_receipt' => $request->input('IssuedReceiptNumber'),
+                        'jpesa_initiation_date' => $request->input('TransactionInitiationDate'),
+                        'jpesa_completion_date' => $request->input('TransactionCompletionDate'),
                         'ipn_processed_at' => now()->toISOString(),
                         'ipn_source' => 'unified_callback',
                     ]),
@@ -1472,12 +825,11 @@ class PaymentController extends Controller
      */
     protected function handleFailureNotification(Request $request)
     {
-        Log::info('Yo Payments Failure IPN Processing', [
+        Log::info('JPesa Failure IPN Processing', [
             'request_data' => $request->all(),
         ]);
 
         // Process the callback data
-        $result = $this->yoPayments->processCallback($request->getContent());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
@@ -1494,7 +846,6 @@ class PaymentController extends Controller
             
             if ($transaction) {
                 $oldStatus = $transaction->status;
-                $newStatus = $this->yoPayments->mapPaymentStatus($status);
                 
                 Log::info('Transaction status update (failure)', [
                     'transaction_id' => $transactionId,
@@ -1513,9 +864,9 @@ class PaymentController extends Controller
                         'ipn_status' => $status,
                         'ipn_amount' => $request->input('Amount'),
                         'ipn_currency' => $request->input('Currency', 'UGX'),
-                        'yo_payments_status' => $status,
-                        'yo_payments_amount' => $request->input('Amount'),
-                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                        'jpesa_status' => $status,
+                        'jpesa_amount' => $request->input('Amount'),
+                        'jpesa_currency' => $request->input('Currency', 'UGX'),
                         'ipn_processed_at' => now()->toISOString(),
                         'ipn_source' => 'unified_callback',
                         'failure_reason' => $request->input('StatusMessage', 'Payment failed'),
@@ -1548,12 +899,11 @@ class PaymentController extends Controller
      */
     protected function handlePendingNotification(Request $request)
     {
-        Log::info('Yo Payments Pending IPN Processing', [
+        Log::info('JPesa Pending IPN Processing', [
             'request_data' => $request->all(),
         ]);
 
         // Process the callback data
-        $result = $this->yoPayments->processCallback($request->getContent());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
@@ -1570,7 +920,6 @@ class PaymentController extends Controller
             
             if ($transaction) {
                 $oldStatus = $transaction->status;
-                $newStatus = $this->yoPayments->mapPaymentStatus($status);
                 
                 Log::info('Transaction status update (pending)', [
                     'transaction_id' => $transactionId,
@@ -1588,9 +937,9 @@ class PaymentController extends Controller
                         'ipn_status' => $status,
                         'ipn_amount' => $request->input('Amount'),
                         'ipn_currency' => $request->input('Currency', 'UGX'),
-                        'yo_payments_status' => $status,
-                        'yo_payments_amount' => $request->input('Amount'),
-                        'yo_payments_currency' => $request->input('Currency', 'UGX'),
+                        'jpesa_status' => $status,
+                        'jpesa_amount' => $request->input('Amount'),
+                        'jpesa_currency' => $request->input('Currency', 'UGX'),
                         'ipn_processed_at' => now()->toISOString(),
                         'ipn_source' => 'unified_callback',
                     ]),
@@ -1622,18 +971,18 @@ class PaymentController extends Controller
      */
     protected function handleSeparateFailureNotification(Request $request)
     {
-        Log::info('Yo Payments Separate Failure IPN Processing', [
+        Log::info('JPesa Separate Failure IPN Processing', [
             'request_data' => $request->all(),
         ]);
 
-        // Extract parameters according to Yo Payments API specification
+        // Extract parameters according to JPesa API specification
         $failedTransactionReference = $request->input('failed_transaction_reference');
         $transactionInitDate = $request->input('transaction_init_date');
         $verification = $request->input('verification');
 
         // Validate required parameters
         if (!$failedTransactionReference || !$verification) {
-            Log::error('Yo Payments Separate Failure: Missing required parameters', [
+            Log::error('JPesa Separate Failure: Missing required parameters', [
                 'failed_transaction_reference' => $failedTransactionReference,
                 'verification' => $verification,
             ]);
@@ -1641,7 +990,7 @@ class PaymentController extends Controller
         }
 
         // Verify the signature if public key is configured
-        if (config('services.yo_payments.public_key_enabled', false)) {
+        if (config('services.jpesa.public_key_enabled', false)) {
             $isValidSignature = $this->verifyFailureNotificationSignature(
                 $failedTransactionReference,
                 $transactionInitDate,
@@ -1649,27 +998,27 @@ class PaymentController extends Controller
             );
 
             if (!$isValidSignature) {
-                Log::error('Yo Payments Separate Failure: Invalid signature', [
+                Log::error('JPesa Separate Failure: Invalid signature', [
                     'failed_transaction_reference' => $failedTransactionReference,
                     'verification' => $verification,
                 ]);
                 return response('Invalid signature', 401);
             }
 
-            Log::info('Yo Payments Separate Failure: Signature verified successfully');
+            Log::info('JPesa Separate Failure: Signature verified successfully');
         } else {
-            Log::warning('Yo Payments Separate Failure: Signature verification skipped (public key not configured)');
+            Log::warning('JPesa Separate Failure: Signature verification skipped (public key not configured)');
         }
 
         // Find the transaction using the failed_transaction_reference
         $transaction = Transaction::where('transaction_id', $failedTransactionReference)
-            ->orWhere('payment_details->yo_payments_reference', $failedTransactionReference)
+            ->orWhere('payment_details->jpesa_reference', $failedTransactionReference)
             ->first();
         
         if (!$transaction) {
-            Log::error('Yo Payments Separate Failure: Transaction not found', [
+            Log::error('JPesa Separate Failure: Transaction not found', [
                 'failed_transaction_reference' => $failedTransactionReference,
-                'search_criteria' => 'transaction_id or yo_payments_reference',
+                'search_criteria' => 'transaction_id or jpesa_reference',
             ]);
             return response('Transaction not found', 404);
         }
@@ -1686,13 +1035,13 @@ class PaymentController extends Controller
                 'failure_transaction_reference' => $failedTransactionReference,
                 'failure_transaction_init_date' => $transactionInitDate,
                 'failure_verification' => $verification,
-                'failure_verification_status' => config('services.yo_payments.public_key_enabled', false) ? 'verified' : 'skipped',
+                'failure_verification_status' => config('services.jpesa.public_key_enabled', false) ? 'verified' : 'skipped',
                 'ipn_processed_at' => now()->toISOString(),
                 'ipn_source' => 'unified_callback',
             ]),
         ]);
 
-        Log::info('Yo Payments Separate Failure: Transaction updated successfully', [
+        Log::info('JPesa Separate Failure: Transaction updated successfully', [
             'transaction_id' => $transaction->transaction_id,
             'old_status' => $oldStatus,
             'new_status' => 'failed',
@@ -1701,5 +1050,72 @@ class PaymentController extends Controller
         ]);
 
         return response('OK', 200);
+    }
+
+    /**
+     * Handle JPesa callback
+     */
+    public function jpesaCallback(Request $request)
+    {
+        Log::info('JPesa callback received', [
+            'callback_data' => $request->all(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now()->toISOString(),
+            'method' => $request->method(),
+            'headers' => $request->headers->all()
+        ]);
+
+        try {
+            $callbackData = $request->all();
+            
+            // Validate callback data structure
+            if (empty($callbackData)) {
+                Log::error('JPesa callback: Empty callback data received', [
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+                return response('ERROR: Empty callback data', 400);
+            }
+
+            // Log callback data for debugging
+            Log::info('JPesa callback data structure', [
+                'has_tx' => isset($callbackData['tx']),
+                'has_tid' => isset($callbackData['tid']),
+                'has_api_status' => isset($callbackData['api_status']),
+                'has_msg' => isset($callbackData['msg']),
+                'has_memo' => isset($callbackData['memo']),
+                'callback_keys' => array_keys($callbackData)
+            ]);
+            
+            // Handle the callback using JpesaService
+            $result = $this->jpesaService->handleCallback($callbackData);
+            
+            if ($result) {
+                Log::info('JPesa callback processed successfully', [
+                    'callback_data' => $callbackData,
+                    'transaction_id' => $callbackData['tx'] ?? 'unknown',
+                    'jpesa_tid' => $callbackData['tid'] ?? 'unknown'
+                ]);
+                return response('OK', 200);
+            } else {
+                Log::error('JPesa callback processing failed', [
+                    'callback_data' => $callbackData,
+                    'transaction_id' => $callbackData['tx'] ?? 'unknown',
+                    'jpesa_tid' => $callbackData['tid'] ?? 'unknown'
+                ]);
+                return response('ERROR: Callback processing failed', 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('JPesa callback exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'callback_data' => $request->all(),
+                'ip_address' => $request->ip()
+            ]);
+            
+            return response('ERROR: Internal server error', 500);
+        }
     }
 }
