@@ -9,6 +9,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\WithdrawalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,6 +118,14 @@ Route::middleware('auth.tenant')->group(function () {
     Route::get('/hotspots/{hotspot}/packages/{package}/edit', [HotspotController::class, 'editPackage'])->name('hotspots.packages.edit');
     Route::put('/hotspots/{hotspot}/packages/{package}', [HotspotController::class, 'updatePackage'])->name('hotspots.packages.update');
     Route::delete('/hotspots/{hotspot}/packages/{package}', [HotspotController::class, 'deletePackage'])->name('hotspots.packages.destroy');
+    
+    // Withdrawal routes
+    Route::get('/withdrawal', [WithdrawalController::class, 'showWithdrawalForm'])->name('withdrawal.form');
+    Route::post('/withdrawal', [WithdrawalController::class, 'initiateWithdrawal'])->name('withdrawal.initiate');
+    Route::get('/withdrawal/pending/{withdrawalId}', [WithdrawalController::class, 'pending'])->name('withdrawal.pending');
+    Route::get('/withdrawal/success/{withdrawalId}', [WithdrawalController::class, 'success'])->name('withdrawal.success');
+    Route::get('/withdrawal/history', [WithdrawalController::class, 'history'])->name('withdrawal.history');
+    Route::get('/withdrawal/status/{withdrawalId}', [WithdrawalController::class, 'checkStatus'])->name('withdrawal.status');
 });
 
 // Captive portal routes (for WiFi users)
@@ -143,6 +152,11 @@ Route::post('/payment/ipn', [PaymentController::class, 'unifiedIpn'])
 // JPesa callback route
 Route::post('/payment/jpesa/callback', [PaymentController::class, 'jpesaCallback'])
     ->name('payment.jpesa.callback')
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Withdrawal callback route (excluded from CSRF)
+Route::post('/withdrawal/callback', [WithdrawalController::class, 'handleCallback'])
+    ->name('withdrawal.callback')
     ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // JPesa callback test route (for testing purposes)

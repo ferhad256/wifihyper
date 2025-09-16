@@ -27,7 +27,7 @@ class UgSmsService
     /**
      * Send voucher code via SMS
      */
-    public function sendVoucherCode($phoneNumber, $voucherCode, Package $package = null)
+    public function sendVoucherCode($phoneNumber, $voucherCode, ?Package $package = null)
     {
         try {
             $message = $this->formatVoucherMessage($voucherCode, $package);
@@ -174,7 +174,7 @@ class UgSmsService
     /**
      * Format voucher message
      */
-    protected function formatVoucherMessage($voucherCode, Package $package = null)
+    protected function formatVoucherMessage($voucherCode, ?Package $package = null)
     {
         $duration = "24 hours";
         

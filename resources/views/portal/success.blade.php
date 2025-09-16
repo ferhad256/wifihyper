@@ -98,6 +98,28 @@
                         </div>
                         @endif
                         
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-sms me-2"></i>
+                            <strong>SMS Sent:</strong> Your WiFi voucher code has been sent to {{ $transaction->phone_number }}
+                        </div>
+                    @else
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Payment Successful!</strong><br>
+                            Your WiFi voucher code has been sent to your phone via SMS.
+                        </div>
+                        
+                        <div class="alert alert-info mb-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Next Steps:</strong>
+                            <ul class="mb-0 mt-2 text-start">
+                                <li>Check your phone for the SMS with your WiFi code</li>
+                                <li>Use the code to connect to the WiFi network</li>
+                                <li>Enjoy your internet access!</li>
+                            </ul>
+                        </div>
+                    @endif
+                        
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>Instructions:</strong>

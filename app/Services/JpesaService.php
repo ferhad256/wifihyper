@@ -184,13 +184,14 @@ class JpesaService
     }
 
     /**
-     * Build XML request for JPesa API
+     * Build XML request for JPesa API (Credit - Payment from customer)
      */
     protected function buildXmlRequest(Transaction $transaction, $phoneNumber, $additionalParams = [])
     {
         $callbackUrl = $this->buildCallbackUrl($additionalParams);
         $description = $this->buildPaymentDescription($transaction, $additionalParams);
         
+        // Build XML exactly as per JPesa API specification
         $xmlData = '<?xml version="1.0" encoding="ISO-8859-1"?>
 <g7bill>
     <_key_>' . htmlspecialchars($this->apiKey) . '</_key_>
@@ -204,7 +205,161 @@ class JpesaService
     <description>' . htmlspecialchars($description) . '</description>
 </g7bill>';
 
+        Log::info('JpesaService: XML request built', [
+            'transaction_id' => $transaction->transaction_id,
+            'action' => 'credit',
+            'amount' => $transaction->amount,
+            'mobile' => $this->formatPhoneNumber($phoneNumber),
+            'callback' => $callbackUrl
+        ]);
+
         return $xmlData;
+    }
+
+    /**
+     * Build XML request for JPesa withdrawal (Debit - Payment to customer)
+     */
+    protected function buildWithdrawalXmlRequest($phoneNumber, $amount, $transactionId, $description = '', $callbackUrl = '')
+    {
+        // Build XML exactly as per JPesa withdrawal example
+        $xmlData = '<?xml version="1.0" encoding="ISO-8859-1"?>
+<g7bill>
+    <_key_>' . htmlspecialchars($this->apiKey) . '</_key_>
+    <cmd>account</cmd>
+    <action>debit</action>
+    <pt>mm</pt>
+    <mobile>' . htmlspecialchars($this->formatPhoneNumber($phoneNumber)) . '</mobile>
+    <amount>' . htmlspecialchars($amount) . '</amount>
+    <callback>' . htmlspecialchars($callbackUrl) . '</callback>
+    <tx>' . htmlspecialchars($transactionId) . '</tx>
+    <description>' . htmlspecialchars($description) . '</description>
+</g7bill>';
+
+        Log::info('JpesaService: Withdrawal XML request built', [
+            'transaction_id' => $transactionId,
+            'action' => 'debit',
+            'amount' => $amount,
+            'mobile' => $this->formatPhoneNumber($phoneNumber),
+            'callback' => $callbackUrl
+        ]);
+
+        return $xmlData;
+    }
+
+    /**
+     * Initiate a withdrawal transaction using JPesa API
+     * 
+     * This method implements the JPesa API specification for
+     * initiating push-based payments to mobile money accounts.
+     * 
+     * @param string $phoneNumber - Customer phone number
+     * @param float $amount - Amount to withdraw
+     * @param string $transactionId - Unique transaction identifier
+     * @param string $description - Transaction description
+     * @param string $callbackUrl - Optional callback URL
+     * @return array
+     */
+    public function initiateWithdrawal($phoneNumber, $amount, $transactionId, $description = '', $callbackUrl = '')
+    {
+        Log::info('JpesaService: Withdrawal initiation started', [
+            'transaction_id' => $transactionId,
+            'amount' => $amount,
+            'phone_number' => $phoneNumber,
+            'description' => $description
+        ]);
+
+        try {
+            // Validate parameters
+            if (empty($this->apiKey)) {
+                throw new \Exception('JPesa API Key is not configured.');
+            }
+            if (empty($amount) || $amount <= 0) {
+                throw new \Exception('Invalid withdrawal amount.');
+            }
+            if (empty($phoneNumber)) {
+                throw new \Exception('Phone number is required for withdrawal.');
+            }
+            if (empty($transactionId)) {
+                throw new \Exception('Transaction ID is required.');
+            }
+
+            // Build XML request for withdrawal
+            $xmlData = $this->buildWithdrawalXmlRequest($phoneNumber, $amount, $transactionId, $description, $callbackUrl);
+
+            // Make API request
+            $response = $this->makeXmlRequest($xmlData);
+
+            // Parse JSON response
+            $responseData = json_decode($response, true);
+
+            if ($responseData === null) {
+                Log::error('JpesaService: Failed to parse withdrawal JSON response', [
+                    'transaction_id' => $transactionId,
+                    'raw_response' => $response
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => 'Invalid response from payment gateway',
+                    'data' => null
+                ];
+            }
+
+            Log::info('JpesaService: Withdrawal response parsed', [
+                'transaction_id' => $transactionId,
+                'api_status' => $responseData['api_status'] ?? 'unknown',
+                'tid' => $responseData['tid'] ?? null,
+                'memo' => $responseData['memo'] ?? null
+            ]);
+
+            // Check if withdrawal was initiated successfully
+            if (isset($responseData['api_status']) && $responseData['api_status'] === 'success') {
+                Log::info('JpesaService: Withdrawal initiated successfully', [
+                    'transaction_id' => $transactionId,
+                    'jpesa_tid' => $responseData['tid'],
+                    'jpesa_memo' => $responseData['memo'],
+                    'message' => $responseData['msg'] ?? 'Withdrawal initiated'
+                ]);
+
+                return [
+                    'success' => true,
+                    'message' => $responseData['msg'] ?? 'Withdrawal initiated successfully',
+                    'data' => [
+                        'jpesa_tid' => $responseData['tid'],
+                        'jpesa_memo' => $responseData['memo'],
+                        'jpesa_message' => $responseData['msg'] ?? 'Withdrawal initiated',
+                        'jpesa_api_log' => $responseData['_api_log_'] ?? null,
+                        'api_status' => $responseData['api_status']
+                    ]
+                ];
+            } else {
+                Log::error('JpesaService: Withdrawal initiation failed', [
+                    'transaction_id' => $transactionId,
+                    'api_status' => $responseData['api_status'] ?? 'unknown',
+                    'message' => $responseData['msg'] ?? 'Unknown error',
+                    'response' => $responseData
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => $responseData['msg'] ?? 'Withdrawal initiation failed',
+                    'data' => $responseData
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('JpesaService: Withdrawal initiation exception', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Withdrawal initiation failed: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
     }
 
     /**
@@ -511,24 +666,48 @@ class JpesaService
                         ]);
                     }
 
-                    // Send SMS with voucher code
+                    // Send SMS with voucher code and mark voucher as used
                     $voucher = $transaction->voucher;
-                    if ($voucher) {
+                    if ($voucher && $voucher->status === 'unused') {
                         try {
                             $smsService = new \App\Services\UgSmsService();
-                            $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
+                            $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
                             
-                            Log::info('JpesaService: Voucher SMS sent', [
+                            if ($smsResult['success']) {
+                                // Mark voucher as used
+                                $voucher->update([
+                                    'status' => 'used',
+                                    'used_at' => now(),
+                                    'phone_number' => $transaction->phone_number,
+                                ]);
+                                
+                                Log::info('JpesaService: Voucher SMS sent and voucher marked as used', [
+                                    'transaction_id' => $transactionId,
+                                    'voucher_code' => $voucher->code,
+                                    'phone_number' => $transaction->phone_number,
+                                    'package_name' => $voucher->package->name ?? 'Unknown'
+                                ]);
+                            } else {
+                                Log::error('JpesaService: Failed to send voucher SMS', [
+                                    'transaction_id' => $transactionId,
+                                    'voucher_code' => $voucher->code,
+                                    'error' => $smsResult['message'] ?? 'Unknown SMS error'
+                                ]);
+                            }
+                        } catch (\Exception $smsException) {
+                            Log::error('JpesaService: Exception during SMS sending', [
                                 'transaction_id' => $transactionId,
                                 'voucher_code' => $voucher->code,
-                                'phone_number' => $transaction->phone_number
-                            ]);
-                        } catch (\Exception $smsException) {
-                            Log::error('JpesaService: Failed to send voucher SMS', [
-                                'transaction_id' => $transactionId,
-                                'error' => $smsException->getMessage()
+                                'error' => $smsException->getMessage(),
+                                'trace' => $smsException->getTraceAsString()
                             ]);
                         }
+                    } else {
+                        Log::warning('JpesaService: Voucher not found or already used', [
+                            'transaction_id' => $transactionId,
+                            'voucher_id' => $transaction->voucher_id,
+                            'voucher_status' => $voucher->status ?? 'not_found'
+                        ]);
                     }
                     
                     Log::info('JpesaService: Payment completed via callback', [
@@ -537,6 +716,9 @@ class JpesaService
                         'amount' => $transaction->amount,
                         'phone_number' => $transaction->phone_number
                     ]);
+                    
+                    // Set session for success page redirect
+                    session(['last_transaction_id' => $transactionId]);
                 } else {
                     Log::info('JpesaService: Payment already completed, updating callback data only', [
                         'transaction_id' => $transactionId,

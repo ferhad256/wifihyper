@@ -426,8 +426,68 @@ class PaymentController extends Controller
     }
 
     /**
-     * Check payment status using JPesa API
+     * Check payment status for a transaction
      */
+    public function checkStatus($transactionId)
+    {
+        try {
+            $transaction = Transaction::where('transaction_id', $transactionId)->first();
+            
+            if (!$transaction) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Transaction not found'
+                ], 404);
+            }
+            
+            Log::info('Payment status check', [
+                'transaction_id' => $transactionId,
+                'current_status' => $transaction->status,
+                'paid_at' => $transaction->paid_at,
+                'created_at' => $transaction->created_at
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'status' => $transaction->status,
+                'message' => $this->getStatusMessage($transaction->status),
+                'transaction_id' => $transaction->transaction_id,
+                'amount' => $transaction->amount,
+                'paid_at' => $transaction->paid_at,
+                'voucher_code' => $transaction->voucher ? $transaction->voucher->code : null,
+                'package_name' => $transaction->package ? $transaction->package->name : null
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Payment status check failed', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking payment status'
+            ], 500);
+        }
+    }
+    
+    /**
+     * Get status message for display
+     */
+    private function getStatusMessage($status)
+    {
+        switch ($status) {
+            case 'completed':
+                return 'Payment completed successfully';
+            case 'pending':
+                return 'Payment is being processed';
+            case 'failed':
+                return 'Payment failed';
+            default:
+                return 'Payment status unknown';
+        }
+    }
 
     /**
      * Manual voucher redemption

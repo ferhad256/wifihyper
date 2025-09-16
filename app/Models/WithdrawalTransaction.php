@@ -1,0 +1,119 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class WithdrawalTransaction extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'tenant_id',
+        'withdrawal_id',
+        'amount',
+        'fee',
+        'net_amount',
+        'phone_number',
+        'currency',
+        'status',
+        'description',
+        'payment_details',
+        'processed_at',
+        'completed_at',
+        'failed_at',
+    ];
+
+    protected $casts = [
+        'amount' => 'decimal:2',
+        'fee' => 'decimal:2',
+        'net_amount' => 'decimal:2',
+        'payment_details' => 'array',
+        'processed_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'failed_at' => 'datetime',
+    ];
+
+    /**
+     * Get the tenant that owns the withdrawal transaction
+     */
+    public function tenant(): BelongsTo
+    {
+        return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Check if withdrawal is pending
+     */
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    /**
+     * Check if withdrawal is processing
+     */
+    public function isProcessing(): bool
+    {
+        return $this->status === 'processing';
+    }
+
+    /**
+     * Check if withdrawal is completed
+     */
+    public function isCompleted(): bool
+    {
+        return $this->status === 'completed';
+    }
+
+    /**
+     * Check if withdrawal is failed
+     */
+    public function isFailed(): bool
+    {
+        return $this->status === 'failed';
+    }
+
+    /**
+     * Mark withdrawal as processing
+     */
+    public function markAsProcessing(): void
+    {
+        $this->update([
+            'status' => 'processing',
+            'processed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Mark withdrawal as completed
+     */
+    public function markAsCompleted(): void
+    {
+        $this->update([
+            'status' => 'completed',
+            'completed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Mark withdrawal as failed
+     */
+    public function markAsFailed(): void
+    {
+        $this->update([
+            'status' => 'failed',
+            'failed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Generate unique withdrawal ID
+     */
+    public static function generateWithdrawalId(): string
+    {
+        return 'WDR_' . time() . '_' . rand(1000, 9999);
+    }
+}

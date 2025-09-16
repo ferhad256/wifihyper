@@ -75,7 +75,7 @@ class Voucher extends Model
         return $this->status === 'unused' && !$this->isExpired();
     }
 
-    public function markAsUsed(string $phoneNumber = null): void
+    public function markAsUsed(?string $phoneNumber = null): void
     {
         $this->update([
             'status' => 'used',
