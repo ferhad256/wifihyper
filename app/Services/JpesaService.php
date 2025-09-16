@@ -200,7 +200,7 @@ class JpesaService
     <action>credit</action>
     <pt>mm</pt>
     <mobile>' . htmlspecialchars($this->formatPhoneNumber($phoneNumber)) . '</mobile>
-    <amount>' . htmlspecialchars($transaction->amount) . '</amount>
+    <amount>' . htmlspecialchars(number_format($transaction->amount, 0, '', '')) . '</amount>
     <callback>' . htmlspecialchars($callbackUrl) . '</callback>
     <tx>' . htmlspecialchars($transaction->transaction_id) . '</tx>
     <description>' . htmlspecialchars($description) . '</description>
@@ -211,7 +211,10 @@ class JpesaService
             'action' => 'credit',
             'amount' => $transaction->amount,
             'mobile' => $this->formatPhoneNumber($phoneNumber),
-            'callback' => $callbackUrl
+            'callback' => $callbackUrl,
+            'api_key_length' => strlen($this->apiKey),
+            'api_key_preview' => substr($this->apiKey, 0, 8) . '...',
+            'xml_preview' => substr($xmlData, 0, 200)
         ]);
 
         return $xmlData;
@@ -230,7 +233,7 @@ class JpesaService
     <action>debit</action>
     <pt>mm</pt>
     <mobile>' . htmlspecialchars($this->formatPhoneNumber($phoneNumber)) . '</mobile>
-    <amount>' . htmlspecialchars($amount) . '</amount>
+    <amount>' . htmlspecialchars(number_format($amount, 0, '', '')) . '</amount>
     <callback>' . htmlspecialchars($callbackUrl) . '</callback>
     <tx>' . htmlspecialchars($transactionId) . '</tx>
     <description>' . htmlspecialchars($description) . '</description>
@@ -370,36 +373,50 @@ class JpesaService
     {
         Log::info('JpesaService: makeXmlRequest started', [
             'url' => $this->baseUrl,
-            'xml_length' => strlen($xmlData)
+            'xml_length' => strlen($xmlData),
+            'xml_content' => $xmlData
         ]);
 
         try {
-            $response = Http::withHeaders([
-                'Content-Type' => 'text/xml'
-            ])
-            ->timeout($this->timeout)
-            ->withOptions([
-                'verify' => false, // SSL verification disabled as per example
-                'curl' => [
-                    CURLOPT_SSL_VERIFYHOST => 0,
-                    CURLOPT_SSL_VERIFYPEER => 0,
-                ]
-            ])
-            ->post($this->baseUrl, $xmlData);
+            // Use raw cURL instead of Laravel HTTP client
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $this->baseUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlData);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: text/xml',
+                'User-Agent: curl/7.68.0'
+            ]);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+            curl_close($ch);
+            
+            if ($error) {
+                Log::error('JpesaService: cURL error', [
+                    'error' => $error
+                ]);
+                throw new \Exception('cURL error: ' . $error);
+            }
 
             Log::info('JpesaService: API request completed', [
-                'status' => $response->status(),
-                'response_length' => strlen($response->body())
+                'status' => $httpCode,
+                'response_length' => strlen($response)
             ]);
 
-            if ($response->successful()) {
-                return $response->body();
+            if ($httpCode >= 200 && $httpCode < 300) {
+                return $response;
             } else {
                 Log::error('JpesaService: API request failed', [
-                    'status' => $response->status(),
-                    'body' => $response->body()
+                    'status' => $httpCode,
+                    'body' => $response
                 ]);
-                throw new \Exception('API request failed with status: ' . $response->status());
+                throw new \Exception('API request failed with status: ' . $httpCode);
             }
 
         } catch (\Exception $e) {
