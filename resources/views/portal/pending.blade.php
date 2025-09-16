@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Processing - WIFIHYPER</title>
-    <!-- Refresh page every 30 seconds to check for callback completion -->
-    <meta http-equiv="refresh" content="30">
+    <!-- Refresh page every 60 seconds to check for callback completion -->
+    <meta http-equiv="refresh" content="60">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -158,7 +158,7 @@
             }, 1000);
         }
         
-        // Optional: Add a timeout after 10 minutes to show help message
+        // Optional: Add a timeout after 15 minutes to show help message
         setTimeout(function() {
             const helpMessage = document.createElement('div');
             helpMessage.className = 'alert alert-warning mt-3';
@@ -168,7 +168,7 @@
                 <small>If your payment is taking longer than usual, please contact support with your transaction ID: {{ $transaction->transaction_id ?? 'N/A' }}</small>
             `;
             document.querySelector('.portal-body .text-center').appendChild(helpMessage);
-        }, 600000); // 10 minutes
+        }, 900000); // 15 minutes
     </script>
 </body>
 </html> 

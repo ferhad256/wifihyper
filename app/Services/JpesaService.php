@@ -675,8 +675,8 @@ class JpesaService
             ];
 
             // Handle different callback statuses
-            // JPesa uses 'success' for API responses and 'closed' for callback notifications
-            if ($status === 'success' || $status === 'closed') {
+            // JPesa uses different status values: 'success', 'approved', 'closed' for successful payments
+            if ($status === 'success' || $status === 'approved' || $status === 'closed') {
                 if ($transaction->status !== 'completed') {
                     $updateData['status'] = 'completed';
                     $updateData['paid_at'] = now();
