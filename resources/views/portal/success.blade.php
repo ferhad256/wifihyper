@@ -118,7 +118,6 @@
                                 <li>Enjoy your internet access!</li>
                             </ul>
                         </div>
-                    @endif
                         
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
@@ -148,6 +147,7 @@
                                 <strong>SMS Sent!</strong> The voucher code has also been sent to your phone number: {{ $transaction->phone_number }}
                             </div>
                         </div>
+                    @endif
                 </div>
             </div>
         </div>
