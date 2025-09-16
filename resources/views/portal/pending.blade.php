@@ -88,59 +88,6 @@
             padding: 12px 30px;
             font-weight: 600;
         }
-        .progress-container {
-            margin: 20px 0;
-            display: none;
-        }
-        .progress {
-            height: 8px;
-            border-radius: 10px;
-            background: #e9ecef;
-        }
-        .progress-bar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-        .status-updates {
-            margin: 20px 0;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-        }
-        .status-item {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 10px;
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-        }
-        .status-item.success {
-            border-left-color: #28a745;
-            background: #d4edda;
-        }
-        .status-item.error {
-            border-left-color: #dc3545;
-            background: #f8d7da;
-        }
-        .countdown-display {
-            font-size: 18px;
-            font-weight: 600;
-            color: #667eea;
-            margin: 15px 0;
-        }
-        .auto-refresh-info {
-            background: #e3f2fd;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .auto-refresh-info i {
-            color: #667eea;
-            font-size: 20px;
-            margin-right: 8px;
-        }
     </style>
 </head>
 <body>
@@ -163,43 +110,22 @@
                         <strong>Status:</strong> <span class="badge bg-warning">Pending</span>
                     </div>
                     
+                    @if($transaction->package)
+                    <div class="alert alert-success">
+                        <strong>Package:</strong> {{ $transaction->package->name }}<br>
+                        @if($transaction->package->duration_hours)
+                            <strong>Duration:</strong> {{ $transaction->package->duration_hours }} hours<br>
+                        @endif
+                        @if($transaction->package->data_limit_mb)
+                            <strong>Data Limit:</strong> {{ $transaction->package->data_limit_mb }}MB<br>
+                        @endif
+                    </div>
+                    @endif
+                    
                     <div class="alert alert-warning">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>What's happening?</strong>
-                        <ul class="mb-0 mt-2 text-start">
-                            <li>Your payment is being processed automatically</li>
-                            <li>This usually takes 1-2 minutes</li>
-                            <li>You'll receive an SMS when complete</li>
-                            <li>This page will automatically redirect you</li>
-                        </ul>
-                    </div>
-
-                    <!-- Progress Bar -->
-                    <div class="progress-container" id="progressContainer">
-                        <div class="progress">
-                            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                        <small class="text-muted mt-2">Processing payment...</small>
-                    </div>
-
-                    <!-- Status Updates -->
-                    <div class="status-updates" id="statusUpdates">
-                        <div class="status-item">
-                            <i class="fas fa-clock me-2"></i>
-                            <span id="statusText">Initializing payment verification...</span>
-                        </div>
-                    </div>
-
-                    <!-- Auto-refresh Information -->
-                    <div class="auto-refresh-info">
-                        <i class="fas fa-sync-alt"></i>
-                        <strong>Fully Automated</strong><br>
-                        <small>This page automatically checks payment status every 15 seconds</small>
-                    </div>
-                    
-                    <div class="countdown-display">
-                        <i class="fas fa-clock me-2"></i>
-                        Next check in <span id="countdown">15</span> seconds
+                        <strong>Please wait...</strong><br>
+                        <small>Your payment is being processed. You'll be redirected automatically when complete.</small>
                     </div>
                 </div>
             </div>
@@ -210,114 +136,48 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        let countdown = 15;
         let checkCount = 0;
         let maxChecks = 40; // Maximum 10 minutes of checking
-        const countdownElement = document.getElementById('countdown');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        const statusUpdates = document.getElementById('statusUpdates');
-        const statusText = document.getElementById('statusText');
-        
-        // Show progress bar
-        progressContainer.style.display = 'block';
-        statusUpdates.style.display = 'block';
-        
-        // Update progress bar
-        function updateProgress() {
-            const progress = Math.min((checkCount / maxChecks) * 100, 100);
-            progressBar.style.width = progress + '%';
-        }
-        
-        // Add status update
-        function addStatusUpdate(message, type = 'info') {
-            const statusItem = document.createElement('div');
-            statusItem.className = `status-item ${type}`;
-            statusItem.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>${message}`;
-            statusUpdates.appendChild(statusItem);
-            statusUpdates.scrollTop = statusUpdates.scrollHeight;
-        }
-        
-        // Countdown timer
-        const timer = setInterval(function() {
-            countdown--;
-            countdownElement.textContent = countdown;
-            
-            if (countdown <= 0) {
-                clearInterval(timer);
-                checkStatus();
-            }
-        }, 1000);
         
         function checkStatus() {
             const transactionId = '{{ $transaction->transaction_id ?? "" }}';
             checkCount++;
             
-            // Update status text
-            statusText.innerHTML = `Checking payment status (Attempt ${checkCount})...`;
-            
-            // Update progress
-            updateProgress();
-            
             fetch(`/payment/status/${transactionId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.success && data.status === 'completed') {
-                        // Payment completed
-                        addStatusUpdate('Payment completed successfully! Redirecting to success page...', 'success');
-                        progressBar.style.width = '100%';
-                        
-                        // Redirect to success page after 2 seconds
+                        // Payment completed - redirect to success page
                         setTimeout(() => {
                             window.location.href = '/payment/success';
-                        }, 2000);
-                        
-                        clearInterval(autoCheckInterval);
+                        }, 1000);
                         return;
                     } else if (data.success && data.status === 'failed') {
-                        // Payment failed
-                        addStatusUpdate('Payment failed. Please try again.', 'error');
-                        clearInterval(autoCheckInterval);
-                        
-                        // Show retry option
+                        // Payment failed - show error and reload option
                         setTimeout(() => {
                             if (confirm('Payment failed. Would you like to try again?')) {
                                 window.location.reload();
                             }
-                        }, 3000);
+                        }, 2000);
                         return;
                     } else {
-                        // Still pending
-                        addStatusUpdate(`Payment still processing... (${data.message || 'Checking with payment gateway'})`);
-                        
+                        // Still pending - continue checking
                         if (checkCount >= maxChecks) {
-                            addStatusUpdate('Maximum check attempts reached. Please contact support if payment is still pending.', 'error');
-                            clearInterval(autoCheckInterval);
+                            alert('Payment is taking longer than expected. Please contact support if payment is still pending.');
                             return;
                         }
                     }
                 })
                 .catch(error => {
                     console.error('Error checking status:', error);
-                    addStatusUpdate(`Error checking status: ${error.message}`, 'error');
                 });
-            
-            // Reset countdown for next check
-            countdown = 15;
         }
         
         // Auto-check status every 15 seconds
         const autoCheckInterval = setInterval(checkStatus, 15000);
         
-        // Initial status check
+        // Initial status check after 2 seconds
         setTimeout(checkStatus, 2000);
-        
-        // Update status text periodically
-        setInterval(() => {
-            if (checkCount > 0) {
-                statusText.innerHTML = `Payment verification in progress... (${checkCount} checks completed)`;
-            }
-        }, 5000);
     </script>
 </body>
 </html> 
