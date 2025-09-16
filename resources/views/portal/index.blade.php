@@ -225,6 +225,25 @@
                     <input type="hidden" name="package_id" id="modal_package_id">
                     
                     <div class="modal-body">
+                        @if($errors->any())
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Payment Error:</strong>
+                                <ul class="mb-0 mt-2">
+                                    @foreach($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        
+                        @if(session('error'))
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Payment Error:</strong> {{ session('error') }}
+                            </div>
+                        @endif
+                        
                         <div class="text-center mb-4">
                             <h6 id="modal_package_name" class="text-primary"></h6>
                             <div class="h4 text-success" id="modal_package_price"></div>
@@ -235,7 +254,8 @@
                                 <i class="fas fa-phone me-1"></i>Phone Number
                             </label>
                             <input type="tel" class="form-control" id="modal_phone_number" name="phone_number" 
-                                   placeholder="Enter your phone number (e.g., 0744744888, 0397373763)" required>
+                                   placeholder="Enter your phone number (e.g., 0744744888, 0397373763)" 
+                                   value="{{ old('phone_number') }}" required>
                             <div class="form-text">
                                 <i class="fas fa-info-circle me-1"></i>
                                 We'll send your WiFi voucher code to this number via SMS.
