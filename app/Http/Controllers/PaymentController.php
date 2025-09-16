@@ -193,7 +193,7 @@ class PaymentController extends Controller
                 ]);
 
                 // Check if this is a simulated payment (development mode)
-                if (config('app.env') === 'local' && config('app.debug') === true && isset($result['data']['simulated']) && $result['data']['simulated']) {
+                if (config('app.env') === 'local' && isset($result['data']['simulated']) && $result['data']['simulated']) {
                     Log::info('Development mode: Simulating payment success', [
                         'transaction_id' => $transaction->transaction_id
                     ]);

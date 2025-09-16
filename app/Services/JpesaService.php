@@ -60,7 +60,7 @@ class JpesaService
         ]);
 
         // Check if we're in test mode (for development)
-        if (config('app.env') === 'local' && config('app.debug') === true) {
+        if (config('app.env') === 'local') {
             Log::info('JpesaService: Using development mode - simulating payment', [
                 'transaction_id' => $transaction->transaction_id
             ]);
