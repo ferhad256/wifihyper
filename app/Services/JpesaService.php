@@ -736,7 +736,10 @@ class JpesaService
                     ]);
                     
                     // Set session for success page redirect
-                    session(['last_transaction_id' => $transactionId]);
+                    session([
+                        'last_transaction_id' => $transactionId,
+                        'payment_completed' => true
+                    ]);
                 } else {
                     Log::info('JpesaService: Payment already completed, updating callback data only', [
                         'transaction_id' => $transactionId,

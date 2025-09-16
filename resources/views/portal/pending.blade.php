@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment Processing - WIFIHYPER</title>
+    <!-- Refresh page every 30 seconds to check for callback completion -->
+    <meta http-equiv="refresh" content="30">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -136,48 +138,37 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        let checkCount = 0;
-        let maxChecks = 40; // Maximum 10 minutes of checking
+        // Check if payment was completed via callback on page load
+        @if(session('payment_completed'))
+            // Payment was completed via callback, redirect to success
+            setTimeout(function() {
+                window.location.href = '/payment/success';
+            }, 1000);
+        @endif
         
-        function checkStatus() {
-            const transactionId = '{{ $transaction->transaction_id ?? "" }}';
-            checkCount++;
-            
-            fetch(`/payment/status/${transactionId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.status === 'completed') {
-                        // Payment completed - redirect to success page
-                        setTimeout(() => {
-                            window.location.href = '/payment/success';
-                        }, 1000);
-                        return;
-                    } else if (data.success && data.status === 'failed') {
-                        // Payment failed - show error and reload option
-                        setTimeout(() => {
-                            if (confirm('Payment failed. Would you like to try again?')) {
-                                window.location.reload();
-                            }
-                        }, 2000);
-                        return;
-                    } else {
-                        // Still pending - continue checking
-                        if (checkCount >= maxChecks) {
-                            alert('Payment is taking longer than expected. Please contact support if payment is still pending.');
-                            return;
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking status:', error);
-                });
+        // Wait for callback/IPN to complete payment
+        // No active status checking - relying on callback system
+        
+        // Check current transaction status on page load only
+        const transactionId = '{{ $transaction->transaction_id ?? "" }}';
+        if ('{{ $transaction->status ?? "" }}' === 'completed') {
+            // Transaction is already completed, redirect to success
+            setTimeout(function() {
+                window.location.href = '/payment/success';
+            }, 1000);
         }
         
-        // Auto-check status every 15 seconds
-        const autoCheckInterval = setInterval(checkStatus, 15000);
-        
-        // Initial status check after 2 seconds
-        setTimeout(checkStatus, 2000);
+        // Optional: Add a timeout after 10 minutes to show help message
+        setTimeout(function() {
+            const helpMessage = document.createElement('div');
+            helpMessage.className = 'alert alert-warning mt-3';
+            helpMessage.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Taking longer than expected?</strong><br>
+                <small>If your payment is taking longer than usual, please contact support with your transaction ID: {{ $transaction->transaction_id ?? 'N/A' }}</small>
+            `;
+            document.querySelector('.portal-body .text-center').appendChild(helpMessage);
+        }, 600000); // 10 minutes
     </script>
 </body>
 </html> 

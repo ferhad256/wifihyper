@@ -422,6 +422,18 @@ class PaymentController extends Controller
     {
         $transaction = Transaction::where('transaction_id', $transactionId)->firstOrFail();
         
+        // If transaction is already completed, redirect to success page
+        if ($transaction->status === 'completed') {
+            session(['last_transaction_id' => $transactionId]);
+            return redirect()->route('payment.success');
+        }
+        
+        // If transaction failed, redirect back with error
+        if ($transaction->status === 'failed') {
+            return redirect()->route('portal.index', ['hotspotName' => $transaction->hotspot->url_name ?? 'default'])
+                ->with('error', 'Payment failed. Please try again.');
+        }
+        
         return view('portal.pending', compact('transaction'));
     }
 
