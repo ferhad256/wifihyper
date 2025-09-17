@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Tenant WiFi Management Platform</title>
+    <title>WiFi Management Platform</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -398,97 +398,77 @@
         <div class="container">
             <div class="text-center mb-5">
                 <h2 class="display-5 fw-bold">Simple Pricing</h2>
-                <p class="lead text-muted">Choose the plan that fits your business</p>
+                <p class="lead text-muted">Pay only transaction fees - no monthly subscriptions!</p>
             </div>
             <div class="row justify-content-center">
-                @foreach($plans as $plan)
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <div class="card feature-card h-100 {{ $plan->is_featured ? 'border-primary' : '' }}">
-                        <div class="card-body text-center p-4">
-                            @if($plan->is_featured)
-                                <span class="badge bg-primary mb-2">Most Popular</span>
-                            @endif
-                            <h4>{{ $plan->name }}</h4>
-                            <div class="display-6 fw-bold text-primary mb-3">
-                                @if($plan->slug === 'enterprise')
-                                    Contact Sales
-                                @else
-                                    {{ $plan->getFormattedPrice() }}<span class="fs-6 text-muted">/month</span>
-                                @endif
+                <div class="col-lg-8 col-md-10">
+                    <div class="card feature-card h-100 border-primary">
+                        <div class="card-body text-center p-5">
+                            <span class="badge bg-primary mb-3">All Features Included</span>
+                            <h3>WiFi Hyper</h3>
+                            <div class="display-6 fw-bold text-primary mb-4">
+                                Free to Start
                             </div>
-                            <p class="text-muted mb-4">{{ $plan->description }}</p>
-                            <ul class="list-unstyled">
-                                <li class="mb-2">
-                                    <i class="fas fa-wifi me-2"></i>
-                                    <strong>Hotspots:</strong>
-                                    @if($plan->max_hotspots === -1)
-                                        Unlimited
-                                    @else
-                                        Up to {{ $plan->max_hotspots }}
-                                    @endif
-                                </li>
-                                <li class="mb-2">
-                                    <i class="fas fa-ticket-alt me-2"></i>
-                                    <strong>Vouchers:</strong>
-                                    @if($plan->max_vouchers_per_month === -1)
-                                        Unlimited
-                                    @else
-                                        {{ number_format($plan->max_vouchers_per_month) }}/month
-                                    @endif
-                                </li>
-                                @if($plan->slug === 'enterprise')
-                                    <li class="mb-2">
-                                        <i class="fas fa-check text-success me-2"></i>
-                                        No transaction charges
-                                    </li>
-                                @else
-                                    <li class="mb-2">
-                                        <i class="fas fa-percentage me-2"></i>
-                                        Transaction fees: 15%/10%/5%
-                                    </li>
-                                @endif
-                                @if($plan->custom_portal)
-                                    <li class="mb-2">
-                                        <i class="fas fa-check text-success me-2"></i>
-                                        Custom portal
-                                    </li>
-                                @endif
-                                @if($plan->api_access)
-                                    <li class="mb-2">
-                                        <i class="fas fa-check text-success me-2"></i>
-                                        API access
-                                    </li>
-                                @endif
-                                @if($plan->priority_support)
-                                    <li class="mb-2">
-                                        <i class="fas fa-check text-success me-2"></i>
-                                        Priority support
-                                    </li>
-                                @endif
-                                @if($plan->source_code_access)
-                                    <li class="mb-2">
-                                        <i class="fas fa-check text-success me-2"></i>
-                                        Source code access
-                                    </li>
-                                @endif
-                            </ul>
-                            @if($plan->slug === 'enterprise')
-                                <button class="btn btn-warning w-100" onclick="contactSales()">
-                                    <i class="fas fa-phone"></i> Contact Sales
-                                </button>
-                            @elseif($plan->slug === 'pro')
-                                <a href="{{ route('register') }}" class="btn btn-primary w-100">
-                                    <i class="fas fa-rocket"></i> Get Started
-                                </a>
-                            @else
-                                <a href="{{ route('register') }}" class="btn btn-primary w-100">
-                                    <i class="fas fa-rocket"></i> Get Started Free
-                                </a>
-                            @endif
+                            <p class="text-muted mb-4">No monthly fees, no setup costs. Pay only when you earn!</p>
+                            
+                            <div class="row text-start mb-4">
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-wifi me-2 text-success"></i>
+                                            <strong>Unlimited Hotspots</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-ticket-alt me-2 text-success"></i>
+                                            <strong>Unlimited Vouchers</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-mobile-alt me-2 text-success"></i>
+                                            <strong>SMS Notifications</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-chart-bar me-2 text-success"></i>
+                                            <strong>Analytics & Reports</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <i class="fas fa-credit-card me-2 text-success"></i>
+                                            <strong>Mobile Money Integration</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-users me-2 text-success"></i>
+                                            <strong>Multi-tenant Support</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-shield-alt me-2 text-success"></i>
+                                            <strong>Secure Portal</strong>
+                                        </li>
+                                        <li class="mb-2">
+                                            <i class="fas fa-headset me-2 text-success"></i>
+                                            <strong>Email Support</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h5><i class="fas fa-percentage me-2"></i>Transaction Fees Only:</h5>
+                                <ul class="list-unstyled mb-0 text-start">
+                                    <li>• <strong>15%</strong> on payments up to UGX 1,000</li>
+                                    <li>• <strong>10%</strong> on payments from UGX 1,001 to 5,000</li>
+                                    <li>• <strong>5%</strong> on payments above UGX 5,000</li>
+                                </ul>
+                            </div>
+
+                            <a href="{{ route('register') }}" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-rocket"></i> Get Started Free
+                            </a>
                         </div>
                     </div>
                 </div>
-                @endforeach
             </div>
         </div>
     </section>
