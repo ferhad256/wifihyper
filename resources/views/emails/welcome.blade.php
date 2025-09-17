@@ -95,16 +95,26 @@
         
         <a href="{{ $login_url }}" class="btn">Login to Dashboard</a>
         
-        <p><strong>Need help getting started?</strong></p>
-        <ul>
-            <li>Check out our documentation</li>
-            <li>Contact our support team</li>
-            <li>Join our community forum</li>
-        </ul>
+        <div class="feature-list">
+            <h3><strong>Need help getting started?</strong></h3>
+            <p>Our support team is ready to help you succeed:</p>
+            <ul>
+                <li>📧 Email Support: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
+                <li>💬 WhatsApp Support: <a href="https://wa.me/256704791624">+256 700 000 000</a></li>
+                <li>📖 Documentation: <a href="https://wifihyper.com/docs">wifihyper.com/docs</a></li>
+                <li>🌐 Visit our website: <a href="https://wifihyper.com">wifihyper.com</a></li>
+            </ul>
+        </div>
+
+        <p style="text-align: center; margin-top: 30px;">
+            <strong>Welcome to the WIFIHYPER family!</strong><br>
+            <a href="https://wifihyper.com">wifihyper.com</a>
+        </p>
     </div>
     
     <div class="footer">
-        <p>This email was sent to {{ $email }}</p>
+        <p>This email was sent to {{ $email }} from <strong>WIFIHYPER</strong></p>
+        <p>📧 <a href="mailto:support@wifihyper.com">support@wifihyper.com</a> | 💬 <a href="https://wa.me/256704791624">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
         <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>

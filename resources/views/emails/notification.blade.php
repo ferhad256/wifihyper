@@ -70,11 +70,20 @@
         
         <a href="{{ route('dashboard') }}" class="btn">View Dashboard</a>
         
-        <p>If you have any questions, please don't hesitate to contact our support team.</p>
+        <div class="notification-box">
+            <h3>📞 Need Support?</h3>
+            <p>Our support team is here to help you 24/7:</p>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+                <li>📧 Email: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
+                <li>💬 WhatsApp: <a href="https://wa.me/256700000000">+256 700 000 000</a></li>
+                <li>🌐 Website: <a href="https://wifihyper.com">wifihyper.com</a></li>
+            </ul>
+        </div>
     </div>
     
     <div class="footer">
-        <p>This email was sent to {{ $tenant->email }}</p>
+        <p>This email was sent to {{ $tenant->email }} from <strong>WIFIHYPER</strong></p>
+        <p>📧 <a href="mailto:support@wifihyper.com">support@wifihyper.com</a> | 💬 <a href="https://wa.me/256700000000">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
         <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>

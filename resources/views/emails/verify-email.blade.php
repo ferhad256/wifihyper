@@ -126,11 +126,20 @@
 
         <p>If you didn't create an account with WIFIHYPER, please ignore this email.</p>
 
+        <p><strong>Need help?</strong> Our support team is here to assist you:</p>
+        <ul>
+            <li>📧 Email: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
+            <li>💬 WhatsApp: <a href="https://wa.me/256704791624">+256 700 000 000</a></li>
+            <li>🌐 Website: <a href="https://wifihyper.com">wifihyper.com</a></li>
+        </ul>
+
         <p>Best regards,<br>
-        <strong>The WIFIHYPER Team</strong></p>
+        <strong>The WIFIHYPER Team</strong><br>
+        <a href="https://wifihyper.com">wifihyper.com</a></p>
 
         <div class="footer">
-            <p>This is an automated email. Please do not reply to this message.</p>
+            <p>This email was sent from <strong>WIFIHYPER</strong> - <a href="https://wifihyper.com" style="color: #2563eb;">wifihyper.com</a></p>
+            <p>📧 <a href="mailto:support@wifihyper.com" style="color: #2563eb;">support@wifihyper.com</a> | 💬 <a href="https://wa.me/256704791624" style="color: #2563eb;">WhatsApp Support</a></p>
             <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
         </div>
     </div>
