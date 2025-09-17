@@ -247,8 +247,8 @@ class DashboardController extends Controller
         }
 
         try {
-            // Calculate 3% withdrawal fee
-            $withdrawalFee = $amount * 0.03; // 3% fee
+            // Calculate 5% withdrawal fee
+            $withdrawalFee = $amount * 0.05; // 5% fee
             $netAmount = $amount - $withdrawalFee;
 
             // Create withdrawal request (no wallet deduction yet - admin will approve)
