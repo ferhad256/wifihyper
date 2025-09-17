@@ -352,7 +352,7 @@
                     <div class="mb-3">
                         <div class="row">
                             <div class="col-4">
-                                <label class="form-label text-muted">Withdrawal Fee (3%)</label>
+                                <label class="form-label text-muted">Withdrawal Fee (5%)</label>
                                 <div class="h6 text-warning" id="fee_display">UGX 0</div>
                             </div>
                             <div class="col-4">
@@ -383,7 +383,7 @@
                         </ul>
                         <div class="alert alert-warning mb-0">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Fee Notice:</strong> A 3% transaction fee will be deducted from your withdrawal amount.
+                            <strong>Fee Notice:</strong> A 5% transaction fee will be deducted from your withdrawal amount.
                         </div>
                     </div>
                 </div>
@@ -491,7 +491,7 @@ function calculateWithdrawalFee() {
     const amount = parseFloat(amountInput.value) || 0;
     
     if (amount >= 5000) {
-        const fee = amount * 0.03; // 3% fee
+        const fee = amount * 0.05; // 5% fee
         const netAmount = amount - fee;
         
         document.getElementById('fee_display').textContent = 'UGX ' + Math.round(fee).toLocaleString();
