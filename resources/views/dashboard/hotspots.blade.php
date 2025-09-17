@@ -83,9 +83,14 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-sm btn-primary" target="_blank">
-                            <i class="fas fa-external-link-alt me-1"></i>View Portal
-                        </a>
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-sm btn-primary flex-fill" target="_blank">
+                                <i class="fas fa-external-link-alt me-1"></i>View Portal
+                            </a>
+                            <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-sm btn-success flex-fill">
+                                <i class="fas fa-box me-1"></i>Manage Packages
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

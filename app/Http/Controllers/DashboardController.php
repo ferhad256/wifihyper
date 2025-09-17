@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\Hotspot;
 use App\Models\Voucher;
 use App\Models\Notification;
+use App\Models\WithdrawalTransaction;
 use App\Services\JpesaService;
 use App\Services\VoucherAvailabilityService;
 use App\Services\NotificationService;
@@ -92,7 +93,39 @@ class DashboardController extends Controller
             }
         }
 
-        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data'));
+        // Calculate day, week, month, and year sales amounts
+        $sales_summary = [
+            'today' => [
+                'amount' => $tenant->transactions()
+                    ->where('status', 'completed')
+                    ->whereDate('created_at', today())
+                    ->sum('amount'),
+                'start_date' => today()->format('M d, Y')
+            ],
+            'this_week' => [
+                'amount' => $tenant->transactions()
+                    ->where('status', 'completed')
+                    ->where('created_at', '>=', now()->subDays(7))
+                    ->sum('amount'),
+                'start_date' => now()->subDays(7)->format('M d, Y')
+            ],
+            'this_month' => [
+                'amount' => $tenant->transactions()
+                    ->where('status', 'completed')
+                    ->where('created_at', '>=', now()->startOfMonth())
+                    ->sum('amount'),
+                'start_date' => now()->startOfMonth()->format('M d, Y')
+            ],
+            'this_year' => [
+                'amount' => $tenant->transactions()
+                    ->where('status', 'completed')
+                    ->where('created_at', '>=', now()->startOfYear())
+                    ->sum('amount'),
+                'start_date' => now()->startOfYear()->format('M d, Y')
+            ],
+        ];
+
+        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data', 'sales_summary'));
     }
 
     /**
@@ -111,7 +144,33 @@ class DashboardController extends Controller
             ->latest()
             ->paginate(20);
 
-        return view('dashboard.billing', compact('tenant', 'transactions'));
+        // Get withdrawal requests for this tenant
+        $withdrawal_requests = $tenant->withdrawalTransactions()
+            ->latest()
+            ->take(10)
+            ->get();
+
+        // Calculate daily transaction statistics
+        $daily_stats = [
+            'completed' => $tenant->transactions()
+                ->where('status', 'completed')
+                ->whereDate('created_at', today())
+                ->count(),
+            'pending' => $tenant->transactions()
+                ->where('status', 'pending')
+                ->whereDate('created_at', today())
+                ->count(),
+            'failed' => $tenant->transactions()
+                ->where('status', 'failed')
+                ->whereDate('created_at', today())
+                ->count(),
+            'total_amount' => $tenant->transactions()
+                ->where('status', 'completed')
+                ->whereDate('created_at', today())
+                ->sum('amount'),
+        ];
+
+        return view('dashboard.billing', compact('tenant', 'transactions', 'daily_stats', 'withdrawal_requests'));
     }
 
     /**
@@ -163,95 +222,95 @@ class DashboardController extends Controller
      */
     public function withdraw(Request $request)
     {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
         $request->validate([
-            'amount' => 'required|numeric|min:10000|max:' . auth()->user()->wallet_balance,
+            'amount' => 'required|numeric|min:5000|max:' . $tenant->wallet_balance,
             'phone_number' => 'required|string|min:10|max:15',
         ], [
-            'amount.min' => 'Minimum withdrawal amount is UGX 10,000',
+            'amount.min' => 'Minimum withdrawal amount is UGX 5,000',
             'amount.max' => 'Withdrawal amount cannot exceed your wallet balance',
             'phone_number.required' => 'Phone number is required for withdrawal',
             'phone_number.min' => 'Phone number must be at least 10 digits',
             'phone_number.max' => 'Phone number must not exceed 15 digits',
         ]);
-
-        $tenant = auth()->user();
         $amount = $request->amount;
-        $phoneNumber = $request->phone_number;
+        $phoneNumber = $this->formatPhoneNumber($request->phone_number);
+
+        // Validate phone number format
+        if (!$this->isValidUgandaPhoneNumber($phoneNumber)) {
+            return back()->with('error', 'Please enter a valid Uganda phone number.')->withInput();
+        }
 
         try {
-            DB::beginTransaction();
+            // Calculate 3% withdrawal fee
+            $withdrawalFee = $amount * 0.03; // 3% fee
+            $netAmount = $amount - $withdrawalFee;
 
-            // Deduct amount from wallet balance
-            $tenant->wallet_balance -= $amount;
-            $tenant->save();
-
-            // Create withdrawal transaction record
-            $transaction = Transaction::create([
+            // Create withdrawal request (no wallet deduction yet - admin will approve)
+            $withdrawal = WithdrawalTransaction::create([
                 'tenant_id' => $tenant->id,
-                'transaction_id' => 'WITHDRAW_' . time() . '_' . rand(1000, 9999),
-                'amount' => -$amount, // Negative amount for withdrawal
+                'withdrawal_id' => 'WD_' . time() . '_' . rand(1000, 9999),
+                'amount' => $amount,
+                'fee' => $withdrawalFee,
+                'net_amount' => $netAmount,
+                'phone_number' => $phoneNumber,
                 'currency' => 'UGX',
                 'status' => 'pending',
-                'payment_method' => 'withdrawal',
-                'phone_number' => $phoneNumber,
-                'payment_details' => [
-                    'withdrawal_requested_at' => now(),
-                    'withdrawal_phone' => $phoneNumber,
-                ],
+                'description' => $request->description ?? 'Wallet withdrawal request',
             ]);
 
-            // Initialize JPesa withdrawal
-            $withdrawalResponse = $this->jpesaService->initiateWithdrawal(
-                $phoneNumber,
-                $amount,
-                $transaction->transaction_id,
-                "WIFIHYPER Withdrawal - " . $tenant->business_name
-            );
-
-            if ($withdrawalResponse['success']) {
-                // Update transaction with JPesa details
-                $transaction->update([
-                    'payment_details' => array_merge($transaction->payment_details, [
-                        'jpesa_response' => $withdrawalResponse['data'],
-                        'yo_transaction_reference' => $withdrawalResponse['transaction_reference'] ?? null,
-                        'withdrawal_initiated_at' => now(),
-                    ]),
-                ]);
-
-                DB::commit();
-
-                return redirect()->back()->with('success', 'Withdrawal request submitted successfully. You will receive the funds shortly.');
-            } else {
-                // If JPesa fails, revert the wallet balance
-                $tenant->wallet_balance += $amount;
-                $tenant->save();
-
-                // Update transaction status to failed
-                $transaction->update([
-                    'status' => 'failed',
-                    'payment_details' => array_merge($transaction->payment_details, [
-                        'jpesa_error' => $withdrawalResponse['message'],
-                        'withdrawal_failed_at' => now(),
-                    ]),
-                ]);
-
-                DB::commit();
-
-                return redirect()->back()->with('error', 'Withdrawal failed: ' . $withdrawalResponse['message']);
-            }
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            Log::error('Withdrawal Error', [
+            Log::info('Withdrawal request created', [
+                'withdrawal_id' => $withdrawal->withdrawal_id,
                 'tenant_id' => $tenant->id,
                 'amount' => $amount,
-                'phone_number' => $phoneNumber,
-                'error' => $e->getMessage(),
+                'phone_number' => $phoneNumber
             ]);
 
-            return redirect()->back()->with('error', 'Withdrawal failed: ' . $e->getMessage());
+            return redirect()->back()->with('success', 'Withdrawal request submitted successfully. An admin will review and process your request within 24 hours.');
+
+        } catch (\Exception $e) {
+            Log::error('Withdrawal request failed', [
+                'tenant_id' => $tenant->id,
+                'error' => $e->getMessage(),
+                'request_data' => $request->all()
+            ]);
+
+            return redirect()->back()->with('error', 'Failed to submit withdrawal request. Please try again.');
         }
+    }
+
+    /**
+     * Format phone number for payment processing (256xxxxxxxxx format)
+     */
+    private function formatPhoneNumber($phoneNumber)
+    {
+        // Remove any non-numeric characters
+        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+        
+        // If number starts with 0, remove it and add 256
+        if (strpos($phoneNumber, '0') === 0) {
+            $phoneNumber = '256' . substr($phoneNumber, 1);
+        }
+        // If number doesn't start with 256, add it
+        else if (strpos($phoneNumber, '256') !== 0) {
+            $phoneNumber = '256' . $phoneNumber;
+        }
+        
+        return $phoneNumber;
+    }
+
+    /**
+     * Validate Uganda phone number format
+     */
+    private function isValidUgandaPhoneNumber($phoneNumber)
+    {
+        // Uganda phone numbers should be 12 digits (256 + 9 digits)
+        return preg_match('/^256[0-9]{9}$/', $phoneNumber);
     }
 
     /**

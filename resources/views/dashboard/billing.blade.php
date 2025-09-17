@@ -14,15 +14,117 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Daily Statistics Cards -->
     <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-gray-800 mb-3">
+                <i class="fas fa-calendar-day me-2"></i>Today's Transactions - {{ today()->format('M d, Y') }}
+            </h5>
+        </div>
+        
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Completed Transactions</div>
+                                Today - Completed</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ $daily_stats['completed'] }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                UGX {{ number_format($daily_stats['total_amount']) }} earned
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Today - Pending</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ $daily_stats['pending'] }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                Awaiting payment
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Today - Failed</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ $daily_stats['failed'] }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                Payment failed
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Today - Total</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ $daily_stats['completed'] + $daily_stats['pending'] + $daily_stats['failed'] }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                All transactions
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All-Time Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h5 class="text-gray-800 mb-3">
+                <i class="fas fa-chart-bar me-2"></i>All-Time Statistics
+            </h5>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                All-Time - Completed</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 {{ $tenant->transactions()->where('status', 'completed')->count() }}
                             </div>
@@ -41,7 +143,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                Pending Transactions</div>
+                                All-Time - Pending</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 {{ $tenant->transactions()->where('status', 'pending')->count() }}
                             </div>
@@ -60,7 +162,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Failed Transactions</div>
+                                All-Time - Failed</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 {{ $tenant->transactions()->where('status', 'failed')->count() }}
                             </div>
@@ -79,7 +181,7 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Wallet Balance</div>
+                                Current - Wallet Balance</div>
                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                 UGX {{ number_format($tenant->wallet_balance) }}
                             </div>
@@ -90,6 +192,78 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Withdrawal Requests -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-warning">
+                <i class="fas fa-money-bill-wave me-2"></i>Withdrawal Requests
+            </h6>
+        </div>
+        <div class="card-body">
+            @if($withdrawal_requests->count() > 0)
+                <div class="table-responsive">
+                    <table class="table table-bordered" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Withdrawal ID</th>
+                                <th>Amount</th>
+                                <th>Phone Number</th>
+                                <th>Status</th>
+                                <th>Admin Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($withdrawal_requests as $withdrawal)
+                            <tr>
+                                <td>{{ $withdrawal->created_at->format('M d, Y H:i') }}</td>
+                                <td>
+                                    <code>{{ $withdrawal->withdrawal_id }}</code>
+                                </td>
+                                <td>
+                                    <div class="text-warning fw-bold">UGX {{ number_format($withdrawal->amount) }}</div>
+                                    @if($withdrawal->fee > 0)
+                                        <small class="text-muted">Fee: UGX {{ number_format($withdrawal->fee) }}</small>
+                                    @endif
+                                </td>
+                                <td>{{ $withdrawal->phone_number }}</td>
+                                <td>
+                                    @switch($withdrawal->status)
+                                        @case('pending')
+                                            <span class="badge bg-warning">Pending Review</span>
+                                            @break
+                                        @case('completed')
+                                            <span class="badge bg-success">Approved</span>
+                                            @break
+                                        @case('failed')
+                                            <span class="badge bg-danger">Rejected</span>
+                                            @break
+                                        @default
+                                            <span class="badge bg-secondary">{{ ucfirst($withdrawal->status) }}</span>
+                                    @endswitch
+                                </td>
+                                <td>
+                                    @if($withdrawal->admin_notes)
+                                        <small class="text-muted">{{ $withdrawal->admin_notes }}</small>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <div class="text-center py-4">
+                    <i class="fas fa-money-bill-wave fa-3x text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">No withdrawal requests found.</p>
+                    <p class="text-gray-500">Your withdrawal requests will appear here.</p>
+                </div>
+            @endif
         </div>
     </div>
 

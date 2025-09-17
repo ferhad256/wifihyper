@@ -7,7 +7,6 @@ use App\Models\Transaction;
 use App\Models\Package;
 use App\Models\Voucher;
 use App\Models\Notification;
-use App\Models\SubscriptionPlan;
 use App\Services\JpesaService;
 use App\Services\UgSmsService;
 use App\Services\VoucherAvailabilityService;
@@ -247,6 +246,7 @@ class PaymentController extends Controller
                     ]);
                     
                     // Try the payment again with the new transaction ID
+                    $retryResult = $this->jpesaService->initiatePayment($transaction, $request->phone_number);
                     
                     if ($retryResult['success']) {
                         Log::info('Payment retry successful', [
@@ -790,14 +790,17 @@ class PaymentController extends Controller
         ]);
 
         // Process the callback data
+        $result = $this->jpesaService->processCallback($request->all());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
             $status = $result['status'];
+            $newStatus = $this->jpesaService->mapStatusToLocal($status);
             
             Log::info('Success IPN processed successfully', [
                 'transaction_id' => $transactionId,
                 'status' => $status,
+                'new_status' => $newStatus,
                 'result' => $result,
             ]);
             
@@ -902,14 +905,17 @@ class PaymentController extends Controller
         ]);
 
         // Process the callback data
+        $result = $this->jpesaService->processCallback($request->all());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
             $status = $result['status'];
+            $newStatus = $this->jpesaService->mapStatusToLocal($status);
             
             Log::info('Failure IPN processed successfully', [
                 'transaction_id' => $transactionId,
                 'status' => $status,
+                'new_status' => $newStatus,
                 'result' => $result,
             ]);
             
@@ -976,14 +982,17 @@ class PaymentController extends Controller
         ]);
 
         // Process the callback data
+        $result = $this->jpesaService->processCallback($request->all());
         
         if ($result['success']) {
             $transactionId = $result['transaction_id'];
             $status = $result['status'];
+            $newStatus = $this->jpesaService->mapStatusToLocal($status);
             
             Log::info('Pending IPN processed successfully', [
                 'transaction_id' => $transactionId,
                 'status' => $status,
+                'new_status' => $newStatus,
                 'result' => $result,
             ]);
             
@@ -1189,5 +1198,40 @@ class PaymentController extends Controller
             
             return response('ERROR: Internal server error', 500);
         }
+    }
+
+
+    /**
+     * Format phone number for payment processing (256xxxxxxxxx format)
+     */
+    private function formatPhoneNumberForPayment($phoneNumber)
+    {
+        // Remove any non-numeric characters
+        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+        
+        // If number starts with 0, remove it and add 256
+        if (strpos($phoneNumber, '0') === 0) {
+            $phoneNumber = '256' . substr($phoneNumber, 1);
+        }
+        // If number doesn't start with 256, add it
+        else if (strpos($phoneNumber, '256') !== 0) {
+            $phoneNumber = '256' . $phoneNumber;
+        }
+        
+        // Ensure the final number is exactly 12 digits (256 + 9 digits)
+        if (strlen($phoneNumber) > 12) {
+            $phoneNumber = substr($phoneNumber, 0, 12);
+        }
+        
+        return $phoneNumber;
+    }
+
+    /**
+     * Validate Uganda phone number format
+     */
+    private function isValidUgandaPhoneNumber($phoneNumber)
+    {
+        // Uganda phone numbers should be 12 digits (256 + 9 digits)
+        return preg_match('/^256[0-9]{9}$/', $phoneNumber);
     }
 }

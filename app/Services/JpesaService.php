@@ -681,81 +681,33 @@ class JpesaService
                     $updateData['status'] = 'completed';
                     $updateData['paid_at'] = now();
                     
-                    // Update tenant wallet balance
-                    $tenant = $transaction->tenant;
-                    if ($tenant) {
-                        $tenant->wallet_balance += $transaction->net_amount;
-                        $tenant->save();
-                        
-                        Log::info('JpesaService: Tenant wallet updated', [
-                            'tenant_id' => $tenant->id,
-                            'amount_added' => $transaction->net_amount,
-                            'new_balance' => $tenant->wallet_balance
-                        ]);
-                    }
-
-                    // Send SMS with voucher code and mark voucher as used
-                    $voucher = $transaction->voucher;
-                    if ($voucher && $voucher->status === 'unused') {
-                        try {
-                            $smsService = new \App\Services\UgSmsService();
-                            $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
-                            
-                            if ($smsResult['success']) {
-                                // Mark voucher as used
-                                $voucher->update([
-                                    'status' => 'used',
-                                    'used_at' => now(),
-                                    'phone_number' => $transaction->phone_number,
-                                ]);
-                                
-                                Log::info('JpesaService: Voucher SMS sent and voucher marked as used', [
-                                    'transaction_id' => $transactionId,
-                                    'voucher_code' => $voucher->code,
-                                    'phone_number' => $transaction->phone_number,
-                                    'package_name' => $voucher->package->name ?? 'Unknown'
-                                ]);
-                            } else {
-                                Log::error('JpesaService: Failed to send voucher SMS', [
-                                    'transaction_id' => $transactionId,
-                                    'voucher_code' => $voucher->code,
-                                    'error' => $smsResult['message'] ?? 'Unknown SMS error'
-                                ]);
-                            }
-                        } catch (\Exception $smsException) {
-                            Log::error('JpesaService: Exception during SMS sending', [
-                                'transaction_id' => $transactionId,
-                                'voucher_code' => $voucher->code,
-                                'error' => $smsException->getMessage(),
-                                'trace' => $smsException->getTraceAsString()
-                            ]);
-                        }
+                    // Handle different transaction types
+                    if ($transaction->type === 'subscription') {
+                        // Handle subscription payment
+                        $this->handleSubscriptionPayment($transaction);
                     } else {
-                        Log::warning('JpesaService: Voucher not found or already used', [
-                            'transaction_id' => $transactionId,
-                            'voucher_id' => $transaction->voucher_id,
-                            'voucher_status' => $voucher->status ?? 'not_found'
-                        ]);
+                        // Handle voucher payment (default)
+                        $this->handleVoucherPayment($transaction);
                     }
-                    
-                    Log::info('JpesaService: Payment completed via callback', [
-                        'transaction_id' => $transactionId,
-                        'jpesa_tid' => $jpesaTid,
-                        'amount' => $transaction->amount,
-                        'phone_number' => $transaction->phone_number
-                    ]);
-                    
-                    // Set session for success page redirect
-                    session([
-                        'last_transaction_id' => $transactionId,
-                        'payment_completed' => true
-                    ]);
                 } else {
                     Log::info('JpesaService: Payment already completed, updating callback data only', [
                         'transaction_id' => $transactionId,
                         'jpesa_tid' => $jpesaTid
                     ]);
                 }
+                
+                Log::info('JpesaService: Payment completed via callback', [
+                    'transaction_id' => $transactionId,
+                    'jpesa_tid' => $jpesaTid,
+                    'amount' => $transaction->amount,
+                    'phone_number' => $transaction->phone_number
+                ]);
+                
+                // Set session for success page redirect
+                session([
+                    'last_transaction_id' => $transactionId,
+                    'payment_completed' => true
+                ]);
             } else {
                 // Handle failed or other statuses
                 $updateData['status'] = 'failed';
@@ -788,6 +740,109 @@ class JpesaService
                 'callback_data' => $callbackData
             ]);
             return false;
+        }
+    }
+
+    /**
+     * Handle subscription payment completion
+     */
+    private function handleSubscriptionPayment($transaction)
+    {
+        Log::info('JpesaService: Processing subscription payment', [
+            'transaction_id' => $transaction->transaction_id,
+            'plan_id' => $transaction->plan_id,
+            'billing_type' => $transaction->billing_type
+        ]);
+
+        // Update tenant subscription
+        $tenant = $transaction->tenant;
+        $plan = \App\Models\SubscriptionPlan::find($transaction->plan_id);
+        
+        if ($tenant && $plan) {
+            $expiresAt = $transaction->billing_type === 'yearly' 
+                ? now()->addYear() 
+                : now()->addMonth();
+                
+            $tenant->update([
+                'subscription_plan_id' => $plan->id,
+                'subscription_expires_at' => $expiresAt,
+                'subscription_status' => 'active'
+            ]);
+
+            Log::info('JpesaService: Subscription activated', [
+                'tenant_id' => $tenant->id,
+                'plan_id' => $plan->id,
+                'billing_type' => $transaction->billing_type,
+                'expires_at' => $expiresAt
+            ]);
+        }
+    }
+
+    /**
+     * Handle voucher payment completion
+     */
+    private function handleVoucherPayment($transaction)
+    {
+        Log::info('JpesaService: Processing voucher payment', [
+            'transaction_id' => $transaction->transaction_id,
+            'voucher_id' => $transaction->voucher_id
+        ]);
+
+        // Update tenant wallet balance
+        $tenant = $transaction->tenant;
+        if ($tenant) {
+            $tenant->wallet_balance += $transaction->net_amount;
+            $tenant->save();
+            
+            Log::info('JpesaService: Tenant wallet updated', [
+                'tenant_id' => $tenant->id,
+                'amount_added' => $transaction->net_amount,
+                'new_balance' => $tenant->wallet_balance
+            ]);
+        }
+
+        // Send SMS with voucher code and mark voucher as used
+        $voucher = $transaction->voucher;
+        if ($voucher && $voucher->status === 'unused') {
+            try {
+                $smsService = new \App\Services\UgSmsService();
+                $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
+                
+                if ($smsResult['success']) {
+                    // Mark voucher as used
+                    $voucher->update([
+                        'status' => 'used',
+                        'used_at' => now(),
+                        'phone_number' => $transaction->phone_number,
+                    ]);
+                    
+                    Log::info('JpesaService: Voucher SMS sent and voucher marked as used', [
+                        'transaction_id' => $transaction->transaction_id,
+                        'voucher_code' => $voucher->code,
+                        'phone_number' => $transaction->phone_number,
+                        'package_name' => $voucher->package->name ?? 'Unknown'
+                    ]);
+                } else {
+                    Log::error('JpesaService: Failed to send voucher SMS', [
+                        'transaction_id' => $transaction->transaction_id,
+                        'voucher_code' => $voucher->code,
+                        'error' => $smsResult['message'] ?? 'Unknown SMS error'
+                    ]);
+                }
+            } catch (\Exception $smsException) {
+                Log::error('JpesaService: Exception during SMS sending', [
+                    'transaction_id' => $transaction->transaction_id,
+                    'voucher_code' => $voucher->code,
+                    'error' => $smsException->getMessage(),
+                    'trace' => $smsException->getTraceAsString()
+                ]);
+            }
+        } else {
+            Log::warning('JpesaService: Voucher not found or already used', [
+                'transaction_id' => $transaction->transaction_id,
+                'voucher_id' => $transaction->voucher_id,
+                'voucher_status' => $voucher->status ?? 'not_found'
+            ]);
         }
     }
 }

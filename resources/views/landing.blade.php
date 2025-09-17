@@ -181,6 +181,67 @@
                 justify-content: center;
             }
         }
+
+        /* WhatsApp Floating Button */
+        .whatsapp-float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .whatsapp-button {
+            width: 60px;
+            height: 60px;
+            background-color: #25D366;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .whatsapp-button:hover {
+            background-color: #128C7E;
+            color: white;
+            transform: scale(1.1);
+            text-decoration: none;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(37, 211, 102, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+            }
+        }
+
+        /* Hide WhatsApp button on very small screens if needed */
+        @media (max-width: 480px) {
+            .whatsapp-float {
+                width: 50px;
+                height: 50px;
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .whatsapp-button {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -232,8 +293,8 @@
                         <a href="{{ route('register') }}" class="btn btn-light btn-lg">
                             <i class="fas fa-rocket me-2"></i>Get Started Free
                         </a>
-                        <a href="#how-it-works" class="btn btn-outline-light btn-lg">
-                            <i class="fas fa-play me-2"></i>Learn More
+                        <a href="{{ route('login') }}" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
                         </a>
                     </div>
                 </div>
@@ -416,9 +477,9 @@
                                     <i class="fas fa-phone"></i> Contact Sales
                                 </button>
                             @elseif($plan->slug === 'pro')
-                                <button class="btn btn-primary w-100" onclick="upgradeToPro()">
-                                    <i class="fas fa-arrow-up"></i> Upgrade to Pro
-                                </button>
+                                <a href="{{ route('register') }}" class="btn btn-primary w-100">
+                                    <i class="fas fa-rocket"></i> Get Started
+                                </a>
                             @else
                                 <a href="{{ route('register') }}" class="btn btn-primary w-100">
                                     <i class="fas fa-rocket"></i> Get Started Free
@@ -462,11 +523,24 @@
                     </ul>
                 </div>
                 <div class="col-md-3">
-                    <h6>Company</h6>
+                    <h6>Support</h6>
                     <ul class="list-unstyled">
-                        <li><a href="#">About</a></li>
-                        <li><a href="#">Contact</a></li>
-                        <li><a href="#">Support</a></li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone me-2"></i>
+                            <a href="tel:0392998816">0392998816</a>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-phone me-2"></i>
+                            <a href="tel:0783052764">0783052764</a>
+                        </li>
+                        <li class="mb-2">
+                            <i class="fab fa-whatsapp me-2"></i>
+                            <a href="https://wa.me/256704791624" target="_blank">WhatsApp Support</a>
+                        </li>
+                        <li>
+                            <i class="fas fa-envelope me-2"></i>
+                            <a href="mailto:support@wifihyper.com">support@wifihyper.com</a>
+                        </li>
                     </ul>
                 </div>
             </div>
@@ -483,26 +557,86 @@
         </div>
     </footer>
 
+    <!-- WhatsApp Floating Button -->
+    <div class="whatsapp-float">
+        <a href="https://wa.me/256704791624?text=Hello! I need help with WIFIHYPER" target="_blank" class="whatsapp-button">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
+
+    <!-- Contact Sales Modal -->
+    <div class="modal fade" id="contactSalesModal" tabindex="-1" aria-labelledby="contactSalesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title" id="contactSalesModalLabel">
+                        <i class="fas fa-phone-alt me-2"></i>Contact Our Sales Team
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-4">Get in touch with our sales team for Enterprise plan pricing, custom solutions, and setup assistance.</p>
+                    
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="d-grid">
+                                <a href="https://wa.me/256704791624?text=Hello! I'm interested in the Enterprise plan. Can you help me with pricing and setup?" 
+                                   target="_blank" class="btn btn-success btn-lg">
+                                    <i class="fab fa-whatsapp me-2"></i>WhatsApp Us
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <a href="tel:0392998816" class="btn btn-outline-primary">
+                                    <i class="fas fa-phone me-2"></i>0392998816
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <a href="tel:0783052764" class="btn btn-outline-primary">
+                                    <i class="fas fa-phone me-2"></i>0783052764
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <div class="d-grid">
+                                <a href="mailto:support@wifihyper.com?subject=Enterprise Plan Inquiry&body=Hello, I'm interested in the Enterprise plan. Please provide me with pricing and setup information." 
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-envelope me-2"></i>Email Us
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <h6 class="mb-2"><i class="fas fa-clock me-2"></i>Support Hours</h6>
+                        <p class="mb-1"><strong>Monday - Friday:</strong> 8:00 AM - 6:00 PM</p>
+                        <p class="mb-0"><strong>Saturday:</strong> 9:00 AM - 2:00 PM</p>
+                        <small class="text-muted">East Africa Time (EAT)</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
         function contactSales() {
-            alert('Please contact our sales team for Enterprise plan pricing and setup.');
-            // You can implement this to open a contact form or redirect to a sales page
-            // window.location.href = '/contact-sales';
+            // Show the contact modal instead of alert
+            const modal = new bootstrap.Modal(document.getElementById('contactSalesModal'));
+            modal.show();
         }
         
-        function upgradeToPro() {
-            // Check if user is logged in
-            @auth
-                // Redirect to subscription page for logged-in users
-                window.location.href = '{{ route("subscription.plans") }}';
-            @else
-                // Redirect to login for non-logged-in users
-                window.location.href = '{{ route("login") }}';
-            @endauth
-        }
     </script>
 </body>
 </html> 

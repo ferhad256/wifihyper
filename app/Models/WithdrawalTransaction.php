@@ -24,6 +24,10 @@ class WithdrawalTransaction extends Model
         'processed_at',
         'completed_at',
         'failed_at',
+        'admin_id',
+        'admin_notes',
+        'approved_at',
+        'rejected_at',
     ];
 
     protected $casts = [
@@ -34,6 +38,8 @@ class WithdrawalTransaction extends Model
         'processed_at' => 'datetime',
         'completed_at' => 'datetime',
         'failed_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     /**
@@ -42,6 +48,14 @@ class WithdrawalTransaction extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    /**
+     * Get the admin who processed the withdrawal
+     */
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
     }
 
     /**

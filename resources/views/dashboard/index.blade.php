@@ -14,6 +14,34 @@
             <a href="{{ route('dashboard.hotspots') }}" class="btn btn-success btn-sm">
                 <i class="fas fa-wifi me-2"></i>Add Hotspot
             </a>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-info btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-headset me-2"></i>Support
+                </button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="dropdown-item" href="https://wa.me/256704791624?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp: +256704791624
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="https://wa.me/256783052764?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
+                            <i class="fab fa-whatsapp me-2"></i>WhatsApp: +256783052764
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="tel:0392998816">
+                            <i class="fas fa-phone me-2"></i>Call: 0392998816
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="tel:0783052764">
+                            <i class="fas fa-phone me-2"></i>Call: 0783052764
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -34,15 +62,21 @@
                             </div>
                         </div>
                         <div class="col-md-4 text-end">
-                            @if($tenant->wallet_balance >= 10000)
-                                <button class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#withdrawModal">
-                                    <i class="fas fa-money-bill-wave me-2"></i>Request Withdraw
-                                </button>
-                            @else
-                                <button class="btn btn-secondary btn-lg" disabled>
-                                    <i class="fas fa-money-bill-wave me-2"></i>Min. UGX 10,000
-                                </button>
-                            @endif
+                            <div class="d-flex gap-2 justify-content-end">
+                                <a href="{{ route('dashboard.billing') }}" class="btn btn-info btn-lg">
+                                    <i class="fas fa-list me-2"></i>View Transactions
+                                </a>
+                                @if($tenant->wallet_balance >= 5000)
+                                    <button class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                                        <i class="fas fa-money-bill-wave me-2"></i>Request Withdrawal
+                                    </button>
+                                @else
+                                    <button class="btn btn-outline-secondary btn-lg" disabled title="Minimum withdrawal amount is UGX 5,000">
+                                        <i class="fas fa-lock me-2"></i>Withdrawal Locked
+                                        <br><small>Min. UGX 5,000</small>
+                                    </button>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -135,6 +169,34 @@
                         <a href="{{ route('dashboard.settings') }}" class="btn btn-warning btn-sm">
                             <i class="fas fa-cog me-2"></i>Settings
                         </a>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-info btn-sm dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-headset me-2"></i>Get Support
+                            </button>
+                            <ul class="dropdown-menu w-100">
+                                <li>
+                                    <a class="dropdown-item" href="https://wa.me/256704791624?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
+                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp Support 1
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="https://wa.me/256783052764?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
+                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp Support 2
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="tel:0392998816">
+                                        <i class="fas fa-phone me-2 text-primary"></i>0392998816
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="tel:0783052764">
+                                        <i class="fas fa-phone me-2 text-primary"></i>0783052764
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
@@ -145,39 +207,48 @@
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-6">
+                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase">
+                                Today
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                UGX {{ number_format($sales_summary['today']['amount']) }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                Since {{ $sales_summary['today']['start_date'] }}
+                            </div>
+                        </div>
+                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                             <div class="text-xs font-weight-bold text-success text-uppercase">
                                 This Week
                             </div>
                             <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($filled_sales_data->take(7)->sum('total')) }}
+                                UGX {{ number_format($sales_summary['this_week']['amount']) }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                Since {{ $sales_summary['this_week']['start_date'] }}
                             </div>
                         </div>
-                        <div class="col-6">
+                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                             <div class="text-xs font-weight-bold text-info text-uppercase">
                                 This Month
                             </div>
                             <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($filled_sales_data->sum('total')) }}
+                                UGX {{ number_format($sales_summary['this_month']['amount']) }}
+                            </div>
+                            <div class="text-xs text-muted">
+                                Since {{ $sales_summary['this_month']['start_date'] }}
                             </div>
                         </div>
-                    </div>
-                    <hr>
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase">
-                                Transactions
+                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase">
+                                This Year
                             </div>
                             <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                {{ $filled_sales_data->sum('count') }}
+                                UGX {{ number_format($sales_summary['this_year']['amount']) }}
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase">
-                                Avg. Daily
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($filled_sales_data->avg('total')) }}
+                            <div class="text-xs text-muted">
+                                Since {{ $sales_summary['this_year']['start_date'] }}
                             </div>
                         </div>
                     </div>
@@ -272,10 +343,27 @@
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="withdraw_amount" class="form-label">Amount (UGX)</label>
+                        <label for="withdraw_amount" class="form-label">Withdrawal Amount (UGX)</label>
                         <input type="number" class="form-control" id="withdraw_amount" name="amount" 
-                               min="10000" max="{{ $tenant->wallet_balance }}" required>
-                        <div class="form-text">Minimum: UGX 10,000 | Maximum: UGX {{ number_format($tenant->wallet_balance) }}</div>
+                               min="5000" max="{{ $tenant->wallet_balance }}" required onchange="calculateWithdrawalFee()">
+                        <div class="form-text">Minimum: UGX 5,000 | Maximum: UGX {{ number_format($tenant->wallet_balance) }}</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-4">
+                                <label class="form-label text-muted">Withdrawal Fee (3%)</label>
+                                <div class="h6 text-warning" id="fee_display">UGX 0</div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label text-muted">Net Amount</label>
+                                <div class="h6 text-success" id="net_display">UGX 0</div>
+                            </div>
+                            <div class="col-4">
+                                <label class="form-label text-muted">You Will Receive</label>
+                                <div class="h5 text-primary fw-bold" id="receive_display">UGX 0</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="withdraw_phone" class="form-label">Phone Number</label>
@@ -284,11 +372,19 @@
                         <div class="form-text">Enter the phone number where you want to receive the funds</div>
                     </div>
                     <div class="alert alert-info">
-                        <small>
-                            <strong>Processing Time:</strong> 24-48 hours<br>
-                            <strong>Provider:</strong> MTN Mobile Money<br>
-                            <strong>Fee:</strong> No additional fees
-                        </small>
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>Withdrawal Request Process
+                        </h6>
+                        <ul class="mb-2">
+                            <li><strong>Step 1:</strong> Submit withdrawal request</li>
+                            <li><strong>Step 2:</strong> Admin reviews and approves request</li>
+                            <li><strong>Step 3:</strong> Funds sent to your mobile money account</li>
+                            <li><strong>Processing Time:</strong> Within 24 hours</li>
+                        </ul>
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Fee Notice:</strong> A 3% transaction fee will be deducted from your withdrawal amount.
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -388,6 +484,30 @@ setInterval(function() {
         })
         .catch(error => console.log('Auto-update failed:', error));
 }, 30000);
+
+// Calculate withdrawal fee in real-time
+function calculateWithdrawalFee() {
+    const amountInput = document.getElementById('withdraw_amount');
+    const amount = parseFloat(amountInput.value) || 0;
+    
+    if (amount >= 5000) {
+        const fee = amount * 0.03; // 3% fee
+        const netAmount = amount - fee;
+        
+        document.getElementById('fee_display').textContent = 'UGX ' + Math.round(fee).toLocaleString();
+        document.getElementById('net_display').textContent = 'UGX ' + Math.round(netAmount).toLocaleString();
+        document.getElementById('receive_display').textContent = 'UGX ' + Math.round(netAmount).toLocaleString();
+    } else {
+        document.getElementById('fee_display').textContent = 'UGX 0';
+        document.getElementById('net_display').textContent = 'UGX 0';
+        document.getElementById('receive_display').textContent = 'UGX 0';
+    }
+}
+
+// Calculate fee on page load if there's a value
+document.addEventListener('DOMContentLoaded', function() {
+    calculateWithdrawalFee();
+});
 </script>
 @endpush
 @endsection 

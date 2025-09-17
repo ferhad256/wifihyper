@@ -10,16 +10,19 @@
             <h1 class="h3 mb-0 text-gray-800">Hotspot Details</h1>
             <p class="text-muted">{{ $hotspot->name }}</p>
         </div>
-        <div>
-            <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-primary">
-                <i class="fas fa-edit me-2"></i>Edit Hotspot
+        <div class="d-flex gap-2">
+            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary" target="_blank">
+                <i class="fas fa-external-link-alt me-2"></i>View Portal
             </a>
             <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
                 <i class="fas fa-box me-2"></i>Manage Packages
             </a>
-                    <a href="{{ route('dashboard.hotspots') }}" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Back to Hotspots
-        </a>
+            <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-warning">
+                <i class="fas fa-edit me-2"></i>Edit
+            </a>
+            <a href="{{ route('dashboard.hotspots') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
         </div>
     </div>
 
@@ -154,18 +157,25 @@
                     <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
                 </div>
                 <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <div class="btn-group" role="group">
-                            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary" target="_blank">
+                    <!-- Primary Actions (Most Important) -->
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary w-100" target="_blank">
                                 <i class="fas fa-external-link-alt me-2"></i>View Portal
                             </a>
-                            <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-warning">
-                                <i class="fas fa-edit me-2"></i>Edit Hotspot
-                            </a>
-                            <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-info">
+                        </div>
+                        <div class="col-6">
+                            <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success w-100">
                                 <i class="fas fa-box me-2"></i>Manage Packages
                             </a>
                         </div>
+                    </div>
+                    
+                    <!-- Secondary Actions -->
+                    <div class="d-grid">
+                        <a href="{{ route('hotspots.edit', $hotspot) }}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i>Edit Hotspot Settings
+                        </a>
                     </div>
                 </div>
             </div>

@@ -162,6 +162,13 @@ class ProfileController extends Controller
             return back()->withErrors(['password_confirmation' => 'Password is incorrect.'])->withInput();
         }
 
+        // Check if tenant has wallet balance
+        if ($tenant->wallet_balance > 0) {
+            return back()->withErrors([
+                'wallet_balance' => 'You cannot delete your account while you have a wallet balance of UGX ' . number_format($tenant->wallet_balance) . '. Please withdraw all funds before deleting your account.'
+            ])->withInput();
+        }
+
         try {
             DB::beginTransaction();
 
@@ -274,6 +281,7 @@ class ProfileController extends Controller
             'packages' => Package::where('hotspot_id', function($query) use ($tenant) {
                 $query->select('id')->from('hotspots')->where('tenant_id', $tenant->id);
             })->count(),
+            'wallet_balance' => $tenant->wallet_balance,
         ];
 
         return view('dashboard.delete-account', compact('tenant', 'stats'));

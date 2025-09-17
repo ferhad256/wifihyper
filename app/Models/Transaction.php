@@ -19,11 +19,16 @@ class Transaction extends Model
         'amount',
         'currency',
         'status',
+        'type',
         'phone_number',
+        'payment_method',
         'transaction_fee',
         'net_amount',
         'gateway_response',
         'paid_at',
+        'data',
+        'completed_at',
+        'jpesa_reference',
     ];
 
     protected $casts = [
@@ -56,6 +61,7 @@ class Transaction extends Model
     {
         return $this->belongsTo(Voucher::class);
     }
+
 
     // Accessors
     public function getFormattedAmountAttribute()

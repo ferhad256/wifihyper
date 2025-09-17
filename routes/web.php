@@ -24,8 +24,7 @@ use App\Http\Controllers\WithdrawalController;
 
 // Landing page
 Route::get('/', function () {
-    $plans = \App\Models\SubscriptionPlan::active()->orderBy('sort_order')->get();
-    return view('landing', compact('plans'));
+    return view('landing');
 })->name('landing');
 
 // Authentication routes with rate limiting
@@ -82,22 +81,6 @@ Route::middleware('auth.tenant')->group(function () {
     Route::post('/settings/security', [SettingsController::class, 'updateSecurity'])->name('settings.security');
     Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->name('settings.test-email');
     
-    // Subscription routes
-    Route::get('/subscription', [SubscriptionController::class, 'index'])->name('subscription.index');
-    Route::get('/subscription/usage', [SubscriptionController::class, 'usage'])->name('subscription.usage');
-    Route::get('/subscription/plans', [SubscriptionController::class, 'plans'])->name('subscription.plans');
-    Route::post('/subscription/upgrade', [SubscriptionController::class, 'upgrade'])->name('subscription.upgrade');
-    Route::get('/subscription/usage-data', [SubscriptionController::class, 'getUsageData'])->name('subscription.usage-data');
-    Route::post('/subscription/check-limit', [SubscriptionController::class, 'checkLimit'])->name('subscription.check-limit');
-    Route::post('/subscription/calculate-fee', [SubscriptionController::class, 'calculateTransactionFee'])->name('subscription.calculate-fee');
-    Route::post('/subscription/check-feature', [SubscriptionController::class, 'checkFeature'])->name('subscription.check-feature');
-    
-    // Subscription payment routes
-    Route::get('/subscription/payment', [PaymentController::class, 'showSubscriptionPayment'])->name('subscription.payment');
-    Route::post('/subscription/payment/initiate', [PaymentController::class, 'initiateSubscriptionPayment'])->name('subscription.payment.initiate');
-    Route::post('/subscription/payment/callback', [PaymentController::class, 'subscriptionCallback'])->name('subscription.payment.callback')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
-    Route::get('/subscription/payment/failed', [PaymentController::class, 'subscriptionFailed'])->name('subscription.payment.failed');
-    Route::get('/subscription/payment/success', [PaymentController::class, 'subscriptionSuccess'])->name('subscription.payment.success');
     
     // Profile routes
     Route::put('/profile/update', [App\Http\Controllers\ProfileController::class, 'updateProfile'])->name('profile.update');
@@ -173,3 +156,42 @@ Route::get('/payment/jpesa/test-callback', function() {
 // Resend webhook routes (excluded from CSRF)
 Route::post('/webhooks/resend', [App\Http\Controllers\ResendWebhookController::class, 'handle'])->name('webhooks.resend')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 Route::get('/webhooks/resend/stats', [App\Http\Controllers\ResendWebhookController::class, 'stats'])->name('webhooks.resend.stats')->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
+
+// Admin routes
+Route::prefix('admin')->name('admin.')->group(function () {
+    // Admin authentication routes (no middleware)
+    Route::get('/login', [App\Http\Controllers\Admin\AdminAuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [App\Http\Controllers\Admin\AdminAuthController::class, 'login']);
+    Route::post('/logout', [App\Http\Controllers\Admin\AdminAuthController::class, 'logout'])->name('logout');
+    
+    // Protected admin routes
+    Route::middleware(['auth.admin'])->group(function () {
+        // Dashboard
+        Route::get('/', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [App\Http\Controllers\Admin\AdminDashboardController::class, 'index']);
+        
+        // Tenant management
+        Route::get('/tenants', [App\Http\Controllers\Admin\AdminDashboardController::class, 'tenants'])->name('tenants');
+        Route::get('/tenants/{id}', [App\Http\Controllers\Admin\AdminDashboardController::class, 'showTenant'])->name('tenants.show');
+        Route::post('/tenants/{id}/toggle-status', [App\Http\Controllers\Admin\AdminDashboardController::class, 'toggleTenantStatus'])->name('tenants.toggle-status');
+        
+        // Withdrawal management
+        Route::get('/withdrawals', [App\Http\Controllers\Admin\AdminDashboardController::class, 'withdrawals'])->name('withdrawals');
+        Route::post('/withdrawals/{id}/approve', [App\Http\Controllers\Admin\AdminDashboardController::class, 'approveWithdrawal'])->name('withdrawals.approve');
+        Route::post('/withdrawals/{id}/reject', [App\Http\Controllers\Admin\AdminDashboardController::class, 'rejectWithdrawal'])->name('withdrawals.reject');
+        
+        // Transaction monitoring
+        Route::get('/transactions', [App\Http\Controllers\Admin\AdminDashboardController::class, 'transactions'])->name('transactions');
+        
+        // Admin profile management
+        Route::get('/profile', [App\Http\Controllers\Admin\AdminDashboardController::class, 'profile'])->name('profile');
+        Route::put('/profile', [App\Http\Controllers\Admin\AdminDashboardController::class, 'updateProfile'])->name('profile.update');
+        Route::put('/profile/password', [App\Http\Controllers\Admin\AdminDashboardController::class, 'changePassword'])->name('profile.password');
+        
+        // Super admin only routes
+        Route::middleware(['auth.super_admin'])->group(function () {
+            Route::get('/register', [App\Http\Controllers\Admin\AdminAuthController::class, 'showRegister'])->name('register');
+            Route::post('/register', [App\Http\Controllers\Admin\AdminAuthController::class, 'register']);
+        });
+    });
+});

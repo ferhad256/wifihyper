@@ -36,32 +36,46 @@
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="border rounded p-3">
                                 <i class="fas fa-wifi fa-2x text-primary mb-2"></i>
                                 <div class="h4 text-primary">{{ $stats['hotspots'] }}</div>
                                 <small class="text-muted">Hotspots</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="border rounded p-3">
                                 <i class="fas fa-ticket-alt fa-2x text-success mb-2"></i>
                                 <div class="h4 text-success">{{ $stats['vouchers'] }}</div>
                                 <small class="text-muted">Vouchers</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="border rounded p-3">
                                 <i class="fas fa-exchange-alt fa-2x text-info mb-2"></i>
                                 <div class="h4 text-info">{{ $stats['transactions'] }}</div>
                                 <small class="text-muted">Transactions</small>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-3">
+                        <div class="col-md-2 mb-3">
                             <div class="border rounded p-3">
                                 <i class="fas fa-box fa-2x text-warning mb-2"></i>
                                 <div class="h4 text-warning">{{ $stats['packages'] }}</div>
                                 <small class="text-muted">Packages</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="border rounded p-3 {{ $stats['wallet_balance'] > 0 ? 'border-danger bg-danger-light' : '' }}">
+                                <i class="fas fa-piggy-bank fa-2x {{ $stats['wallet_balance'] > 0 ? 'text-danger' : 'text-secondary' }} mb-2"></i>
+                                <div class="h4 {{ $stats['wallet_balance'] > 0 ? 'text-danger' : 'text-secondary' }}">
+                                    UGX {{ number_format($stats['wallet_balance']) }}
+                                </div>
+                                <small class="text-muted">Wallet Balance</small>
+                                @if($stats['wallet_balance'] > 0)
+                                    <div class="mt-2">
+                                        <small class="text-danger fw-bold">⚠️ Must be withdrawn first</small>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -84,11 +98,62 @@
                 </div>
             </div>
 
+            @if($stats['wallet_balance'] > 0)
+            <!-- Wallet Balance Warning -->
+            <div class="card shadow border-danger mb-4">
+                <div class="card-header py-3 bg-danger text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Account Deletion Blocked
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger mb-3">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-ban me-2"></i>Cannot Delete Account
+                        </h6>
+                        <p class="mb-2">
+                            You have a wallet balance of <strong>UGX {{ number_format($stats['wallet_balance']) }}</strong>. 
+                            You must withdraw all funds before deleting your account.
+                        </p>
+                    </div>
+                    
+                    <div class="text-center">
+                        <h6 class="text-muted mb-3">What you need to do:</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
+                                    <h6>1. Withdraw Funds</h6>
+                                    <p class="text-muted small">Go to the dashboard page and withdraw all remaining funds from your wallet.</p>
+                                    <a href="{{ route('dashboard') }}" class="btn btn-success btn-sm">
+                                        <i class="fas fa-tachometer-alt me-1"></i>Go to Dashboard
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <i class="fas fa-trash-alt fa-2x text-danger mb-2"></i>
+                                    <h6>2. Delete Account</h6>
+                                    <p class="text-muted small">Once your wallet balance is zero, you can return here to delete your account.</p>
+                                    <button class="btn btn-outline-secondary btn-sm" disabled>
+                                        <i class="fas fa-lock me-1"></i>Currently Blocked
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Confirmation Form -->
-            <div class="card shadow border-danger">
+            <div class="card shadow border-danger {{ $stats['wallet_balance'] > 0 ? 'opacity-50' : '' }}">
                 <div class="card-header py-3 bg-danger text-white">
                     <h6 class="m-0 font-weight-bold">
                         <i class="fas fa-trash-alt me-2"></i>Final Confirmation
+                        @if($stats['wallet_balance'] > 0)
+                            <span class="badge bg-warning ms-2">Blocked</span>
+                        @endif
                     </h6>
                 </div>
                 <div class="card-body">
@@ -108,13 +173,28 @@
                             </ol>
                         </div>
 
+                        @if($stats['wallet_balance'] > 0)
+                            <div class="alert alert-warning">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Account deletion is currently blocked.</strong> 
+                                You must withdraw your wallet balance of UGX {{ number_format($stats['wallet_balance']) }} before you can delete your account.
+                            </div>
+                        @endif
+
+                        @error('wallet_balance')
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>{{ $message }}
+                            </div>
+                        @enderror
+
                         <div class="mb-3">
                             <label for="confirmation_text" class="form-label">
                                 Type "DELETE MY ACCOUNT" to confirm
                             </label>
                             <input type="text" class="form-control @error('confirmation_text') is-invalid @enderror" 
                                    id="confirmation_text" name="confirmation_text" 
-                                   placeholder="DELETE MY ACCOUNT" required>
+                                   placeholder="DELETE MY ACCOUNT" 
+                                   {{ $stats['wallet_balance'] > 0 ? 'disabled' : '' }} required>
                             @error('confirmation_text')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -125,23 +205,31 @@
                                 Enter your current password
                             </label>
                             <input type="password" class="form-control @error('password_confirmation') is-invalid @enderror" 
-                                   id="password_confirmation" name="password_confirmation" required>
+                                   id="password_confirmation" name="password_confirmation" 
+                                   {{ $stats['wallet_balance'] > 0 ? 'disabled' : '' }} required>
                             @error('password_confirmation')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="understand_consequences" required>
+                            <input class="form-check-input" type="checkbox" id="understand_consequences" 
+                                   {{ $stats['wallet_balance'] > 0 ? 'disabled' : '' }} required>
                             <label class="form-check-label" for="understand_consequences">
                                 I understand that deleting my account will permanently remove all my data and this action cannot be undone.
                             </label>
                         </div>
 
                         <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
-                                <i class="fas fa-trash-alt me-2"></i>Permanently Delete My Account
-                            </button>
+                            @if($stats['wallet_balance'] > 0)
+                                <button type="button" class="btn btn-secondary btn-lg" disabled>
+                                    <i class="fas fa-lock me-2"></i>Account Deletion Blocked - Withdraw Funds First
+                                </button>
+                            @else
+                                <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
+                                    <i class="fas fa-trash-alt me-2"></i>Permanently Delete My Account
+                                </button>
+                            @endif
                         </div>
                     </form>
                 </div>

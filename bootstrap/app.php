@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'rate.limiting' => \App\Http\Middleware\RateLimiting::class,
             'session.security' => \App\Http\Middleware\SessionSecurity::class,
             'input.sanitization' => \App\Http\Middleware\InputSanitization::class,
+            'auth.admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'auth.super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);
         
         // Apply security middleware globally

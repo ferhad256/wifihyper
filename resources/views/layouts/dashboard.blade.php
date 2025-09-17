@@ -171,12 +171,14 @@
         }
         
         .brand-name {
-            color: #007bff !important;
+            color: white !important;
             font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            font-family: 'Arial Black', sans-serif;
+            letter-spacing: 2px;
         }
         .brand-name:hover {
-            color: #0056b3 !important;
+            color: #f8f9fa !important;
         }
         }
         
@@ -322,10 +324,6 @@
                         <i class="fas fa-cog"></i>
                         Settings
                     </a>
-                    <a class="nav-link {{ request()->routeIs('subscription.*') ? 'active' : '' }}" href="{{ route('subscription.index') }}">
-                        <i class="fas fa-credit-card"></i>
-                        Subscription
-                    </a>
                     <a class="nav-link {{ request()->routeIs('dashboard.profile') ? 'active' : '' }}" href="{{ route('dashboard.profile') }}">
                         <i class="fas fa-user"></i>
                         Profile
@@ -344,6 +342,43 @@
                     </button>
 
                     <ul class="navbar-nav ms-auto">
+                        <!-- Support Dropdown -->
+                        <li class="nav-item dropdown me-3">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-headset me-1"></i>Support
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="https://wa.me/256704791624?text=Hello! I need help with my WIFIHYPER account" target="_blank">
+                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp: +256704791624
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="https://wa.me/256783052764?text=Hello! I need help with my WIFIHYPER account" target="_blank">
+                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp: +256783052764
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="tel:0392998816">
+                                        <i class="fas fa-phone me-2 text-primary"></i>0392998816
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="tel:0783052764">
+                                        <i class="fas fa-phone me-2 text-primary"></i>0783052764
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <h6 class="dropdown-header">Support Hours</h6>
+                                    <span class="dropdown-item-text">
+                                        <small class="text-muted">Mon-Fri: 8AM-6PM<br>Sat: 9AM-2PM (EAT)</small>
+                                    </span>
+                                </li>
+                            </ul>
+                        </li>
+                        
                         <!-- Notifications Dropdown -->
                         <li class="nav-item dropdown me-3">
                             <a class="nav-link dropdown-toggle position-relative" href="#" role="button" data-bs-toggle="dropdown" id="notificationsDropdown" onclick="loadNotificationsForDropdown()">

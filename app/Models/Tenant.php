@@ -19,8 +19,6 @@ class Tenant extends Model
         'business_name',
         'address',
         'wallet_balance',
-        'subscription_plan_id',
-        'subscription_expires_at',
         'is_active',
         'email_verified_at',
         'payment_gateway',
@@ -34,7 +32,6 @@ class Tenant extends Model
 
     protected $casts = [
         'wallet_balance' => 'decimal:2',
-        'subscription_expires_at' => 'date',
         'is_active' => 'boolean',
         'email_verified_at' => 'datetime',
         'password_changed_at' => 'datetime',
@@ -219,6 +216,11 @@ class Tenant extends Model
     public function notifications(): HasMany
     {
         return $this->hasMany(Notification::class);
+    }
+
+    public function withdrawalTransactions(): HasMany
+    {
+        return $this->hasMany(WithdrawalTransaction::class);
     }
 
     // Accessors
