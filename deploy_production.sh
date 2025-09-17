@@ -222,6 +222,16 @@ install_packages() {
     # Essential packages
     apt install -y curl wget git unzip rsync software-properties-common apt-transport-https ca-certificates gnupg lsb-release
     
+    # Add PHP repository (ondrej/php PPA for latest PHP versions)
+    print_status "Adding PHP repository..."
+    if ! grep -q "ondrej/php" /etc/apt/sources.list.d/*.list 2>/dev/null; then
+        add-apt-repository -y ppa:ondrej/php
+        apt update -y
+        print_success "PHP repository added"
+    else
+        print_warning "PHP repository already exists"
+    fi
+    
     # Apache (skip if already installed)
     if ! command -v apache2 &> /dev/null; then
         apt install -y apache2
@@ -229,8 +239,23 @@ install_packages() {
         print_warning "Apache is already installed, skipping installation"
     fi
     
-    # PHP 8.2 and extensions
-    apt install -y php8.2 php8.2-cli php8.2-mysql php8.2-xml php8.2-curl php8.2-mbstring php8.2-zip php8.2-gd php8.2-bcmath php8.2-intl php8.2-redis php8.2-ldap libapache2-mod-php8.2
+    # PHP 8.2 and extensions (with fallback to 8.1)
+    print_status "Installing PHP and extensions..."
+    
+    # Try PHP 8.2 first
+    if apt-cache show php8.2 &>/dev/null; then
+        PHP_VERSION="8.2"
+        print_status "Installing PHP 8.2 and extensions..."
+    elif apt-cache show php8.1 &>/dev/null; then
+        PHP_VERSION="8.1"
+        print_warning "PHP 8.2 not available, using PHP 8.1 instead"
+        print_status "Installing PHP 8.1 and extensions..."
+    else
+        print_error "Neither PHP 8.2 nor PHP 8.1 is available"
+        exit 1
+    fi
+    
+    apt install -y php${PHP_VERSION} php${PHP_VERSION}-cli php${PHP_VERSION}-mysql php${PHP_VERSION}-xml php${PHP_VERSION}-curl php${PHP_VERSION}-mbstring php${PHP_VERSION}-zip php${PHP_VERSION}-gd php${PHP_VERSION}-bcmath php${PHP_VERSION}-intl php${PHP_VERSION}-redis php${PHP_VERSION}-ldap libapache2-mod-php${PHP_VERSION}
     
     # MySQL
     apt install -y mysql-server
@@ -298,18 +323,30 @@ EOF
 configure_php() {
     print_status "Configuring PHP..."
     
+    # Detect installed PHP version
+    if [[ -f "/etc/php/8.2/apache2/php.ini" ]]; then
+        PHP_VERSION="8.2"
+    elif [[ -f "/etc/php/8.1/apache2/php.ini" ]]; then
+        PHP_VERSION="8.1"
+    else
+        print_error "PHP configuration file not found"
+        exit 1
+    fi
+    
+    print_status "Configuring PHP $PHP_VERSION..."
+    
     # PHP configuration for Apache
-    sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 100M/' /etc/php/8.2/apache2/php.ini
-    sed -i 's/post_max_size = 8M/post_max_size = 100M/' /etc/php/8.2/apache2/php.ini
-    sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php/8.2/apache2/php.ini
-    sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/8.2/apache2/php.ini
+    sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 100M/' /etc/php/${PHP_VERSION}/apache2/php.ini
+    sed -i 's/post_max_size = 8M/post_max_size = 100M/' /etc/php/${PHP_VERSION}/apache2/php.ini
+    sed -i 's/memory_limit = 128M/memory_limit = 512M/' /etc/php/${PHP_VERSION}/apache2/php.ini
+    sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/${PHP_VERSION}/apache2/php.ini
     
     # Enable Apache modules
     a2enmod rewrite
     a2enmod ssl
     a2enmod headers
     
-    print_success "PHP configured"
+    print_success "PHP $PHP_VERSION configured"
 }
 
 # Function to configure Apache
