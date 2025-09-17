@@ -8,7 +8,6 @@ use App\Http\Controllers\HotspotController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\SettingsController;
-use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\WithdrawalController;
 
 /*

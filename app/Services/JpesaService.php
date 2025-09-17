@@ -681,14 +681,8 @@ class JpesaService
                     $updateData['status'] = 'completed';
                     $updateData['paid_at'] = now();
                     
-                    // Handle different transaction types
-                    if ($transaction->type === 'subscription') {
-                        // Handle subscription payment
-                        $this->handleSubscriptionPayment($transaction);
-                    } else {
-                        // Handle voucher payment (default)
-                        $this->handleVoucherPayment($transaction);
-                    }
+                    // Handle voucher payment (subscription payments removed)
+                    $this->handleVoucherPayment($transaction);
                 } else {
                     Log::info('JpesaService: Payment already completed, updating callback data only', [
                         'transaction_id' => $transactionId,
@@ -743,40 +737,6 @@ class JpesaService
         }
     }
 
-    /**
-     * Handle subscription payment completion
-     */
-    private function handleSubscriptionPayment($transaction)
-    {
-        Log::info('JpesaService: Processing subscription payment', [
-            'transaction_id' => $transaction->transaction_id,
-            'plan_id' => $transaction->plan_id,
-            'billing_type' => $transaction->billing_type
-        ]);
-
-        // Update tenant subscription
-        $tenant = $transaction->tenant;
-        $plan = \App\Models\SubscriptionPlan::find($transaction->plan_id);
-        
-        if ($tenant && $plan) {
-            $expiresAt = $transaction->billing_type === 'yearly' 
-                ? now()->addYear() 
-                : now()->addMonth();
-                
-            $tenant->update([
-                'subscription_plan_id' => $plan->id,
-                'subscription_expires_at' => $expiresAt,
-                'subscription_status' => 'active'
-            ]);
-
-            Log::info('JpesaService: Subscription activated', [
-                'tenant_id' => $tenant->id,
-                'plan_id' => $plan->id,
-                'billing_type' => $transaction->billing_type,
-                'expires_at' => $expiresAt
-            ]);
-        }
-    }
 
     /**
      * Handle voucher payment completion

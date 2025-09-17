@@ -130,9 +130,7 @@ class AuthController extends Controller
         }
 
         try {
-            // Get the Starter Plan
-            $starterPlan = \App\Models\SubscriptionPlan::where('slug', 'starter')->first();
-            
+            // Create tenant without subscription plan (subscription system removed)
             $tenant = Tenant::create([
                 'name' => strip_tags($request->name),
                 'email' => strtolower(trim($request->email)),
@@ -140,8 +138,6 @@ class AuthController extends Controller
                 'business_name' => $request->business_name ? strip_tags($request->business_name) : null,
                 'address' => $request->address ? strip_tags($request->address) : null,
                 'password' => Hash::make($request->password),
-                'subscription_plan_id' => $starterPlan->id,
-                'subscription_expires_at' => now()->addDays(30), // 30-day trial
                 'is_active' => false, // Account inactive until email verification
                 'email_verified_at' => null, // Email not verified yet
             ]);

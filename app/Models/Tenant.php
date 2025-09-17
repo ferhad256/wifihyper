@@ -40,121 +40,30 @@ class Tenant extends Model
     ];
 
     /**
-     * Get the subscription plan for this tenant
-     */
-    public function subscriptionPlan()
-    {
-        return $this->belongsTo(SubscriptionPlan::class, 'subscription_plan_id');
-    }
-
-    /**
-     * Get current subscription plan
-     */
-    public function getCurrentPlan()
-    {
-        // If tenant has a subscription plan, return it
-        if ($this->subscriptionPlan) {
-            return $this->subscriptionPlan;
-        }
-
-        // If no subscription plan, get the default plan
-        $defaultPlan = SubscriptionPlan::getDefaultPlan();
-        
-        if (!$defaultPlan) {
-            // If no default plan exists, create a fallback
-            \Log::warning('No default subscription plan found, creating fallback', [
-                'tenant_id' => $this->id,
-                'tenant_email' => $this->email
-            ]);
-            
-            // Create a basic fallback plan
-            $defaultPlan = SubscriptionPlan::create([
-                'name' => 'Basic',
-                'slug' => 'basic',
-                'description' => 'Basic plan for existing users',
-                'monthly_price' => 0.00,
-                'yearly_price' => 0.00,
-                'is_active' => true,
-                'is_featured' => false,
-                'sort_order' => 1,
-                'max_hotspots' => 3,
-                'max_vouchers_per_month' => 5000,
-                'max_users' => 1,
-                'max_transactions_per_month' => 1000,
-                'transaction_fees' => [
-                    [
-                        'min' => 0,
-                        'max' => 1000,
-                        'percentage' => 15,
-                        'description' => 'UGX 1000 and below - 15%'
-                    ],
-                    [
-                        'min' => 1001,
-                        'max' => 5000,
-                        'percentage' => 10,
-                        'description' => 'UGX 1000 to 5000 - 10%'
-                    ],
-                    [
-                        'min' => 5001,
-                        'max' => 999999999,
-                        'percentage' => 5,
-                        'description' => 'UGX 5000 and above - 5%'
-                    ]
-                ],
-                'features' => [
-                    'basic_wifi_management',
-                    'voucher_system',
-                    'payment_processing',
-                    'sms_notifications',
-                    'email_notifications',
-                    'basic_analytics',
-                    'default_captive_portal',
-                    'mobile_responsive',
-                    'multi_tenant_support'
-                ],
-                'restrictions' => [
-                    'no_source_code_access',
-                    'no_custom_portal',
-                    'no_api_access',
-                    'no_priority_support',
-                    'limited_analytics',
-                    'standard_support'
-                ]
-            ]);
-        }
-
-        return $defaultPlan;
-    }
-
-    /**
      * Check if tenant can create more hotspots
+     * Removed subscription limits - all tenants can create unlimited hotspots
      */
     public function canCreateHotspot()
     {
-        $plan = $this->getCurrentPlan();
-        $currentCount = $this->hotspots()->count();
-        return $plan->canCreateHotspot($currentCount);
+        return true;
     }
 
     /**
      * Check if tenant can upload more vouchers this month
+     * Removed subscription limits - all tenants can upload unlimited vouchers
      */
     public function canUploadVouchers()
     {
-        $plan = $this->getCurrentPlan();
-        $currentMonthVouchers = $this->vouchers()
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)
-            ->count();
-        return $plan->canUploadVouchers($currentMonthVouchers);
+        return true;
     }
 
     /**
      * Check if tenant can create more transactions
+     * Removed subscription limits - all tenants can create unlimited transactions
      */
     public function canCreateTransaction($currentMonthTransactions)
     {
-        return $currentMonthTransactions < $this->max_transactions_per_month;
+        return true;
     }
 
     /**
@@ -186,11 +95,18 @@ class Tenant extends Model
 
     /**
      * Get transaction fee for a specific amount
+     * Using standard fee structure without subscription plans
      */
     public function getTransactionFee($amount)
     {
-        $plan = $this->getCurrentPlan();
-        return $plan->getTransactionFee($amount);
+        // Standard fee structure for all tenants
+        if ($amount <= 1000) {
+            return $amount * 0.15; // 15% for amounts up to 1000
+        } elseif ($amount <= 5000) {
+            return $amount * 0.10; // 10% for amounts 1001-5000
+        } else {
+            return $amount * 0.05; // 5% for amounts above 5000
+        }
     }
 
     public function hotspots(): HasMany

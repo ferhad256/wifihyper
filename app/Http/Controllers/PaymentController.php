@@ -701,25 +701,6 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Show subscription payment form
-     */
-
-    /**
-     * Initiate subscription payment
-     */
-
-    /**
-     * Handle subscription payment callback
-     */
-
-    /**
-     * Handle subscription payment failure
-     */
-
-    /**
-     * Handle subscription payment success
-     */
 
     /**
      * Unified IPN handler for all payment responses (success, failure, pending)

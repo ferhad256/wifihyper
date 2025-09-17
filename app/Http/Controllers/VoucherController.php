@@ -5,18 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use App\Models\Voucher;
 use App\Models\Package;
-use App\Services\PlanLimitService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class VoucherController extends Controller
 {
-    protected $planLimitService;
-
-    public function __construct(PlanLimitService $planLimitService)
-    {
-        $this->planLimitService = $planLimitService;
-    }
 
     /**
      * Display a listing of vouchers
@@ -74,11 +67,7 @@ class VoucherController extends Controller
             return redirect()->route('login');
         }
 
-        // Check plan limits
-        $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
-        if (!$limitCheck['can_upload']) {
-            return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.")->withInput();
-        }
+        // Plan limits removed - all tenants can upload vouchers
 
         $validator = Validator::make($request->all(), [
             'code' => 'required|string|unique:vouchers,code',
@@ -146,11 +135,7 @@ class VoucherController extends Controller
                 return back()->with('error', 'Package not found.')->withInput();
             }
 
-            // Check plan limits before processing
-            $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
-            if (!$limitCheck['can_upload']) {
-                return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.")->withInput();
-            }
+            // Plan limits removed - all tenants can upload vouchers
 
             // Handle empty expiry date
             $expiresAt = $request->expires_at ? $request->expires_at : null;
@@ -191,10 +176,7 @@ class VoucherController extends Controller
                 return back()->with('error', 'No valid voucher codes provided.')->withInput();
             }
 
-            // Check if we're within plan limits for the number of codes
-            if (count($codes) > $limitCheck['remaining'] && $limitCheck['remaining'] !== -1) {
-                return back()->with('error', "You can only upload {$limitCheck['remaining']} more vouchers this month. You're trying to upload " . count($codes) . " vouchers.")->withInput();
-            }
+            // Plan limits removed - all tenants can upload unlimited vouchers
             
             $imported = 0;
             $skipped = 0;
@@ -382,11 +364,7 @@ class VoucherController extends Controller
             return redirect()->route('login');
         }
 
-        // Check plan limits
-        $limitCheck = $this->planLimitService->canUploadVouchers($tenant);
-        if (!$limitCheck['can_upload']) {
-            return back()->with('error', "You've reached your monthly voucher limit of {$limitCheck['max_allowed']} vouchers. Please upgrade your plan to upload more vouchers.");
-        }
+        // Plan limits removed - all tenants can upload vouchers
 
         $validator = Validator::make($request->all(), [
             'package_id' => 'required|exists:packages,id',

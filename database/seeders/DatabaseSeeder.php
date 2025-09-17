@@ -13,10 +13,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed subscription plans first
-        $this->call([
-            SubscriptionPlanSeeder::class,
-        ]);
+        // No seeders to run (subscription system removed)
+        // $this->call([
+        // ]);
 
         // User::factory(10)->create();
 
