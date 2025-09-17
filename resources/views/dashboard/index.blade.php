@@ -66,10 +66,14 @@
                                 <a href="{{ route('dashboard.billing') }}" class="btn btn-info btn-lg">
                                     <i class="fas fa-list me-2"></i>View Transactions
                                 </a>
-                                @if($tenant->wallet_balance >= 5000)
+                                @if($tenant->wallet_balance >= 5000 && $tenant->phone)
                                     <button class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#withdrawModal">
                                         <i class="fas fa-money-bill-wave me-2"></i>Request Withdrawal
                                     </button>
+                                @elseif($tenant->wallet_balance >= 5000 && !$tenant->phone)
+                                    <a href="{{ route('dashboard.profile') }}" class="btn btn-outline-warning btn-lg">
+                                        <i class="fas fa-user-edit me-2"></i>Add Phone Number to Withdraw
+                                    </a>
                                 @else
                                     <button class="btn btn-outline-secondary btn-lg" disabled title="Minimum withdrawal amount is UGX 5,000">
                                         <i class="fas fa-lock me-2"></i>Withdrawal Locked
@@ -366,10 +370,16 @@
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="withdraw_phone" class="form-label">Phone Number</label>
+                        <label for="withdraw_phone" class="form-label">Phone Number (Registered Contact)</label>
                         <input type="tel" class="form-control" id="withdraw_phone" name="phone_number" 
-                               placeholder="07XXXXXXXX" required>
-                        <div class="form-text">Enter the phone number where you want to receive the funds</div>
+                               value="{{ $tenant->phone }}" readonly required>
+                        <div class="form-text">
+                            <i class="fas fa-lock me-1"></i>
+                            Withdrawals can only be made to your registered phone number for security purposes.
+                            @if(!$tenant->phone)
+                                <span class="text-danger">Please update your profile with a phone number to make withdrawals.</span>
+                            @endif
+                        </div>
                     </div>
                     <div class="alert alert-info">
                         <h6 class="alert-heading">
@@ -389,7 +399,13 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Request Withdrawal</button>
+                    <button type="submit" class="btn btn-primary" {{ !$tenant->phone ? 'disabled' : '' }}>
+                        @if($tenant->phone)
+                            Request Withdrawal
+                        @else
+                            Update Profile First
+                        @endif
+                    </button>
                 </div>
             </form>
         </div>

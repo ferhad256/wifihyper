@@ -241,6 +241,17 @@ class DashboardController extends Controller
         $amount = $request->amount;
         $phoneNumber = $this->formatPhoneNumber($request->phone_number);
 
+        // Ensure tenant has a registered phone number
+        if (!$tenant->phone) {
+            return back()->with('error', 'Please update your profile with a phone number before making withdrawal requests.')->withInput();
+        }
+
+        // Validate that the withdrawal phone number matches the tenant's registered phone number
+        $tenantFormattedPhone = $this->formatPhoneNumber($tenant->phone);
+        if ($phoneNumber !== $tenantFormattedPhone) {
+            return back()->with('error', 'Withdrawals can only be made to your registered phone number for security purposes.')->withInput();
+        }
+
         // Validate phone number format
         if (!$this->isValidUgandaPhoneNumber($phoneNumber)) {
             return back()->with('error', 'Please enter a valid Uganda phone number.')->withInput();
