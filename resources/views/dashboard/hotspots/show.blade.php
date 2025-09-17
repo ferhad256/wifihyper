@@ -11,7 +11,7 @@
             <p class="text-muted">{{ $hotspot->name }}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary" target="_blank">
+            <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-primary" target="_blank">
                 <i class="fas fa-external-link-alt me-2"></i>View Portal
             </a>
             <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
@@ -160,7 +160,7 @@
                     <!-- Primary Actions (Most Important) -->
                     <div class="row mb-3">
                         <div class="col-6">
-                            <a href="{{ route('portal.index', $hotspot) }}" class="btn btn-primary w-100" target="_blank">
+                            <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-primary w-100" target="_blank">
                                 <i class="fas fa-external-link-alt me-2"></i>View Portal
                             </a>
                         </div>

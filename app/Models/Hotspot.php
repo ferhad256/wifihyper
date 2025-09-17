@@ -11,6 +11,19 @@ class Hotspot extends Model
 {
     use HasFactory;
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::created(function ($hotspot) {
+            if (empty($hotspot->url_name)) {
+                $urlName = static::generateUrlName($hotspot->name, $hotspot->id);
+                $hotspot->url_name = $urlName;
+                $hotspot->save();
+            }
+        });
+    }
+
     protected $fillable = [
         'tenant_id',
         'name',
@@ -20,6 +33,7 @@ class Hotspot extends Model
         'is_active',
         'captive_portal_url',
         'settings',
+        'url_name',
     ];
 
     protected $casts = [
@@ -54,20 +68,30 @@ class Hotspot extends Model
     }
 
     /**
-     * Get URL-friendly name for the hotspot
+     * Generate URL-friendly name for the hotspot
      */
-    public function getUrlNameAttribute()
+    public static function generateUrlName($name, $id)
     {
         // Convert to lowercase and replace spaces with hyphens
-        $name = strtolower($this->name);
+        $urlName = strtolower($name);
         // Remove special characters except alphanumeric, hyphens, and underscores
-        $name = preg_replace('/[^a-z0-9\-_]/', '', $name);
+        $urlName = preg_replace('/[^a-z0-9\-_]/', '', $urlName);
         // Remove multiple consecutive hyphens
-        $name = preg_replace('/-+/', '-', $name);
+        $urlName = preg_replace('/-+/', '-', $urlName);
         // Remove leading and trailing hyphens
-        $name = trim($name, '-');
+        $urlName = trim($urlName, '-');
         
-        return $name ?: 'hotspot-' . $this->id;
+        $baseUrlName = $urlName ?: 'hotspot-' . $id;
+        
+        // Ensure uniqueness
+        $counter = 1;
+        $finalUrlName = $baseUrlName;
+        while (static::where('url_name', $finalUrlName)->exists()) {
+            $finalUrlName = $baseUrlName . '-' . $counter;
+            $counter++;
+        }
+        
+        return $finalUrlName;
     }
 
     /**
@@ -75,9 +99,26 @@ class Hotspot extends Model
      */
     public static function findByUrlName($urlName)
     {
-        return static::where('name', $urlName)
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower($urlName)])
-            ->orWhereRaw("LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '_', '')) = ?", [strtolower(str_replace(['-', '_'], '', $urlName))])
-            ->first();
+        // First try to find by url_name field
+        $hotspot = static::where('url_name', $urlName)->first();
+        
+        if ($hotspot) {
+            return $hotspot;
+        }
+        
+        // Fallback: for hotspots that might not have url_name set yet
+        // Generate URL names for all hotspots without them and check
+        $hotspotsWithoutUrlName = static::whereNull('url_name')->get();
+        foreach ($hotspotsWithoutUrlName as $hotspot) {
+            $generatedUrlName = static::generateUrlName($hotspot->name, $hotspot->id);
+            $hotspot->url_name = $generatedUrlName;
+            $hotspot->save();
+            
+            if ($generatedUrlName === $urlName) {
+                return $hotspot;
+            }
+        }
+        
+        return null;
     }
 }

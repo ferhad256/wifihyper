@@ -27,10 +27,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default configuration
-DOMAIN=""
-ADMIN_EMAIL=""
+DOMAIN="wifihyper.com"
+ADMIN_EMAIL="walusimbifahd@gmail.com"
 DB_NAME="wifihyper"
-DB_USER="wifihyper"
+DB_USER="root"
 DB_PASS=""
 SKIP_SSL=false
 SKIP_APACHE=false
@@ -151,6 +151,30 @@ validate_config() {
         print_error "Database password is required. Use --db-pass=password"
         exit 1
     fi
+    
+    # Validate email format
+    if ! echo "$ADMIN_EMAIL" | grep -qE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'; then
+        print_error "Invalid email format: $ADMIN_EMAIL"
+        exit 1
+    fi
+    
+    # Validate domain format
+    if ! echo "$DOMAIN" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$'; then
+        print_error "Invalid domain format: $DOMAIN"
+        exit 1
+    fi
+    
+    # Check if required files exist
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    if [[ ! -f "$SCRIPT_DIR/composer.json" ]]; then
+        print_error "composer.json not found. Please run this script from the project root directory."
+        exit 1
+    fi
+    
+    if [[ ! -f "$SCRIPT_DIR/.env.example" ]]; then
+        print_error ".env.example not found. Please run this script from the project root directory."
+        exit 1
+    fi
 }
 
 # Function to confirm deployment
@@ -196,7 +220,7 @@ install_packages() {
     print_status "Installing required packages..."
     
     # Essential packages
-    apt install -y curl wget git unzip software-properties-common apt-transport-https ca-certificates gnupg lsb-release
+    apt install -y curl wget git unzip rsync software-properties-common apt-transport-https ca-certificates gnupg lsb-release
     
     # Apache (skip if already installed)
     if ! command -v apache2 &> /dev/null; then
@@ -251,12 +275,21 @@ y
 EOF
     
     # Create database and user
-    mysql -u root -p$DB_PASS <<EOF
+    if [[ "$DB_USER" == "root" ]]; then
+        # If using root user, just create the database
+        mysql -u root -p$DB_PASS <<EOF
+CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+FLUSH PRIVILEGES;
+EOF
+    else
+        # Create database and dedicated user
+        mysql -u root -p$DB_PASS <<EOF
 CREATE DATABASE IF NOT EXISTS $DB_NAME CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASS';
 GRANT ALL PRIVILEGES ON $DB_NAME.* TO '$DB_USER'@'localhost';
 FLUSH PRIVILEGES;
 EOF
+    fi
     
     print_success "MySQL configured"
 }
@@ -460,18 +493,36 @@ backup_existing() {
 deploy_application() {
     print_status "Deploying WIFIHYPER application..."
     
-    # Clone or pull repository
-    if [[ -d "$DEPLOYMENT_DIR/.git" ]]; then
+    # Get the current directory (assuming script is run from project root)
+    CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    
+    # Copy application files to deployment directory
+    if [[ "$CURRENT_DIR" != "$DEPLOYMENT_DIR" ]]; then
+        print_status "Copying application files from $CURRENT_DIR to $DEPLOYMENT_DIR"
+        
+        # Create deployment directory if it doesn't exist
+        mkdir -p $DEPLOYMENT_DIR
+        
+        # Copy all files except .git, node_modules, and other unnecessary files
+        rsync -av --exclude='.git' --exclude='node_modules' --exclude='vendor' --exclude='.env' --exclude='storage/logs/*' --exclude='storage/framework/cache/*' --exclude='storage/framework/sessions/*' --exclude='storage/framework/views/*' "$CURRENT_DIR/" "$DEPLOYMENT_DIR/"
+        
         cd $DEPLOYMENT_DIR
-        git pull origin main
     else
-        cd /tmp
-        git clone https://github.com/yourusername/wifihyper.git $DEPLOYMENT_DIR
+        print_warning "Already in deployment directory"
         cd $DEPLOYMENT_DIR
     fi
     
     # Install Composer dependencies
-    composer install --no-dev --optimize-autoloader
+    print_status "Installing Composer dependencies..."
+    composer install --no-dev --optimize-autoloader --no-interaction
+    
+    # Create necessary storage directories
+    mkdir -p storage/logs
+    mkdir -p storage/framework/cache
+    mkdir -p storage/framework/sessions
+    mkdir -p storage/framework/views
+    mkdir -p storage/app/public
+    mkdir -p bootstrap/cache
     
     # Set proper permissions
     chown -R www-data:www-data $DEPLOYMENT_DIR
@@ -513,6 +564,16 @@ configure_environment() {
     sed -i "s/SESSION_DRIVER=.*/SESSION_DRIVER=redis/" .env
     sed -i "s/QUEUE_CONNECTION=.*/QUEUE_CONNECTION=redis/" .env
     
+    # Admin configuration (add admin environment variables)
+    echo "" >> .env
+    echo "# Admin Configuration" >> .env
+    echo "ADMIN_NAME=System Administrator" >> .env
+    echo "ADMIN_EMAIL=$ADMIN_EMAIL" >> .env
+    echo "ADMIN_PASSWORD=$(openssl rand -base64 32)" >> .env
+    echo "ADMIN_NAME_2=Secondary Admin" >> .env
+    echo "ADMIN_EMAIL_2=admin2@$DOMAIN" >> .env
+    echo "ADMIN_PASSWORD_2=$(openssl rand -base64 32)" >> .env
+    
     print_success "Environment configured"
 }
 
@@ -522,13 +583,52 @@ setup_database() {
     
     cd $DEPLOYMENT_DIR
     
-    # Run migrations
-    php artisan migrate --force
+    # Check if database connection works
+    if ! php artisan migrate:status &>/dev/null; then
+        print_error "Database connection failed. Please check your database configuration."
+        exit 1
+    fi
     
-    # Seed database if needed
-    php artisan db:seed --force
+    # Run migrations with error checking
+    print_status "Running database migrations..."
+    if php artisan migrate --force; then
+        print_success "Migrations completed successfully"
+    else
+        print_error "Migration failed. Please check the logs."
+        exit 1
+    fi
     
-    print_success "Database setup completed"
+    # Seed database with admin accounts (critical for production access)
+    print_status "Creating admin accounts..."
+    if php artisan db:seed --class=AdminSeeder --force; then
+        print_success "Admin accounts created successfully"
+    else
+        print_error "Admin seeder failed. This is critical - you won't be able to access the admin panel!"
+        print_error "Please check the logs and ensure ADMIN_EMAIL and ADMIN_PASSWORD are set correctly."
+        exit 1
+    fi
+    
+    # Run all other seeders (non-critical, continue on failure)
+    print_status "Running additional database seeders..."
+    if php artisan db:seed --force; then
+        print_success "All seeders completed successfully"
+    else
+        print_warning "Some seeders failed, but continuing deployment..."
+        print_warning "You may need to run 'php artisan db:seed' manually later"
+    fi
+    
+    # Verify admin accounts were created
+    print_status "Verifying admin account creation..."
+    ADMIN_COUNT=$(php artisan tinker --execute="echo App\Models\Admin::count();" 2>/dev/null | tail -1)
+    if [[ "$ADMIN_COUNT" -gt 0 ]]; then
+        print_success "✓ Admin accounts verified ($ADMIN_COUNT admin(s) found)"
+    else
+        print_error "✗ No admin accounts found in database!"
+        print_error "This is critical - deployment cannot continue without admin access"
+        exit 1
+    fi
+    
+    print_success "Database setup completed successfully"
 }
 
 # Function to configure cron jobs
@@ -690,12 +790,27 @@ display_summary() {
     echo "Deployment Directory: $DEPLOYMENT_DIR"
     echo "Backup Directory: $BACKUP_DIR"
     echo ""
+    echo "Admin Credentials:"
+    echo "Primary Admin: $ADMIN_EMAIL"
+    echo "Secondary Admin: admin2@$DOMAIN"
+    echo ""
+    echo "🔐 Admin Passwords (SAVE THESE SECURELY):"
+    echo "Primary Admin Password: $(grep ADMIN_PASSWORD= $DEPLOYMENT_DIR/.env | head -1 | cut -d'=' -f2)"
+    echo "Secondary Admin Password: $(grep ADMIN_PASSWORD_2= $DEPLOYMENT_DIR/.env | cut -d'=' -f2)"
+    echo ""
+    echo "⚠️  IMPORTANT SECURITY NOTES:"
+    echo "- These are automatically generated secure passwords"
+    echo "- Store them in a secure password manager"
+    echo "- Change them regularly for security"
+    echo "- Never share these credentials via unsecured channels"
+    echo ""
     echo "Next Steps:"
     echo "1. Access your application at https://$DOMAIN"
-    echo "2. Complete the initial setup in the admin panel"
-    echo "3. Configure your payment gateways (JPesa, UG SMS)"
-    echo "4. Set up your Resend email configuration"
-    echo "5. Test the complete workflow"
+    echo "2. Login with admin credentials shown above"
+    echo "3. Complete the initial setup in the admin panel"
+    echo "4. Configure your payment gateways (JPesa, UG SMS)"
+    echo "5. Set up your Resend email configuration"
+    echo "6. Test the complete workflow"
     echo ""
     echo "Monitoring:"
     echo "- Logs: $DEPLOYMENT_DIR/storage/logs/"

@@ -13,15 +13,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // No seeders to run (subscription system removed)
-        // $this->call([
-        // ]);
-
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Run admin seeder for production
+        $this->call([
+            AdminSeeder::class,
         ]);
+
+        // Only create test user in non-production environments
+        if (app()->environment(['local', 'testing'])) {
+            User::factory()->create([
+                'name' => 'Test User',
+                'email' => 'test@example.com',
+            ]);
+        }
     }
 }

@@ -316,7 +316,8 @@ php artisan route:clear
 #### Database Setup
 ```bash
 php artisan migrate --force
-php artisan db:seed --class=SubscriptionPlanSeeder --force
+php artisan db:seed --class=AdminSeeder --force
+php artisan db:seed --force
 ```
 
 ### Deployment Script
@@ -339,11 +340,75 @@ php artisan route:clear
 # Run migrations
 php artisan migrate --force
 
-# Seed data if needed
-php artisan db:seed --class=SubscriptionPlanSeeder --force
+# Seed admin accounts
+php artisan db:seed --class=AdminSeeder --force
+
+# Seed other data if needed
+php artisan db:seed --force
 
 echo '✅ Deployment complete!'
 ```
+
+## 👤 Admin Management
+
+### Creating Admin Users
+
+#### Method 1: Using Environment Variables (Recommended for Production)
+
+Set the following environment variables in your `.env` file:
+
+```env
+# Primary Admin
+ADMIN_NAME="Your Name"
+ADMIN_EMAIL="admin@yourdomain.com"
+ADMIN_PASSWORD="your_secure_password"
+
+# Secondary Admin (Optional)
+ADMIN_NAME_2="Secondary Admin"
+ADMIN_EMAIL_2="admin2@yourdomain.com"
+ADMIN_PASSWORD_2="another_secure_password"
+```
+
+Then run the seeder:
+```bash
+php artisan db:seed --class=AdminSeeder --force
+```
+
+#### Method 2: Using Artisan Command
+
+Create admin users interactively:
+```bash
+# Interactive mode
+php artisan admin:create
+
+# Non-interactive mode
+php artisan admin:create \
+  --name="Admin Name" \
+  --email="admin@example.com" \
+  --password="secure_password" \
+  --role="super_admin" \
+  --force
+```
+
+#### Method 3: Production Deployment
+
+The deployment script automatically:
+1. Generates secure random passwords
+2. Creates admin accounts using provided email
+3. Displays credentials at the end of deployment
+
+### Admin Roles
+
+- **admin**: Regular admin access
+- **super_admin**: Full system access
+
+### Security Best Practices
+
+1. **Change Default Passwords**: Always change default passwords in production
+2. **Use Strong Passwords**: Minimum 12 characters with mixed case, numbers, and symbols
+3. **Environment Variables**: Store credentials in `.env` file, never in code
+4. **Regular Updates**: Regularly update admin passwords
+5. **Monitor Access**: Check admin login logs regularly
 
 ## 🔒 Security
 

@@ -52,6 +52,7 @@ class HotspotController extends Controller
         }
 
         try {
+            // Create hotspot - url_name will be generated automatically via model event
             Hotspot::create([
                 'tenant_id' => $tenant->id,
                 'name' => $request->name,

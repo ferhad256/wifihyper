@@ -131,43 +131,40 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <!-- Current Subscription Plan Info -->
+                    <!-- Account Status Info -->
                     <div class="mb-4">
                         <h6 class="text-primary mb-3">
-                            <i class="fas fa-crown me-2"></i>Current Subscription Plan
+                            <i class="fas fa-user-check me-2"></i>Account Status
                         </h6>
                         <div class="card bg-light">
                             <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <strong>Plan:</strong>
-                                        <span class="badge bg-primary ms-2">{{ $tenant->subscriptionPlan ? $tenant->subscriptionPlan->name : 'Starter' }}</span>
+                                        <strong>Account Type:</strong>
+                                        <span class="badge bg-success ms-2">Standard</span>
                                     </div>
                                     <div class="col-md-6">
                                         <strong>Status:</strong>
-                                        @if($tenant->subscription_expires_at && $tenant->subscription_expires_at->isFuture())
+                                        @if($tenant->is_active)
                                             <span class="badge bg-success ms-2">Active</span>
                                         @else
-                                            <span class="badge bg-warning ms-2">Expired</span>
+                                            <span class="badge bg-warning ms-2">Inactive</span>
                                         @endif
                                     </div>
                                 </div>
-                                @if($tenant->subscription_expires_at)
-                                    <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <strong>Expires:</strong>
-                                            <span class="text-muted ms-2">{{ $tenant->subscription_expires_at->format('M d, Y') }}</span>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <strong>Days Left:</strong>
-                                            <span class="text-muted ms-2">{{ $tenant->subscription_expires_at->diffInDays(now()) }} days</span>
-                                        </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-6">
+                                        <strong>Member Since:</strong>
+                                        <span class="text-muted ms-2">{{ $tenant->created_at->format('M d, Y') }}</span>
                                     </div>
-                                @endif
-                                <div class="mt-3">
-                                    <a href="{{ route('subscription.plans') }}" class="btn btn-outline-primary btn-sm">
-                                        <i class="fas fa-arrow-up me-1"></i>Upgrade Plan
-                                    </a>
+                                    <div class="col-md-6">
+                                        <strong>Email Verified:</strong>
+                                        @if($tenant->hasVerifiedEmail())
+                                            <span class="badge bg-success ms-2">Verified</span>
+                                        @else
+                                            <span class="badge bg-warning ms-2">Unverified</span>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -299,17 +296,11 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">
-                            <strong>Plan:</strong>
+                            <strong>Account Type:</strong>
                         </div>
                         <div class="col-6">
-                            <span class="badge bg-primary">{{ $tenant->subscriptionPlan ? $tenant->subscriptionPlan->name : 'Starter' }}</span>
+                            <span class="badge bg-success">Standard</span>
                         </div>
-                    </div>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Note:</strong> To change your subscription plan, please visit the 
-                        <a href="{{ route('subscription.plans') }}" class="alert-link">Subscription Plans</a> 
-                        page where you can upgrade through our secure payment system.
                     </div>
                     <div class="row mb-3">
                         <div class="col-6">

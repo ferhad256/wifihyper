@@ -173,7 +173,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="portal_url" class="form-label">Portal URL</label>
-                        <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot) }}" readonly>
+                        <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->url_name) }}" readonly>
                         <div class="form-text">This is the URL customers will use to access your WiFi portal.</div>
                     </div>
                 </div>
