@@ -479,7 +479,7 @@
             <h2 class="display-5 fw-bold mb-4">Ready to Start Your WiFi Business?</h2>
                                 <p class="lead mb-4">Join thousands of businesses already using our platform to manage their hotspots</p>
             <a href="{{ route('register') }}" class="btn btn-primary btn-lg">
-                <i class="fas fa-rocket me-2"></i>Start Your Free Trial
+                <i class="fas fa-rocket me-2"></i>Start for Free
             </a>
         </div>
     </section>
