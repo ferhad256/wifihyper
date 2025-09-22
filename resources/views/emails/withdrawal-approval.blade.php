@@ -143,7 +143,6 @@
                 <p><strong>Withdrawal ID:</strong> #{{ $withdrawal->id }}</p>
                 <p><strong>Amount Withdrawn:</strong> UGX {{ number_format($withdrawal->amount) }}</p>
                 <p><strong>Approved At:</strong> {{ $withdrawal->approved_at->format('M d, Y H:i') }}</p>
-                <p><strong>Approved By:</strong> {{ $withdrawal->admin->name ?? 'Admin' }}</p>
                 @if($withdrawal->admin_notes)
                     <p><strong>Admin Notes:</strong> {{ $withdrawal->admin_notes }}</p>
                 @endif
