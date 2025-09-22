@@ -246,6 +246,44 @@ class EmailService
     }
 
     /**
+     * Send withdrawal approval email
+     */
+    public function sendWithdrawalApprovalEmail($tenant, $withdrawal)
+    {
+        try {
+            $data = [
+                'tenant' => $tenant,
+                'withdrawal' => $withdrawal,
+                'amount' => $withdrawal->amount,
+                'balance' => $tenant->wallet_balance,
+                'dashboard_url' => route('dashboard'),
+            ];
+
+            Mail::send('emails.withdrawal-approval', $data, function ($message) use ($tenant) {
+                $message->to($tenant->email, $tenant->name)
+                        ->subject('Withdrawal Approved - WIFIHYPER');
+            });
+
+            Log::info('Withdrawal approval email sent', [
+                'tenant_id' => $tenant->id,
+                'withdrawal_id' => $withdrawal->id,
+                'amount' => $withdrawal->amount,
+                'email' => $tenant->email,
+            ]);
+
+            return true;
+        } catch (\Exception $e) {
+            Log::error('Failed to send withdrawal approval email', [
+                'tenant_id' => $tenant->id,
+                'withdrawal_id' => $withdrawal->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
      * Test email configuration
      */
     public function testEmailConfiguration(Tenant $tenant)

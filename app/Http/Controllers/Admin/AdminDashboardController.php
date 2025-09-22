@@ -168,7 +168,20 @@ class AdminDashboardController extends Controller
 
             DB::commit();
 
-            return back()->with('success', 'Withdrawal request approved and funds deducted from tenant wallet.');
+            // Send approval email to tenant
+            try {
+                $emailService = new \App\Services\EmailService();
+                $emailService->sendWithdrawalApprovalEmail($tenant, $withdrawal);
+            } catch (\Exception $emailException) {
+                // Log email error but don't fail the transaction
+                \Log::error('Failed to send withdrawal approval email', [
+                    'tenant_id' => $tenant->id,
+                    'withdrawal_id' => $withdrawal->id,
+                    'error' => $emailException->getMessage(),
+                ]);
+            }
+
+            return back()->with('success', 'Withdrawal request approved and funds deducted from tenant wallet. Email notification sent.');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to approve withdrawal: ' . $e->getMessage());
