@@ -65,6 +65,32 @@
         .brand-name:hover {
             color: #0056b3 !important;
         }
+        
+        /* Header brand name with hero gradient */
+        .navbar .brand-name {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: bold;
+            text-shadow: none;
+        }
+        .navbar .brand-name:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Footer brand name in white */
+        .footer .brand-name {
+            color: white !important;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .footer .brand-name:hover {
+            color: #f8f9fa !important;
+        }
         .navbar {
             background: rgba(255,255,255,0.95) !important;
             backdrop-filter: blur(10px);
