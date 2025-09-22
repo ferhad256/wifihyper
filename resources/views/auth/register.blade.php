@@ -71,12 +71,12 @@
             margin-bottom: 15px;
         }
         .brand-name {
-            color: #007bff !important;
+            color: white !important;
             font-weight: bold;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
         }
         .brand-name:hover {
-            color: #0056b3 !important;
+            color: #f8f9fa !important;
         }
         .btn-outline-secondary {
             border-color: #e9ecef;
