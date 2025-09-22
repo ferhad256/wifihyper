@@ -72,7 +72,7 @@
         
         <div class="notification-box">
             <h3>📞 Need Support?</h3>
-            <p>Our support team is here to help you 24/7:</p>
+            <p>Our support team is here to help you:</p>
             <ul style="margin: 10px 0; padding-left: 20px;">
                 <li>📧 Email: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
                 <li>💬 WhatsApp: <a href="https://wa.me/256700000000">+256 700 000 000</a></li>
