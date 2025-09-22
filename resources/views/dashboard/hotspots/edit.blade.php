@@ -158,7 +158,7 @@
                         <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
                             <i class="fas fa-box me-2"></i>Manage Packages
                         </a>
-                        <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-warning" target="_blank">
+                        <a href="{{ route('portal.index', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}" class="btn btn-warning" target="_blank">
                             <i class="fas fa-external-link-alt me-2"></i>View Portal
                         </a>
                     </div>
@@ -173,7 +173,7 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label for="portal_url" class="form-label">Portal URL</label>
-                        <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->url_name) }}" readonly>
+                        <input type="text" class="form-control form-control-sm" value="{{ route('portal.index', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}" readonly>
                         <div class="form-text">This is the URL customers will use to access your WiFi portal.</div>
                     </div>
                 </div>

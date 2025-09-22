@@ -11,7 +11,7 @@
             <p class="text-muted">{{ $hotspot->name }}</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-primary" target="_blank">
+            <a href="{{ route('portal.index', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}" class="btn btn-primary" target="_blank">
                 <i class="fas fa-external-link-alt me-2"></i>View Portal
             </a>
             <a href="{{ route('hotspots.packages', $hotspot) }}" class="btn btn-success">
@@ -160,7 +160,7 @@
                     <!-- Primary Actions (Most Important) -->
                     <div class="row mb-3">
                         <div class="col-6">
-                            <a href="{{ route('portal.index', $hotspot->url_name) }}" class="btn btn-primary w-100" target="_blank">
+                            <a href="{{ route('portal.index', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}" class="btn btn-primary w-100" target="_blank">
                                 <i class="fas fa-external-link-alt me-2"></i>View Portal
                             </a>
                         </div>
@@ -189,7 +189,7 @@
                     <div class="mb-3">
                         <label class="form-label"><strong>Portal URL:</strong></label>
                         <div class="input-group">
-                            <input type="text" class="form-control" value="{{ route('portal.index', $hotspot->url_name) }}" readonly>
+                            <input type="text" class="form-control" value="{{ route('portal.index', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}" readonly>
                             <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard(this)">
                                 <i class="fas fa-copy"></i>
                             </button>

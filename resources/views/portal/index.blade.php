@@ -275,7 +275,7 @@
         
         // Real-time availability checking with enhanced frequency
         function checkAvailability(packageId) {
-            fetch(`{{ route('portal.check-availability', $hotspot->url_name) }}`, {
+            fetch(`{{ route('portal.check-availability', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
