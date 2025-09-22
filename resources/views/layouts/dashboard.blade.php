@@ -370,12 +370,6 @@
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <h6 class="dropdown-header">Support Hours</h6>
-                                    <span class="dropdown-item-text">
-                                        <small class="text-muted">Mon-Fri: 8AM-6PM<br>Sat: 9AM-2PM (EAT)</small>
-                                    </span>
-                                </li>
                             </ul>
                         </li>
                         

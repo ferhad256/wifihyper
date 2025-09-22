@@ -593,12 +593,6 @@
                         </div>
                     </div>
                     
-                    <div class="mt-4 p-3 bg-light rounded">
-                        <h6 class="mb-2"><i class="fas fa-clock me-2"></i>Support Hours</h6>
-                        <p class="mb-1"><strong>Monday - Friday:</strong> 8:00 AM - 6:00 PM</p>
-                        <p class="mb-0"><strong>Saturday:</strong> 9:00 AM - 2:00 PM</p>
-                        <small class="text-muted">East Africa Time (EAT)</small>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
