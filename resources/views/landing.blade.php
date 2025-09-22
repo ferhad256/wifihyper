@@ -454,14 +454,6 @@
                                 </div>
                             </div>
 
-                            <div class="alert alert-info">
-                                <h5><i class="fas fa-percentage me-2"></i>Transaction Fees Only:</h5>
-                                <ul class="list-unstyled mb-0 text-start">
-                                    <li>• <strong>15%</strong> on payments up to UGX 1,000</li>
-                                    <li>• <strong>10%</strong> on payments from UGX 1,001 to 5,000</li>
-                                    <li>• <strong>5%</strong> on payments above UGX 5,000</li>
-                                </ul>
-                            </div>
 
                             <a href="{{ route('register') }}" class="btn btn-primary btn-lg w-100">
                                 <i class="fas fa-rocket"></i> Get Started Free
