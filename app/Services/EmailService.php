@@ -215,17 +215,18 @@ class EmailService
     /**
      * Send password reset email
      */
-    public function sendPasswordReset(Tenant $tenant, $resetToken)
+    public function sendPasswordResetEmail(Tenant $tenant, $resetUrl)
     {
         try {
             $data = [
                 'tenant' => $tenant,
-                'reset_url' => route('password.reset', ['token' => $resetToken, 'email' => $tenant->email]),
+                'reset_url' => $resetUrl,
+                'expires_in' => 60, // minutes
             ];
 
             Mail::send('emails.password-reset', $data, function ($message) use ($tenant) {
                 $message->to($tenant->email, $tenant->name)
-                        ->subject('Password Reset Request');
+                        ->subject('Password Reset Request - WIFIHYPER');
             });
 
             Log::info('Password reset email sent', [

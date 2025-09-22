@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Forgot Password</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -21,28 +20,28 @@
             min-height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        .login-container {
+        .forgot-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        .login-card {
+        .forgot-card {
             background: white;
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
-            max-width: 400px;
+            max-width: 450px;
             width: 100%;
         }
-        .login-header {
+        .forgot-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 40px 30px;
             text-align: center;
         }
-        .login-body {
+        .forgot-body {
             padding: 40px 30px;
         }
         .btn-primary {
@@ -90,20 +89,30 @@
         .btn-outline-secondary:focus {
             box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
         }
+        .info-box {
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .info-box i {
+            color: #1976d2;
+        }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
+    <div class="forgot-container">
+        <div class="forgot-card">
+            <div class="forgot-header">
                 <div class="wifi-icon">
                     <h1 class="brand-name mb-0" style="font-size: 2.5rem;">WIFIHYPER</h1>
                 </div>
-                <h2>Welcome Back</h2>
-                <p class="mb-0">Sign in to your account</p>
+                <h2>Forgot Password?</h2>
+                <p class="mb-0">No worries, we'll help you reset it</p>
             </div>
             
-            <div class="login-body">
+            <div class="forgot-body">
                 @if(session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{ session('error') }}
@@ -118,7 +127,12 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login') }}">
+                <div class="info-box">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>How it works:</strong> Enter your email address and we'll send you a secure link to reset your password.
+                </div>
+
+                <form method="POST" action="{{ route('password.email') }}">
                     @csrf
                     
                     <div class="mb-3">
@@ -128,59 +142,27 @@
                                 <i class="fas fa-envelope"></i>
                             </span>
                             <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                   id="email" name="email" value="{{ old('email') }}" required>
+                                   id="email" name="email" value="{{ old('email') }}" 
+                                   placeholder="Enter your registered email" required>
                         </div>
                         @error('email')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
                         @enderror
                     </div>
 
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                   id="password" name="password" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                <i class="fas fa-eye" id="togglePasswordIcon"></i>
-                            </button>
-                        </div>
-                        @error('password')
-                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="mb-3 form-check d-flex justify-content-between">
-                        <div>
-                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                            <label class="form-check-label" for="remember">
-                                Remember me
-                            </label>
-                        </div>
-                        <div>
-                            <a href="{{ route('password.request') }}" class="text-decoration-none small">
-                                Forgot password?
-                            </a>
-                        </div>
-                    </div>
-
                     <button type="submit" class="btn btn-primary btn-lg mb-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                        <i class="fas fa-paper-plane me-2"></i>Send Reset Link
                     </button>
                 </form>
 
                 <hr class="my-4">
 
                 <div class="text-center">
-                    <p class="text-muted mb-2">Don't have an account?</p>
-                    <a href="{{ route('register') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-user-plus me-2"></i>Create Account
+                    <p class="text-muted mb-2">Remember your password?</p>
+                    <a href="{{ route('login') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Back to Login
                     </a>
                 </div>
-
-
 
                 <div class="text-center mt-3">
                     <a href="{{ route('landing') }}" class="text-muted text-decoration-none">
@@ -193,23 +175,5 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Password toggle functionality
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordField = document.getElementById('password');
-            const toggleIcon = document.getElementById('togglePasswordIcon');
-            
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
-            }
-        });
-    </script>
 </body>
-</html> 
+</html>
