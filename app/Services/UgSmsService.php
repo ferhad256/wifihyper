@@ -18,7 +18,7 @@ class UgSmsService
 
     public function __construct()
     {
-        $this->baseUrl = 'https://ugsms.com/v1/sms/send';
+        $this->baseUrl = config('services.ug_sms.base_url', 'https://ugsms.com/v1/sms/send');
         $this->username = config('services.ug_sms.username');
         $this->password = config('services.ug_sms.password');
         $this->senderId = config('services.ug_sms.sender_id', 'Wifihyper');
@@ -39,7 +39,11 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $response = Http::post($this->baseUrl, $data);
+            $timeout = config('services.ug_sms.timeout', 30);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
+            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            
+            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 Log::error('UG SMS API Error', [
@@ -101,7 +105,11 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $response = Http::post($this->baseUrl, $data);
+            $timeout = config('services.ug_sms.timeout', 30);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
+            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            
+            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 return [
@@ -142,7 +150,11 @@ class UgSmsService
                 'password' => $this->password,
             ];
 
-            $response = Http::post('https://ugsms.com/v1/sms/balance', $data);
+            $timeout = config('services.ug_sms.timeout', 30);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
+            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            
+            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post('https://ugsms.com/v1/sms/balance', $data);
 
             if (!$response->successful()) {
                 return [
@@ -289,7 +301,11 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $response = Http::post($this->baseUrl, $data);
+            $timeout = config('services.ug_sms.timeout', 30);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
+            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            
+            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 return [

@@ -107,8 +107,7 @@
                     @else
                         <div class="alert alert-warning mb-3">
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Payment Successful!</strong><br>
-                            Your WiFi voucher code has been sent to your phone via SMS.
+                            <strong>Payment Successful!</strong>
                         </div>
                         
                         

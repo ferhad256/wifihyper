@@ -68,6 +68,25 @@ return [
         'password' => env('UG_SMS_PASSWORD'),
         'sender_id' => env('UG_SMS_SENDER_ID', 'WIFIHYPER'),
         'base_url' => env('UG_SMS_BASE_URL', 'https://api.ug-sms.com'),
+        'timeout' => env('UG_SMS_TIMEOUT', 30),
+        'retry_attempts' => env('UG_SMS_RETRY_ATTEMPTS', 3),
+        'retry_delay' => env('UG_SMS_RETRY_DELAY', 1000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Backup SMS Service Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for backup SMS service in case primary fails
+    |
+    */
+    'backup_sms' => [
+        'enabled' => env('BACKUP_SMS_ENABLED', false),
+        'username' => env('BACKUP_SMS_USERNAME'),
+        'password' => env('BACKUP_SMS_PASSWORD'),
+        'sender_id' => env('BACKUP_SMS_SENDER_ID', 'WIFIHYPER'),
+        'base_url' => env('BACKUP_SMS_BASE_URL'),
     ],
 
     /*
