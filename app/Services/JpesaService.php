@@ -761,36 +761,31 @@ class JpesaService
             ]);
         }
 
-        // Send SMS with voucher code and mark voucher as used
+        // Send SMS with voucher code using deduplication service
         $voucher = $transaction->voucher;
         if ($voucher && $voucher->status === 'unused') {
             try {
-                $smsService = new \App\Services\UgSmsService();
-                $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
+                $deduplicationService = new \App\Services\VoucherDeduplicationService();
+                $smsResult = $deduplicationService->sendVoucherSms($transaction);
                 
                 if ($smsResult['success']) {
-                    // Mark voucher as used
-                    $voucher->update([
-                        'status' => 'used',
-                        'used_at' => now(),
-                        'phone_number' => $transaction->phone_number,
-                    ]);
-                    
-                    Log::info('JpesaService: Voucher SMS sent and voucher marked as used', [
+                    Log::info('JpesaService: Voucher SMS processed with deduplication', [
                         'transaction_id' => $transaction->transaction_id,
-                        'voucher_code' => $voucher->code,
+                        'voucher_code' => $smsResult['voucher_code'] ?? $voucher->code,
                         'phone_number' => $transaction->phone_number,
-                        'package_name' => $voucher->package->name ?? 'Unknown'
+                        'package_name' => $smsResult['package_name'] ?? 'Unknown',
+                        'duplicate' => $smsResult['duplicate'] ?? false
                     ]);
                 } else {
-                    Log::error('JpesaService: Failed to send voucher SMS', [
+                    Log::error('JpesaService: Failed to send voucher SMS with deduplication', [
                         'transaction_id' => $transaction->transaction_id,
                         'voucher_code' => $voucher->code,
-                        'error' => $smsResult['message'] ?? 'Unknown SMS error'
+                        'error' => $smsResult['message'] ?? 'Unknown SMS error',
+                        'sms_attempts' => $smsResult['sms_attempts'] ?? 0
                     ]);
                 }
             } catch (\Exception $smsException) {
-                Log::error('JpesaService: Exception during SMS sending', [
+                Log::error('JpesaService: Exception during SMS sending with deduplication', [
                     'transaction_id' => $transaction->transaction_id,
                     'voucher_code' => $voucher->code,
                     'error' => $smsException->getMessage(),
