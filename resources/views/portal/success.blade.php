@@ -77,7 +77,12 @@
                     @if($transaction && $transaction->voucher)
                         <h5 class="mb-3">Your WiFi Code</h5>
                         <div class="voucher-code">
-                            <h3 class="text-success mb-2" id="voucherCode">{{ $transaction->voucher->code }}</h3>
+                            <div class="d-flex align-items-center justify-content-center mb-2">
+                                <h3 class="text-success mb-0 me-3" id="voucherCode">{{ $transaction->voucher->code }}</h3>
+                                <button class="btn btn-outline-success btn-sm" onclick="copyVoucherCode()" id="copyBtn">
+                                    <i class="fas fa-copy me-1"></i>Copy
+                                </button>
+                            </div>
                             <small class="text-muted">Use this code to connect to WiFi</small>
                         </div>
                         
@@ -125,6 +130,77 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function copyVoucherCode() {
+            const voucherCode = document.getElementById('voucherCode').textContent;
+            const copyBtn = document.getElementById('copyBtn');
+            
+            // Use the Clipboard API if available
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(voucherCode).then(function() {
+                    showCopySuccess(copyBtn);
+                }).catch(function(err) {
+                    fallbackCopyTextToClipboard(voucherCode, copyBtn);
+                });
+            } else {
+                // Fallback for older browsers
+                fallbackCopyTextToClipboard(voucherCode, copyBtn);
+            }
+        }
+        
+        function fallbackCopyTextToClipboard(text, button) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCopySuccess(button);
+                } else {
+                    showCopyError(button);
+                }
+            } catch (err) {
+                showCopyError(button);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        function showCopySuccess(button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-success');
+            
+            setTimeout(function() {
+                button.innerHTML = originalText;
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-success');
+            }, 2000);
+        }
+        
+        function showCopyError(button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-times me-1"></i>Failed';
+            button.classList.remove('btn-outline-success');
+            button.classList.add('btn-danger');
+            
+            setTimeout(function() {
+                button.innerHTML = originalText;
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-success');
+            }, 2000);
+        }
+    </script>
     
 </body>
 </html> 
