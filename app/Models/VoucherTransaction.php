@@ -58,7 +58,7 @@ class VoucherTransaction extends Model
     /**
      * Record SMS attempt
      */
-    public function recordSmsAttempt(string $error = null): void
+    public function recordSmsAttempt(?string $error = null): void
     {
         $this->increment('sms_attempts');
         
