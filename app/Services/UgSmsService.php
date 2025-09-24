@@ -43,7 +43,12 @@ class UgSmsService
             $retryAttempts = config('services.ug_sms.retry_attempts', 3);
             $retryDelay = config('services.ug_sms.retry_delay', 1000);
             
-            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
+            $response = Http::timeout($timeout)
+                ->retry($retryAttempts, $retryDelay)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 Log::error('UG SMS API Error', [
@@ -109,7 +114,12 @@ class UgSmsService
             $retryAttempts = config('services.ug_sms.retry_attempts', 3);
             $retryDelay = config('services.ug_sms.retry_delay', 1000);
             
-            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
+            $response = Http::timeout($timeout)
+                ->retry($retryAttempts, $retryDelay)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 return [
@@ -154,7 +164,12 @@ class UgSmsService
             $retryAttempts = config('services.ug_sms.retry_attempts', 3);
             $retryDelay = config('services.ug_sms.retry_delay', 1000);
             
-            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post('https://ugsms.com/v1/sms/balance', $data);
+            $response = Http::timeout($timeout)
+                ->retry($retryAttempts, $retryDelay)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post('https://ugsms.com/v1/sms/balance', $data);
 
             if (!$response->successful()) {
                 return [
@@ -305,7 +320,12 @@ class UgSmsService
             $retryAttempts = config('services.ug_sms.retry_attempts', 3);
             $retryDelay = config('services.ug_sms.retry_delay', 1000);
             
-            $response = Http::timeout($timeout)->retry($retryAttempts, $retryDelay)->post($this->baseUrl, $data);
+            $response = Http::timeout($timeout)
+                ->retry($retryAttempts, $retryDelay)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                ])
+                ->post($this->baseUrl, $data);
 
             if (!$response->successful()) {
                 return [
