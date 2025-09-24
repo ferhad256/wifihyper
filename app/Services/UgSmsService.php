@@ -224,7 +224,7 @@ class UgSmsService
             }
         }
         
-        $message = "Your {$packageName} voucher code is {$voucherCode} for {$duration}.";
+        $message = "Your {$packageName} voucher code is {$voucherCode}.";
         
         return $message;
     }
