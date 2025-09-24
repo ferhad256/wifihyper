@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>{{ $hotspot->name }} - WiFi Portal</title>
     
     <!-- Bootstrap CSS -->
@@ -84,6 +88,91 @@
         }
         .btn-close {
             filter: invert(1);
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .portal-container {
+                padding: 10px;
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+            .portal-card {
+                max-width: 100%;
+                border-radius: 10px;
+                margin: 0;
+            }
+            .portal-header {
+                padding: 20px 15px !important;
+            }
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .btn {
+                font-size: 16px;
+                padding: 12px 20px;
+            }
+            .form-control {
+                font-size: 16px;
+                padding: 12px 15px;
+            }
+            .package-card {
+                margin-bottom: 15px;
+            }
+            .package-price {
+                font-size: 1.5rem;
+            }
+            .package-name {
+                font-size: 1.1rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .portal-container {
+                padding: 5px;
+            }
+            .portal-card {
+                border-radius: 5px;
+            }
+            .portal-header h2 {
+                font-size: 1.5rem;
+            }
+            .portal-header p {
+                font-size: 0.9rem;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .package-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+        
+        /* MikroTik Router Compatibility */
+        @media screen and (max-width: 320px) {
+            .portal-container {
+                padding: 2px;
+            }
+            .portal-card {
+                border-radius: 3px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            .portal-header {
+                padding: 15px 10px !important;
+            }
+            .portal-body {
+                padding: 15px 10px !important;
+            }
+            .btn {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+            .form-control {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
         }
     </style>
 </head>

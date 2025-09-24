@@ -2,8 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Payment Processing - WIFIHYPER</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -88,6 +92,82 @@
             border-radius: 25px;
             padding: 12px 30px;
             font-weight: 600;
+        }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .portal-container {
+                padding: 10px;
+                align-items: flex-start;
+                padding-top: 20px;
+            }
+            .portal-card {
+                max-width: 100%;
+                border-radius: 10px;
+                margin: 0;
+            }
+            .portal-header {
+                padding: 20px 15px !important;
+            }
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .btn {
+                font-size: 16px;
+                padding: 12px 20px;
+            }
+            .spinner-border {
+                width: 2rem;
+                height: 2rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .portal-container {
+                padding: 5px;
+            }
+            .portal-card {
+                border-radius: 5px;
+            }
+            .portal-header h3 {
+                font-size: 1.3rem;
+            }
+            .portal-header p {
+                font-size: 0.9rem;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            .spinner-border {
+                width: 1.5rem;
+                height: 1.5rem;
+            }
+        }
+        
+        /* MikroTik Router Compatibility */
+        @media screen and (max-width: 320px) {
+            .portal-container {
+                padding: 2px;
+            }
+            .portal-card {
+                border-radius: 3px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            }
+            .portal-header {
+                padding: 15px 10px !important;
+            }
+            .portal-body {
+                padding: 15px 10px !important;
+            }
+            .btn {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+            .spinner-border {
+                width: 1.2rem;
+                height: 1.2rem;
+            }
         }
     </style>
 </head>
