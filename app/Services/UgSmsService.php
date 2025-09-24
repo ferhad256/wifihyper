@@ -209,7 +209,7 @@ class UgSmsService
             }
         }
         
-        $message = "Your {$packageName} voucher code is {$voucherCode} for {$duration}. Thank you for choosing WIFIHYPER!";
+        $message = "Your {$packageName} voucher code is {$voucherCode} for {$duration}.";
         
         return $message;
     }
