@@ -76,6 +76,10 @@ Route::middleware('auth.tenant')->group(function () {
     Route::delete('/vouchers/delete-all-package', [VoucherController::class, 'deleteAllForPackage'])->name('vouchers.delete-all-package');
     Route::get('/vouchers/export', [VoucherController::class, 'export'])->name('vouchers.export');
     
+    // Manual SMS voucher routes
+    Route::get('/vouchers/manual-sms', [VoucherController::class, 'showManualSms'])->name('vouchers.manual-sms');
+    Route::post('/vouchers/send-sms', [VoucherController::class, 'sendManualSms'])->name('vouchers.send-sms');
+    
     // Transaction export route
     Route::get('/transactions/export', [DashboardController::class, 'exportTransactions'])->name('transactions.export');
     
@@ -122,6 +126,14 @@ Route::prefix('portal')->middleware('exclude.notifications')->group(function () 
     Route::get('/{hotspotName}/payment', [PortalController::class, 'payment'])->name('portal.payment')->where('hotspotName', '[a-zA-Z0-9\-_]+');
     Route::get('/{hotspotName}/inactive', [PortalController::class, 'inactive'])->name('portal.inactive')->where('hotspotName', '[a-zA-Z0-9\-_]+');
     Route::post('/{hotspotName}/check-availability', [PortalController::class, 'checkAvailability'])->name('portal.check-availability')->where('hotspotName', '[a-zA-Z0-9\-_]+');
+});
+
+// Payment status routes (for real-time status checking)
+Route::prefix('payment')->middleware('exclude.notifications')->group(function () {
+    Route::get('/pending/{transactionId}', [PortalController::class, 'pending'])->name('payment.pending');
+    Route::get('/success', [PortalController::class, 'success'])->name('payment.success');
+    Route::get('/failed', [PortalController::class, 'failed'])->name('payment.failed');
+    Route::post('/check-status', [PortalController::class, 'checkTransactionStatus'])->name('payment.check-status');
 });
 
 // Payment routes

@@ -42,39 +42,40 @@ class AdminDashboardController extends Controller
                                 WithdrawalTransaction::where('status', 'completed')->where('created_at', '>=', now()->startOfMonth())->sum('fee'),
         ];
 
-        // Get daily fee data for chart (last 30 days) - combining transaction fees and withdrawal fees
+        // Get monthly fee data for chart (current year from January to December) - combining transaction fees and withdrawal fees
+        $currentYear = now()->year;
         $transaction_fees = Transaction::where('status', 'completed')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(created_at) as date, SUM(transaction_fee) as fees, COUNT(*) as count')
-            ->groupBy('date')
+            ->whereYear('created_at', $currentYear)
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(transaction_fee) as fees, COUNT(*) as count')
+            ->groupBy('month')
             ->get()
-            ->keyBy('date');
+            ->keyBy('month');
 
         $withdrawal_fees = WithdrawalTransaction::where('status', 'completed')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(created_at) as date, SUM(fee) as fees, COUNT(*) as count')
-            ->groupBy('date')
+            ->whereYear('created_at', $currentYear)
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(fee) as fees, COUNT(*) as count')
+            ->groupBy('month')
             ->get()
-            ->keyBy('date');
+            ->keyBy('month');
 
-        // Combine both fee sources by date
-        $all_dates = collect();
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
-            $transaction_fee = $transaction_fees->get($date)?->fees ?? 0;
-            $withdrawal_fee = $withdrawal_fees->get($date)?->fees ?? 0;
+        // Combine both fee sources by month for the current year
+        $all_months = collect();
+        for ($month = 1; $month <= 12; $month++) {
+            $monthStr = sprintf('%04d-%02d', $currentYear, $month);
+            $transaction_fee = $transaction_fees->get($monthStr)?->fees ?? 0;
+            $withdrawal_fee = $withdrawal_fees->get($monthStr)?->fees ?? 0;
             $total_fees = $transaction_fee + $withdrawal_fee;
             
-            $all_dates->push([
-                'date' => $date,
+            $all_months->push([
+                'month' => $monthStr,
                 'total_fees' => (float) $total_fees,
                 'transaction_fees' => (float) $transaction_fee,
                 'withdrawal_fees' => (float) $withdrawal_fee,
-                'formatted_date' => now()->subDays($i)->format('M d')
+                'formatted_date' => date('M Y', strtotime($monthStr . '-01'))
             ]);
         }
 
-        $filled_fee_data = $all_dates;
+        $filled_fee_data = $all_months;
 
         // Get recent tenants
         $recent_tenants = Tenant::latest()->take(5)->get();

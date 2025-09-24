@@ -87,7 +87,9 @@
                             <strong>Package Details:</strong>
                             <ul class="mb-0 mt-2 text-start">
                                 <li><strong>Package:</strong> {{ $transaction->package->name }}</li>
-                                @if($transaction->package->duration_hours)
+                                @if($transaction->package->duration_value && $transaction->package->duration_unit)
+                                    <li><strong>Duration:</strong> {{ $transaction->package->formatted_duration }}</li>
+                                @elseif($transaction->package->duration_hours)
                                     <li><strong>Duration:</strong> {{ $transaction->package->duration_hours }} hours</li>
                                 @endif
                                 @if($transaction->package->data_limit_mb)

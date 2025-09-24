@@ -95,30 +95,13 @@ class Tenant extends Model
 
     /**
      * Get transaction fee for a specific amount
-     * Using updated fee structure for voucher purchases
+     * New structure: 100 UGX fixed fee + 5% of amount
      */
     public function getTransactionFee($amount)
     {
-        // Updated fee structure for all tenants
-        if ($amount >= 1 && $amount <= 5000) {
-            return $amount * 0.15; // 15% for UGX 1-5000
-        } elseif ($amount >= 5001 && $amount <= 6999) {
-            return $amount * 0.13; // 13% for UGX 5001-6999
-        } elseif ($amount >= 7000 && $amount <= 7999) {
-            return $amount * 0.115; // 11.5% for UGX 7000-7999
-        } elseif ($amount >= 8000 && $amount <= 8999) {
-            return $amount * 0.11; // 11% for UGX 8000-8999
-        } elseif ($amount >= 9000 && $amount <= 9999) {
-            return $amount * 0.10; // 10% for UGX 9000-9999
-        } elseif ($amount >= 10000 && $amount <= 10999) {
-            return $amount * 0.095; // 9.5% for UGX 10000-10999
-        } elseif ($amount >= 11000 && $amount <= 19999) {
-            return $amount * 0.09; // 9% for UGX 11000-19999
-        } elseif ($amount >= 20000) {
-            return $amount * 0.05; // 5% for UGX 20000 and above
-        } else {
-            return $amount * 0.15; // Default 15% for amounts below 1 UGX
-        }
+        $fixedFee = 100; // Fixed 100 UGX fee
+        $percentageFee = $amount * 0.05; // 5% of amount
+        return $fixedFee + $percentageFee;
     }
 
     public function hotspots(): HasMany

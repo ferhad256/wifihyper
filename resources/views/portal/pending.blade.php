@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Payment Processing - WIFIHYPER</title>
-    <!-- Refresh page every 60 seconds to check for callback completion -->
-    <meta http-equiv="refresh" content="60">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -115,7 +114,9 @@
                     @if($transaction->package)
                     <div class="alert alert-success">
                         <strong>Package:</strong> {{ $transaction->package->name }}<br>
-                        @if($transaction->package->duration_hours)
+                        @if($transaction->package->duration_value && $transaction->package->duration_unit)
+                            <strong>Duration:</strong> {{ $transaction->package->formatted_duration }}<br>
+                        @elseif($transaction->package->duration_hours)
                             <strong>Duration:</strong> {{ $transaction->package->duration_hours }} hours<br>
                         @endif
                         @if($transaction->package->data_limit_mb)
@@ -138,6 +139,11 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
+        const transactionId = '{{ $transaction->transaction_id ?? "" }}';
+        let statusCheckInterval;
+        let checkCount = 0;
+        const maxChecks = 300; // 5 minutes of checking (every 1 second)
+        
         // Check if payment was completed via callback on page load
         @if(session('payment_completed'))
             // Payment was completed via callback, redirect to success
@@ -146,29 +152,177 @@
             }, 1000);
         @endif
         
-        // Wait for callback/IPN to complete payment
-        // No active status checking - relying on callback system
-        
-        // Check current transaction status on page load only
-        const transactionId = '{{ $transaction->transaction_id ?? "" }}';
+        // Check current transaction status on page load
         if ('{{ $transaction->status ?? "" }}' === 'completed') {
             // Transaction is already completed, redirect to success
             setTimeout(function() {
                 window.location.href = '/payment/success';
             }, 1000);
+        } else {
+            // Start real-time status checking
+            startStatusChecking();
         }
         
-        // Optional: Add a timeout after 15 minutes to show help message
-        setTimeout(function() {
+        function startStatusChecking() {
+            console.log('Starting real-time status checking for transaction:', transactionId);
+            
+            // Check status every 1 second
+            statusCheckInterval = setInterval(function() {
+                checkTransactionStatus();
+            }, 1000);
+            
+            // Stop checking after 5 minutes
+            setTimeout(function() {
+                if (statusCheckInterval) {
+                    clearInterval(statusCheckInterval);
+                    console.log('Status checking stopped after 5 minutes');
+                    showTimeoutMessage();
+                }
+            }, 300000); // 5 minutes
+        }
+        
+        function checkTransactionStatus() {
+            if (checkCount >= maxChecks) {
+                clearInterval(statusCheckInterval);
+                showTimeoutMessage();
+                return;
+            }
+            
+            checkCount++;
+            
+            fetch('/payment/check-status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({
+                    transaction_id: transactionId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Status check result:', data);
+                
+                if (data.status === 'completed') {
+                    // Payment completed! Redirect to success page
+                    clearInterval(statusCheckInterval);
+                    console.log('Payment completed! Redirecting to success page...');
+                    
+                    // Update UI to show success
+                    updateUIForSuccess(data);
+                    
+                    // Redirect after a short delay
+                    setTimeout(function() {
+                        window.location.href = '/payment/success';
+                    }, 2000);
+                } else if (data.status === 'failed') {
+                    // Payment failed! Redirect to failed page
+                    clearInterval(statusCheckInterval);
+                    console.log('Payment failed! Redirecting to failed page...');
+                    
+                    // Update UI to show failure
+                    updateUIForFailure(data);
+                    
+                    // Redirect after a short delay
+                    setTimeout(function() {
+                        window.location.href = '/payment/failed';
+                    }, 3000);
+                }
+                // If status is still 'pending', continue checking
+            })
+            .catch(error => {
+                console.error('Error checking transaction status:', error);
+                // Continue checking even if there's an error
+            });
+        }
+        
+        function updateUIForSuccess(data) {
+            // Update the status badge
+            const statusBadge = document.querySelector('.badge');
+            if (statusBadge) {
+                statusBadge.textContent = 'Completed';
+                statusBadge.className = 'badge bg-success';
+            }
+            
+            // Update the header
+            const header = document.querySelector('.portal-header h3');
+            if (header) {
+                header.textContent = 'Payment Successful!';
+            }
+            
+            const subHeader = document.querySelector('.portal-header p');
+            if (subHeader) {
+                subHeader.textContent = 'Your payment has been confirmed';
+            }
+            
+            // Update the icon
+            const icon = document.querySelector('.pending-icon i');
+            if (icon) {
+                icon.className = 'fas fa-check-circle';
+                icon.style.color = '#28a745';
+            }
+            
+            // Update the warning message
+            const warningAlert = document.querySelector('.alert-warning');
+            if (warningAlert) {
+                warningAlert.className = 'alert alert-success';
+                warningAlert.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Payment Confirmed!</strong><br>
+                    <small>Your voucher code has been sent via SMS. Redirecting to success page...</small>
+                `;
+            }
+        }
+        
+        function updateUIForFailure(data) {
+            // Update the status badge
+            const statusBadge = document.querySelector('.badge');
+            if (statusBadge) {
+                statusBadge.textContent = 'Failed';
+                statusBadge.className = 'badge bg-danger';
+            }
+            
+            // Update the header
+            const header = document.querySelector('.portal-header h3');
+            if (header) {
+                header.textContent = 'Payment Failed';
+            }
+            
+            const subHeader = document.querySelector('.portal-header p');
+            if (subHeader) {
+                subHeader.textContent = 'Your payment could not be processed';
+            }
+            
+            // Update the icon
+            const icon = document.querySelector('.pending-icon i');
+            if (icon) {
+                icon.className = 'fas fa-times-circle';
+                icon.style.color = '#dc3545';
+            }
+            
+            // Update the warning message
+            const warningAlert = document.querySelector('.alert-warning');
+            if (warningAlert) {
+                warningAlert.className = 'alert alert-danger';
+                warningAlert.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Payment Failed!</strong><br>
+                    <small>Your payment could not be processed. Redirecting to failed page...</small>
+                `;
+            }
+        }
+        
+        function showTimeoutMessage() {
             const helpMessage = document.createElement('div');
             helpMessage.className = 'alert alert-warning mt-3';
             helpMessage.innerHTML = `
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Taking longer than expected?</strong><br>
-                <small>If your payment is taking longer than usual, please contact support with your transaction ID: {{ $transaction->transaction_id ?? 'N/A' }}</small>
+                <small>If your payment is taking longer than usual, please contact support with your transaction ID: ${transactionId}</small>
             `;
             document.querySelector('.portal-body .text-center').appendChild(helpMessage);
-        }, 900000); // 15 minutes
+        }
     </script>
 </body>
 </html> 

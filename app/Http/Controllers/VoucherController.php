@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Tenant;
 use App\Models\Voucher;
 use App\Models\Package;
+use App\Services\UgSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class VoucherController extends Controller
 {
@@ -449,5 +452,165 @@ class VoucherController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to upload CSV: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show manual SMS voucher form
+     */
+    public function showManualSms()
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        // Get all packages for the tenant with available vouchers
+        $packages = $tenant->hotspots()
+            ->with(['packages' => function($query) {
+                $query->where('is_active', true);
+            }])
+            ->get()
+            ->flatMap(function ($hotspot) {
+                return $hotspot->packages->map(function($package) {
+                    $package->available_vouchers = $package->vouchers()
+                        ->where('status', 'unused')
+                        ->where(function($query) {
+                            $query->whereNull('expires_at')
+                                  ->orWhere('expires_at', '>', now());
+                        })
+                        ->count();
+                    return $package;
+                });
+            })
+            ->filter(function($package) {
+                return $package->available_vouchers > 0;
+            });
+
+        return view('dashboard.vouchers.manual-sms', compact('tenant', 'packages'));
+    }
+
+    /**
+     * Send voucher via SMS manually
+     */
+    public function sendManualSms(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|string|min:10|max:15',
+            'package_id' => 'required|exists:packages,id',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        // Verify the package belongs to the tenant
+        $package = Package::where('id', $request->package_id)
+            ->whereHas('hotspot', function ($query) use ($tenant) {
+                $query->where('tenant_id', $tenant->id);
+            })
+            ->first();
+
+        if (!$package) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Find an unused voucher for this package
+            $voucher = $tenant->vouchers()
+                ->where('package_id', $request->package_id)
+                ->where('status', 'unused')
+                ->where(function($query) {
+                    $query->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                })
+                ->first();
+
+            if (!$voucher) {
+                return back()->with('error', 'No available vouchers for this package.');
+            }
+
+            // Format phone number
+            $phoneNumber = $this->formatPhoneNumber($request->phone_number);
+
+            // Send SMS
+            $smsService = new UgSmsService();
+            $smsResult = $smsService->sendVoucherCode($phoneNumber, $voucher->code, $package);
+
+            if ($smsResult['success']) {
+                // Mark voucher as used
+                $voucher->update([
+                    'status' => 'used',
+                    'used_at' => now(),
+                    'phone_number' => $phoneNumber,
+                ]);
+
+                Log::info('Manual voucher SMS sent successfully', [
+                    'tenant_id' => $tenant->id,
+                    'voucher_code' => $voucher->code,
+                    'package_name' => $package->name,
+                    'phone_number' => $phoneNumber,
+                ]);
+
+                DB::commit();
+                return back()->with('success', "Voucher sent successfully to {$phoneNumber}!");
+            } else {
+                Log::error('Failed to send manual voucher SMS', [
+                    'tenant_id' => $tenant->id,
+                    'voucher_code' => $voucher->code,
+                    'package_name' => $package->name,
+                    'phone_number' => $phoneNumber,
+                    'error' => $smsResult['message'] ?? 'Unknown SMS error'
+                ]);
+
+                DB::rollBack();
+                return back()->with('error', 'Failed to send SMS: ' . ($smsResult['message'] ?? 'Unknown error'));
+            }
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Exception during manual voucher SMS sending', [
+                'tenant_id' => $tenant->id,
+                'package_id' => $request->package_id,
+                'phone_number' => $request->phone_number,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Failed to send voucher: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Format phone number for SMS
+     */
+    private function formatPhoneNumber($phoneNumber)
+    {
+        // Remove any non-numeric characters
+        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
+        
+        // Add country code if not present
+        if (strlen($phoneNumber) === 9 && substr($phoneNumber, 0, 1) === '7') {
+            $phoneNumber = '256' . $phoneNumber;
+        } elseif (strlen($phoneNumber) === 10 && substr($phoneNumber, 0, 2) === '07') {
+            $phoneNumber = '256' . substr($phoneNumber, 1);
+        } elseif (strlen($phoneNumber) === 12 && substr($phoneNumber, 0, 3) === '256') {
+            // Already formatted correctly
+        } else {
+            // Default to adding 256 if it looks like a local number
+            if (strlen($phoneNumber) === 9) {
+                $phoneNumber = '256' . $phoneNumber;
+            }
+        }
+        
+        return $phoneNumber;
     }
 }

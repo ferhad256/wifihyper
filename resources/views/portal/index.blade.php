@@ -113,7 +113,11 @@
                                     <div class="col-8">
                                         <h6 class="mb-1">{{ $package->name }}</h6>
                                         <p class="text-muted mb-1">{{ $package->description }}</p>
-                                        @if($package->duration_hours)
+                                        @if($package->duration_value && $package->duration_unit)
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>{{ $package->formatted_duration }}
+                                            </small>
+                                        @elseif($package->duration_hours)
                                             <small class="text-muted">
                                                 <i class="fas fa-clock me-1"></i>{{ $package->duration_hours }} hours
                                             </small>
@@ -161,9 +165,7 @@
                         </div>
                         
                         <div class="text-center mt-4">
-                            <small class="text-muted">
-                                <i class="fas fa-shield-alt me-1"></i>Secure payment via JPesa
-                            </small>
+                            <!-- Payment security notice removed -->
                         </div>
                     @else
                         <div class="text-center py-4">
@@ -228,7 +230,7 @@
                                 <i class="fas fa-phone me-1"></i>Phone Number
                             </label>
                             <input type="tel" class="form-control" id="modal_phone_number" name="phone_number" 
-                                   placeholder="Enter your phone number (e.g., 0744744888, 0397373763)" 
+                                   placeholder="Enter your phone number (e.g., 07xxxxxxxxx, 03xxxxxxxxx)" 
                                    value="{{ old('phone_number') }}" required>
                             <div class="form-text">
                                 <i class="fas fa-info-circle me-1"></i>
@@ -236,16 +238,6 @@
                             </div>
                         </div>
                         
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>Payment Process:</strong>
-                            <ul class="mb-0 mt-2">
-                                <li>Enter your phone number</li>
-                                <li>Complete payment via JPesa</li>
-                                <li>Receive WiFi voucher code via SMS</li>
-                                <li>Use the code to connect to WiFi</li>
-                            </ul>
-                        </div>
                     </div>
                     
                     <div class="modal-footer">
@@ -381,7 +373,7 @@
             const phoneRegex = /^256[0-9]{9}$/;
             if (!phoneRegex.test(phoneNumber)) {
                 e.preventDefault();
-                alert('Please enter a valid Uganda phone number (e.g., 0744744888, 0397373763).');
+                alert('Please enter a valid Uganda phone number (e.g., 07xxxxxxxxx, 03xxxxxxxxx).');
                 return;
             }
             

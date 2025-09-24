@@ -8,6 +8,9 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Vouchers Management</h1>
         <div>
+            <a href="{{ route('vouchers.manual-sms') }}" class="btn btn-info me-2">
+                <i class="fas fa-sms me-2"></i>Send SMS Voucher
+            </a>
             <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadMultipleModal">
                 <i class="fas fa-upload me-2"></i>Upload Multiple
             </button>
@@ -148,10 +151,16 @@
                         @endphp
                         
                         <div class="mb-4">
-                            <h6 class="text-secondary mb-3">
-                                <i class="fas fa-box me-2"></i>{{ $packageName }}
-                                <span class="badge bg-secondary ms-2">{{ $packageVouchers->count() }} vouchers</span>
-                            </h6>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-secondary mb-0">
+                                    <i class="fas fa-box me-2"></i>{{ $packageName }}
+                                    <span class="badge bg-secondary ms-2">{{ $packageVouchers->count() }} vouchers</span>
+                                </h6>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="deletePackageVouchers({{ $packageId }}, '{{ $packageName }}', {{ $packageVouchers->count() }})">
+                                    <i class="fas fa-trash me-1"></i>Delete Package Vouchers
+                                </button>
+                            </div>
                             
                             <div class="table-responsive">
                                 <table class="table table-bordered table-sm" width="100%" cellspacing="0">
@@ -461,6 +470,51 @@
     </div>
 </div>
 
+<!-- Delete Package Vouchers Confirmation Modal -->
+<div class="modal fade" id="deletePackageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Delete Package Vouchers
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('vouchers.delete-all-package') }}">
+                @csrf
+                @method('DELETE')
+                <div class="modal-body">
+                    <input type="hidden" id="delete_package_id_modal" name="package_id">
+                    
+                    <div class="text-center mb-4">
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                        <h5>Are you sure you want to delete all vouchers for this package?</h5>
+                        <p class="text-muted">This action cannot be undone.</p>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Package:</strong> <span id="delete_package_name_modal"></span><br>
+                        <strong>Vouchers to delete:</strong> <span id="delete_package_voucher_count"></span> unused vouchers
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="confirm_package_delete" class="form-label">Type "DELETE" to confirm</label>
+                        <input type="text" class="form-control" id="confirm_package_delete" 
+                               placeholder="Type DELETE to confirm" required>
+                        <div class="form-text">This helps prevent accidental deletions.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="confirm_package_delete_btn" disabled>
+                        <i class="fas fa-trash me-1"></i>Delete Package Vouchers
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
 function uploadForHotspot(hotspotId, hotspotName) {
@@ -490,6 +544,47 @@ function deleteAllVouchersForHotspot(hotspotId, hotspotName, voucherCount) {
     const modal = new bootstrap.Modal(document.getElementById('deleteAllModal'));
     modal.show();
 }
+
+function deletePackageVouchers(packageId, packageName, voucherCount) {
+    // Show the delete modal for package
+    document.getElementById('delete_package_id_modal').value = packageId;
+    document.getElementById('delete_package_name_modal').textContent = packageName;
+    document.getElementById('delete_package_voucher_count').textContent = voucherCount;
+    
+    // Reset confirmation input
+    document.getElementById('confirm_package_delete').value = '';
+    document.getElementById('confirm_package_delete_btn').disabled = true;
+    document.getElementById('confirm_package_delete_btn').classList.remove('btn-danger');
+    document.getElementById('confirm_package_delete_btn').classList.add('btn-secondary');
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('deletePackageModal'));
+    modal.show();
+}
+
+// Handle package delete confirmation input
+document.getElementById('confirm_package_delete').addEventListener('input', function() {
+    const confirmBtn = document.getElementById('confirm_package_delete_btn');
+    const input = this.value.trim();
+    
+    if (input === 'DELETE') {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('btn-secondary');
+        confirmBtn.classList.add('btn-danger');
+    } else {
+        confirmBtn.disabled = true;
+        confirmBtn.classList.remove('btn-danger');
+        confirmBtn.classList.add('btn-secondary');
+    }
+});
+
+// Reset package delete modal when closed
+document.getElementById('deletePackageModal').addEventListener('hidden.bs.modal', function() {
+    document.getElementById('confirm_package_delete').value = '';
+    document.getElementById('confirm_package_delete_btn').disabled = true;
+    document.getElementById('confirm_package_delete_btn').classList.remove('btn-danger');
+    document.getElementById('confirm_package_delete_btn').classList.add('btn-secondary');
+});
 
 // Handle delete confirmation input
 document.getElementById('confirm_delete').addEventListener('input', function() {

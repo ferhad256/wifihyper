@@ -134,7 +134,7 @@
         <div class="col-xl-8 col-lg-7">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Sales Overview (Last 30 Days)</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">Sales Overview ({{ now()->year }})</h6>
                     <div class="dropdown">
                         <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
                             <i class="fas fa-download me-1"></i>Export
@@ -422,7 +422,7 @@ var salesChart = new Chart(ctx, {
     data: {
         labels: {!! json_encode($filled_sales_data->pluck('formatted_date')) !!},
         datasets: [{
-            label: 'Daily Sales (UGX)',
+            label: 'Monthly Sales (UGX)',
             data: {!! json_encode($filled_sales_data->pluck('total')) !!},
             backgroundColor: 'rgba(78, 115, 223, 0.8)',
             borderColor: 'rgb(78, 115, 223)',

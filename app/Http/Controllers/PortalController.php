@@ -165,4 +165,48 @@ class PortalController extends Controller
             'timestamp' => now()->toISOString(),
         ]);
     }
+
+    /**
+     * API endpoint to check transaction status in real-time
+     */
+    public function checkTransactionStatus(Request $request)
+    {
+        $transactionId = $request->input('transaction_id');
+        
+        if (!$transactionId) {
+            return response()->json(['error' => 'Transaction ID is required'], 400);
+        }
+
+        $transaction = Transaction::where('transaction_id', $transactionId)
+            ->with(['voucher', 'package.hotspot'])
+            ->first();
+        
+        if (!$transaction) {
+            return response()->json(['error' => 'Transaction not found'], 404);
+        }
+
+        return response()->json([
+            'transaction_id' => $transaction->transaction_id,
+            'status' => $transaction->status,
+            'amount' => $transaction->amount,
+            'phone_number' => $transaction->phone_number,
+            'created_at' => $transaction->created_at,
+            'updated_at' => $transaction->updated_at,
+            'voucher' => $transaction->voucher ? [
+                'code' => $transaction->voucher->code,
+                'status' => $transaction->voucher->status,
+                'used_at' => $transaction->voucher->used_at,
+            ] : null,
+            'package' => $transaction->package ? [
+                'name' => $transaction->package->name,
+                'duration_hours' => $transaction->package->duration_hours,
+                'data_limit_mb' => $transaction->package->data_limit_mb,
+            ] : null,
+            'hotspot' => $transaction->package && $transaction->package->hotspot ? [
+                'name' => $transaction->package->hotspot->name,
+                'url_name' => $transaction->package->hotspot->url_name,
+            ] : null,
+            'timestamp' => now()->toISOString(),
+        ]);
+    }
 }

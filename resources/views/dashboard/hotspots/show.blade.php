@@ -118,7 +118,9 @@
                                             <strong class="text-primary">UGX {{ number_format($package->price) }}</strong>
                                         </td>
                                         <td>
-                                            @if($package->duration_hours)
+                                            @if($package->duration_value && $package->duration_unit)
+                                                <i class="fas fa-clock me-1"></i>{{ $package->formatted_duration }}
+                                            @elseif($package->duration_hours)
                                                 <i class="fas fa-clock me-1"></i>{{ $package->duration_hours }} hours
                                             @else
                                                 <span class="text-muted">Unlimited</span>

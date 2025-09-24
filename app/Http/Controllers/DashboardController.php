@@ -58,37 +58,38 @@ class DashboardController extends Controller
 
 
 
-        // Get sales chart data (last 30 days with better formatting)
+        // Get sales chart data (current year from January to December)
+        $currentYear = now()->year;
         $sales_data = $tenant->transactions()
             ->where('status', 'completed')
-            ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(created_at) as date, SUM(amount) as total, COUNT(*) as count')
-            ->groupBy('date')
-            ->orderBy('date')
+            ->whereYear('created_at', $currentYear)
+            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(amount) as total, COUNT(*) as count')
+            ->groupBy('month')
+            ->orderBy('month')
             ->get()
             ->map(function ($item) {
                 return [
-                    'date' => $item->date,
+                    'month' => $item->month,
                     'total' => (float) $item->total,
                     'count' => $item->count,
-                    'formatted_date' => date('M d', strtotime($item->date))
+                    'formatted_date' => date('M Y', strtotime($item->month . '-01'))
                 ];
             });
 
-        // Fill in missing dates with zero values
+        // Fill in all months of the current year with zero values for missing months
         $filled_sales_data = collect();
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->format('Y-m-d');
-            $existing = $sales_data->where('date', $date)->first();
+        for ($month = 1; $month <= 12; $month++) {
+            $monthStr = sprintf('%04d-%02d', $currentYear, $month);
+            $existing = $sales_data->where('month', $monthStr)->first();
             
             if ($existing) {
                 $filled_sales_data->push($existing);
             } else {
                 $filled_sales_data->push([
-                    'date' => $date,
+                    'month' => $monthStr,
                     'total' => 0,
                     'count' => 0,
-                    'formatted_date' => now()->subDays($i)->format('M d')
+                    'formatted_date' => date('M Y', strtotime($monthStr . '-01'))
                 ]);
             }
         }

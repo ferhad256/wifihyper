@@ -157,7 +157,7 @@
             <div class="card shadow">
                 <div class="card-header py-3">
                     <h6 class="m-0 font-weight-bold">
-                        <i class="fas fa-chart-area me-2"></i>Daily Fees (Transaction + Withdrawal) - Owner's Profit - Last 30 Days
+                        <i class="fas fa-chart-area me-2"></i>Monthly Fees (Transaction + Withdrawal) - Owner's Profit ({{ now()->year }})
                     </h6>
                 </div>
                 <div class="card-body">
@@ -416,7 +416,7 @@ var feeChart = new Chart(ctx, {
     data: {
         labels: {!! json_encode($filled_fee_data->pluck('formatted_date')) !!},
         datasets: [{
-            label: 'Daily Fees - Transaction + Withdrawal (UGX)',
+            label: 'Monthly Fees - Transaction + Withdrawal (UGX)',
             data: {!! json_encode($filled_fee_data->pluck('total_fees')) !!},
             backgroundColor: 'rgba(40, 167, 69, 0.8)',
             borderColor: 'rgb(40, 167, 69)',

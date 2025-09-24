@@ -17,6 +17,8 @@ class Package extends Model
         'description',
         'price',
         'duration_hours',
+        'duration_unit',
+        'duration_value',
         'data_limit_mb',
         'is_active',
         'sort_order',
@@ -24,6 +26,7 @@ class Package extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'duration_value' => 'decimal:2',
         'is_active' => 'boolean',
     ];
 
@@ -41,6 +44,23 @@ class Package extends Model
     public function setDurationHoursAttribute($value)
     {
         $this->attributes['duration_hours'] = $value && $value !== '' ? (int)$value : null;
+    }
+
+    /**
+     * Set duration_value attribute - handle empty strings
+     */
+    public function setDurationValueAttribute($value)
+    {
+        $this->attributes['duration_value'] = $value && $value !== '' ? (float)$value : null;
+    }
+
+    /**
+     * Set duration_unit attribute - ensure valid unit
+     */
+    public function setDurationUnitAttribute($value)
+    {
+        $validUnits = ['minutes', 'hours', 'days', 'weeks', 'months'];
+        $this->attributes['duration_unit'] = in_array($value, $validUnits) ? $value : 'hours';
     }
 
     /**
@@ -74,6 +94,20 @@ class Package extends Model
 
     public function getFormattedDurationAttribute()
     {
+        // Use new flexible duration system if available
+        if ($this->duration_value && $this->duration_unit) {
+            $unit = $this->duration_unit;
+            $value = $this->duration_value;
+            
+            // Handle pluralization
+            if ($value != 1) {
+                $unit = rtrim($unit, 's') . 's';
+            }
+            
+            return $value . ' ' . $unit;
+        }
+        
+        // Fallback to old duration_hours system
         if (!$this->duration_hours) {
             return 'Unlimited';
         }
@@ -84,6 +118,31 @@ class Package extends Model
         
         $days = $this->duration_hours / 24;
         return $days . ' days';
+    }
+
+    /**
+     * Get duration in hours for compatibility
+     */
+    public function getDurationInHoursAttribute()
+    {
+        if ($this->duration_value && $this->duration_unit) {
+            switch ($this->duration_unit) {
+                case 'minutes':
+                    return $this->duration_value / 60;
+                case 'hours':
+                    return $this->duration_value;
+                case 'days':
+                    return $this->duration_value * 24;
+                case 'weeks':
+                    return $this->duration_value * 24 * 7;
+                case 'months':
+                    return $this->duration_value * 24 * 30; // Approximate
+                default:
+                    return $this->duration_value;
+            }
+        }
+        
+        return $this->duration_hours;
     }
 
     public function getFormattedDataLimitAttribute()

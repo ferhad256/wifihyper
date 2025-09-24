@@ -320,6 +320,10 @@
                         <i class="fas fa-ticket-alt"></i>
                         Vouchers
                     </a>
+                    <a class="nav-link {{ request()->routeIs('vouchers.manual-sms') ? 'active' : '' }}" href="{{ route('vouchers.manual-sms') }}">
+                        <i class="fas fa-sms"></i>
+                        Send SMS Voucher
+                    </a>
                     <a class="nav-link {{ request()->routeIs('dashboard.settings') ? 'active' : '' }}" href="{{ route('dashboard.settings') }}">
                         <i class="fas fa-cog"></i>
                         Settings

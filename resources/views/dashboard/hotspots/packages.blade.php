@@ -81,7 +81,9 @@
                                         </td>
                                         <td>{{ $package->description ?? 'No description' }}</td>
                                         <td>
-                                            @if($package->duration_hours)
+                                            @if($package->duration_value && $package->duration_unit)
+                                                <i class="fas fa-clock me-1"></i>{{ $package->formatted_duration }}
+                                            @elseif($package->duration_hours)
                                                 <i class="fas fa-clock me-1"></i>{{ $package->duration_hours }} hours
                                             @else
                                                 <span class="text-muted">Unlimited</span>
@@ -179,13 +181,27 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="duration_hours" class="form-label">Duration (Hours)</label>
-                                <input type="number" class="form-control @error('duration_hours') is-invalid @enderror" 
-                                       id="duration_hours" name="duration_hours" value="{{ old('duration_hours') }}" 
-                                       min="1" placeholder="Leave empty for unlimited">
-                                @error('duration_hours')
+                                <label for="duration_value" class="form-label">Duration</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control @error('duration_value') is-invalid @enderror" 
+                                           id="duration_value" name="duration_value" value="{{ old('duration_value') }}" 
+                                           min="0.1" step="0.1" placeholder="Leave empty for unlimited">
+                                    <select class="form-select @error('duration_unit') is-invalid @enderror" 
+                                            id="duration_unit" name="duration_unit">
+                                        <option value="minutes" {{ old('duration_unit') == 'minutes' ? 'selected' : '' }}>Minutes</option>
+                                        <option value="hours" {{ old('duration_unit', 'hours') == 'hours' ? 'selected' : '' }}>Hours</option>
+                                        <option value="days" {{ old('duration_unit') == 'days' ? 'selected' : '' }}>Days</option>
+                                        <option value="weeks" {{ old('duration_unit') == 'weeks' ? 'selected' : '' }}>Weeks</option>
+                                        <option value="months" {{ old('duration_unit') == 'months' ? 'selected' : '' }}>Months</option>
+                                    </select>
+                                </div>
+                                @error('duration_value')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
+                                @error('duration_unit')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="form-text text-muted">Leave empty for unlimited duration</small>
                             </div>
                         </div>
                     </div>
@@ -253,8 +269,18 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="edit_duration_hours" class="form-label">Duration (Hours)</label>
-                                <input type="number" class="form-control" id="edit_duration_hours" name="duration_hours" min="1">
+                                <label for="edit_duration_value" class="form-label">Duration</label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" id="edit_duration_value" name="duration_value" min="0.1" step="0.1">
+                                    <select class="form-select" id="edit_duration_unit" name="duration_unit">
+                                        <option value="minutes">Minutes</option>
+                                        <option value="hours">Hours</option>
+                                        <option value="days">Days</option>
+                                        <option value="weeks">Weeks</option>
+                                        <option value="months">Months</option>
+                                    </select>
+                                </div>
+                                <small class="form-text text-muted">Leave empty for unlimited duration</small>
                             </div>
                         </div>
                     </div>
@@ -323,7 +349,17 @@ function editPackage(packageId) {
             document.getElementById('edit_name').value = data.name;
             document.getElementById('edit_description').value = data.description || '';
             document.getElementById('edit_price').value = data.price;
-            document.getElementById('edit_duration_hours').value = data.duration_hours || '';
+            
+            // Handle new duration fields
+            document.getElementById('edit_duration_value').value = data.duration_value || '';
+            document.getElementById('edit_duration_unit').value = data.duration_unit || 'hours';
+            
+            // Fallback to old duration_hours if new fields are not available
+            if (!data.duration_value && data.duration_hours) {
+                document.getElementById('edit_duration_value').value = data.duration_hours;
+                document.getElementById('edit_duration_unit').value = 'hours';
+            }
+            
             document.getElementById('edit_data_limit_mb').value = data.data_limit_mb || '';
             document.getElementById('edit_is_active').checked = data.is_active;
             

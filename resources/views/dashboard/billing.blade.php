@@ -311,7 +311,7 @@
                                 </td>
                                 <td>
                                     <div class="text-primary fw-bold">UGX {{ number_format($transaction->amount) }}</div>
-                                    <small class="text-muted">{{ $transaction->fee_percentage }}% fee</small>
+                                    <small class="text-muted">100 UGX + 5% fee</small>
                                 </td>
                                 <td>
                                     <div class="text-warning">UGX {{ number_format($transaction->transaction_fee) }}</div>

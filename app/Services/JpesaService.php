@@ -805,4 +805,380 @@ class JpesaService
             ]);
         }
     }
+
+    /**
+     * Check transaction status using JPesa API
+     * 
+     * This method queries the JPesa API to get the current status
+     * of a transaction when IPN is not received or delayed.
+     * 
+     * @param string $transactionId - JPesa transaction ID
+     * @return array
+     */
+    public function checkTransactionStatus(string $transactionId): array
+    {
+        try {
+            Log::info('JpesaService: Checking transaction status', [
+                'transaction_id' => $transactionId,
+                'api_key' => $this->apiKey ? 'SET' : 'NOT SET'
+            ]);
+
+            // Validate API key
+            if (empty($this->apiKey)) {
+                return [
+                    'success' => false,
+                    'message' => 'JPesa API key not configured',
+                    'error_code' => 'MISSING_API_KEY'
+                ];
+            }
+
+            // Prepare XML request data using correct JPesa API format
+            $xmlData = '<?xml version="1.0" encoding="ISO-8859-1"?>
+                <g7bill>
+                    <_key_>' . $this->apiKey . '</_key_>
+                    <cmd>account</cmd>
+                    <action>info</action>
+                    <tid>' . $transactionId . '</tid>
+                </g7bill>';
+
+            Log::info('JpesaService: Sending status check request', [
+                'transaction_id' => $transactionId,
+                'xml_data' => $xmlData
+            ]);
+
+            // Initialize cURL
+            $ch = curl_init();
+            
+            // Set cURL options
+            curl_setopt($ch, CURLOPT_URL, $this->baseUrl);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $xmlData);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type: text/xml"));
+            curl_setopt($ch, CURLOPT_HEADER, false);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 0);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+
+            // Execute request
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            
+            curl_close($ch);
+
+            // Handle cURL errors
+            if ($curlError) {
+                Log::error('JpesaService: cURL error during status check', [
+                    'transaction_id' => $transactionId,
+                    'curl_error' => $curlError,
+                    'http_code' => $httpCode
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Network error: ' . $curlError,
+                    'error_code' => 'CURL_ERROR',
+                    'http_code' => $httpCode
+                ];
+            }
+
+            // Handle HTTP errors
+            if ($httpCode !== 200) {
+                Log::error('JpesaService: HTTP error during status check', [
+                    'transaction_id' => $transactionId,
+                    'http_code' => $httpCode,
+                    'response' => $response
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'HTTP error: ' . $httpCode,
+                    'error_code' => 'HTTP_ERROR',
+                    'http_code' => $httpCode,
+                    'response' => $response
+                ];
+            }
+
+            // Parse response
+            $responseData = json_decode($response, true);
+            
+            Log::info('JpesaService: Status check response received', [
+                'transaction_id' => $transactionId,
+                'response_data' => $responseData,
+                'raw_response' => $response
+            ]);
+
+            // Validate response
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                Log::error('JpesaService: Invalid JSON response', [
+                    'transaction_id' => $transactionId,
+                    'json_error' => json_last_error_msg(),
+                    'raw_response' => $response
+                ]);
+
+                return [
+                    'success' => false,
+                    'message' => 'Invalid response format',
+                    'error_code' => 'INVALID_JSON',
+                    'raw_response' => $response
+                ];
+            }
+
+            // Check if response indicates success based on JPesa API format
+            if (isset($responseData['api_status']) && $responseData['api_status'] === 'success') {
+                // Extract transaction status from JPesa response
+                $jpesaStatus = $responseData['status'] ?? 'unknown';
+                $amount = $responseData['amount'] ?? null;
+                $currency = $responseData['cur'] ?? null;
+                $mobile = $responseData['mobile'] ?? null;
+                $memo = $responseData['memo'] ?? null;
+                
+                return [
+                    'success' => true,
+                    'data' => $responseData,
+                    'transaction_id' => $responseData['tid'] ?? $transactionId,
+                    'status' => $jpesaStatus,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'mobile' => $mobile,
+                    'memo' => $memo,
+                    'message' => 'Transaction status retrieved successfully'
+                ];
+            } else {
+                // Handle error response
+                $errorMessage = $responseData['msg'] ?? 'Transaction status check failed';
+                $apiStatus = $responseData['api_status'] ?? 'error';
+                
+                // Check if transaction doesn't exist (should be marked as failed)
+                $shouldMarkAsFailed = $this->shouldMarkTransactionAsFailed($errorMessage);
+                
+                return [
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'error_code' => $apiStatus,
+                    'data' => $responseData,
+                    'should_mark_as_failed' => $shouldMarkAsFailed
+                ];
+            }
+
+        } catch (\Exception $e) {
+            Log::error('JpesaService: Exception during status check', [
+                'transaction_id' => $transactionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred: ' . $e->getMessage(),
+                'error_code' => 'EXCEPTION'
+            ];
+        }
+    }
+
+    /**
+     * Check and update transaction status if IPN is missing
+     * 
+     * This method checks if a transaction is still pending and
+     * queries JPesa API to get the current status.
+     * 
+     * @param Transaction $transaction
+     * @return array
+     */
+    public function checkAndUpdateTransactionStatus(Transaction $transaction): array
+    {
+        try {
+            // Only check pending transactions
+            if ($transaction->status !== 'pending') {
+                return [
+                    'success' => true,
+                    'message' => 'Transaction is not pending, no status check needed',
+                    'status' => $transaction->status
+                ];
+            }
+
+            // Check if transaction is older than 5 minutes (to avoid checking too early)
+            if ($transaction->created_at->diffInMinutes(now()) < 5) {
+                return [
+                    'success' => true,
+                    'message' => 'Transaction too recent, skipping status check',
+                    'status' => 'pending'
+                ];
+            }
+
+            Log::info('JpesaService: Checking status for pending transaction', [
+                'transaction_id' => $transaction->transaction_id,
+                'jpesa_reference' => $transaction->jpesa_reference,
+                'created_at' => $transaction->created_at,
+                'age_minutes' => $transaction->created_at->diffInMinutes(now())
+            ]);
+
+            // Use jpesa_reference if available, otherwise use transaction_id
+            $jpesaTransactionId = $transaction->jpesa_reference ?: $transaction->transaction_id;
+
+            // Check transaction status
+            $statusResult = $this->checkTransactionStatus($jpesaTransactionId);
+
+            if (!$statusResult['success']) {
+                // Check if transaction should be marked as failed
+                if (isset($statusResult['should_mark_as_failed']) && $statusResult['should_mark_as_failed']) {
+                    Log::info('JpesaService: Marking transaction as failed due to JPesa error', [
+                        'transaction_id' => $transaction->transaction_id,
+                        'error_message' => $statusResult['message'],
+                        'error_code' => $statusResult['error_code'] ?? 'UNKNOWN_ERROR'
+                    ]);
+
+                    // Mark transaction as failed
+                    $transaction->update([
+                        'status' => 'failed',
+                        'payment_details' => array_merge(
+                            $transaction->payment_details ?? [],
+                            [
+                                'status_check_error' => $statusResult['data'],
+                                'status_check_at' => now()->toISOString(),
+                                'failure_reason' => 'Transaction not found in JPesa',
+                                'jpesa_error' => $statusResult['message']
+                            ]
+                        )
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'message' => 'Transaction marked as failed due to JPesa error',
+                        'old_status' => 'pending',
+                        'new_status' => 'failed',
+                        'reason' => $statusResult['message']
+                    ];
+                }
+
+                return [
+                    'success' => false,
+                    'message' => 'Failed to check transaction status: ' . $statusResult['message'],
+                    'error_code' => $statusResult['error_code'] ?? 'UNKNOWN_ERROR'
+                ];
+            }
+
+            // Map JPesa status to local status
+            $jpesaStatus = $statusResult['status'] ?? 'unknown';
+            $localStatus = $this->mapStatusToLocal($jpesaStatus);
+
+            Log::info('JpesaService: Status check completed', [
+                'transaction_id' => $transaction->transaction_id,
+                'jpesa_status' => $jpesaStatus,
+                'local_status' => $localStatus,
+                'status_data' => $statusResult['data'] ?? null
+            ]);
+
+            // Update transaction if status changed
+            if ($localStatus !== $transaction->status) {
+                $transaction->update([
+                    'status' => $localStatus,
+                    'payment_details' => array_merge(
+                        $transaction->payment_details ?? [],
+                        [
+                            'status_check' => $statusResult['data'],
+                            'status_check_at' => now()->toISOString(),
+                            'jpesa_status' => $jpesaStatus
+                        ]
+                    )
+                ]);
+
+                // If transaction is now completed, process it
+                if ($localStatus === 'completed') {
+                    $this->handleVoucherPayment($transaction);
+                }
+
+                return [
+                    'success' => true,
+                    'message' => 'Transaction status updated',
+                    'old_status' => $transaction->status,
+                    'new_status' => $localStatus,
+                    'jpesa_status' => $jpesaStatus
+                ];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Transaction status unchanged',
+                'status' => $localStatus,
+                'jpesa_status' => $jpesaStatus
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('JpesaService: Exception during status check and update', [
+                'transaction_id' => $transaction->transaction_id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Exception occurred: ' . $e->getMessage(),
+                'error_code' => 'EXCEPTION'
+            ];
+        }
+    }
+
+    /**
+     * Determine if a transaction should be marked as failed based on error message
+     * 
+     * @param string $errorMessage
+     * @return bool
+     */
+    private function shouldMarkTransactionAsFailed(string $errorMessage): bool
+    {
+        $failureIndicators = [
+            'transaction not found',
+            'invalid transaction',
+            'transaction does not exist',
+            'transaction expired',
+            'transaction cancelled',
+            'transaction failed',
+            'invalid transaction id',
+            'transaction id not found'
+        ];
+
+        $errorMessageLower = strtolower($errorMessage);
+        
+        foreach ($failureIndicators as $indicator) {
+            if (strpos($errorMessageLower, $indicator) !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Map JPesa status to local transaction status
+     * 
+     * Based on JPesa API documentation:
+     * - "closed" = Transaction completed successfully
+     * - "open" = Transaction pending/processing
+     * - "failed" = Transaction failed
+     * 
+     * @param string $jpesaStatus
+     * @return string
+     */
+    private function mapStatusToLocal(string $jpesaStatus): string
+    {
+        $statusMap = [
+            'closed' => 'completed',      // Transaction completed successfully
+            'open' => 'pending',          // Transaction pending/processing
+            'failed' => 'failed',        // Transaction failed
+            'cancelled' => 'failed',     // Transaction cancelled
+            'expired' => 'failed',       // Transaction expired
+            'success' => 'completed',    // Legacy success status
+            'completed' => 'completed',  // Legacy completed status
+            'paid' => 'completed',       // Legacy paid status
+            'confirmed' => 'completed',  // Legacy confirmed status
+            'pending' => 'pending',      // Legacy pending status
+            'processing' => 'pending',   // Legacy processing status
+            'unknown' => 'pending'       // Unknown status defaults to pending
+        ];
+
+        return $statusMap[strtolower($jpesaStatus)] ?? 'pending';
+    }
 }

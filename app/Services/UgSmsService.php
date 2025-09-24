@@ -176,13 +176,28 @@ class UgSmsService
      */
     protected function formatVoucherMessage($voucherCode, ?Package $package = null)
     {
+        $packageName = "WiFi Access";
         $duration = "24 hours";
         
-        if ($package && $package->duration_hours) {
-            $duration = $package->duration_hours . " hours";
+        if ($package) {
+            // Use package name
+            $packageName = $package->name;
+            
+            // Use new flexible duration system if available
+            if ($package->duration_value && $package->duration_unit) {
+                $duration = $package->formatted_duration;
+            } elseif ($package->duration_hours) {
+                // Fallback to old duration_hours system
+                if ($package->duration_hours < 24) {
+                    $duration = $package->duration_hours . " hours";
+                } else {
+                    $days = $package->duration_hours / 24;
+                    $duration = $days . " days";
+                }
+            }
         }
         
-        $message = "Your voucher code is {$voucherCode} for {$duration}. thank you.";
+        $message = "Your {$packageName} voucher code is {$voucherCode} for {$duration}. Thank you for choosing WIFIHYPER!";
         
         return $message;
     }

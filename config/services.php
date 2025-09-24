@@ -46,6 +46,10 @@ return [
         'callback_url' => env('JPESA_CALLBACK_URL', 'https://wifihyper.com/payment/jpesa/callback'),
         'timeout' => env('JPESA_TIMEOUT', 400),
         
+        // Transaction status check settings
+        'pending_timeout_minutes' => env('JPESA_PENDING_TIMEOUT_MINUTES', 15), // Check transactions older than 15 minutes
+        'auto_status_check_enabled' => env('JPESA_AUTO_STATUS_CHECK_ENABLED', true), // Enable automatic status checking
+        
         // Development settings
         'test_mode' => env('JPESA_TEST_MODE', false),
         'test_phone_prefix' => env('JPESA_TEST_PHONE_PREFIX', '256700'),
