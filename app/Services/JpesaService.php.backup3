@@ -774,8 +774,8 @@ class JpesaService
 
             // Now attempt to send SMS (voucher is already marked as used)
             try {
-                $deduplicationService = new \App\Services\AtomicSmsService();
-                $smsResult = $deduplicationService->sendVoucherSmsAtomicAtomic($transaction);
+                $deduplicationService = new \App\Services\VoucherDeduplicationService();
+                $smsResult = $deduplicationService->sendVoucherSms($transaction);
                 
                 if ($smsResult["success"]) {
                     Log::info("JpesaService: Voucher SMS sent successfully", [
