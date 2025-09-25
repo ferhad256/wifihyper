@@ -8,9 +8,10 @@
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Vouchers Management</h1>
         <div>
-            <a href="{{ route('vouchers.manual-sms') }}" class="btn btn-info me-2">
+            {{-- Manual SMS button disabled --}}
+            {{-- <a href="{{ route('vouchers.manual-sms') }}" class="btn btn-info me-2">
                 <i class="fas fa-sms me-2"></i>Send SMS Voucher
-            </a>
+            </a> --}}
             <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadMultipleModal">
                 <i class="fas fa-upload me-2"></i>Upload Multiple
             </button>

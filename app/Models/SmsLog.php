@@ -19,6 +19,7 @@ class SmsLog extends Model
         'message_id',
         'gateway_response',
         'sent_at',
+        'service',
     ];
 
     protected $casts = [

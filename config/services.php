@@ -68,9 +68,10 @@ return [
         'password' => env('UG_SMS_PASSWORD'),
         'sender_id' => env('UG_SMS_SENDER_ID', 'WIFIHYPER'),
         'base_url' => env('UG_SMS_BASE_URL', 'https://ugsms.com/v1/sms/send'),
-        'timeout' => env('UG_SMS_TIMEOUT', 30),
-        'retry_attempts' => env('UG_SMS_RETRY_ATTEMPTS', 3),
-        'retry_delay' => env('UG_SMS_RETRY_DELAY', 1000),
+        'timeout' => env('UG_SMS_TIMEOUT', 60), // Increased from 30 to 60 seconds
+        'retry_attempts' => env('UG_SMS_RETRY_ATTEMPTS', 5), // Increased from 3 to 5 attempts
+        'retry_delay' => env('UG_SMS_RETRY_DELAY', 2000), // Increased from 1000ms to 2000ms
+        'max_retry_delay' => env('UG_SMS_MAX_RETRY_DELAY', 10000), // Maximum delay between retries
     ],
 
     /*

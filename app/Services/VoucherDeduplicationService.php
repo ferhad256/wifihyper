@@ -5,7 +5,7 @@ namespace App\Services;
 use App\Models\VoucherTransaction;
 use App\Models\Transaction;
 use App\Models\Voucher;
-use App\Services\UgSmsService;
+use App\Services\SmsService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +15,7 @@ class VoucherDeduplicationService
 
     public function __construct()
     {
-        $this->smsService = new UgSmsService();
+        $this->smsService = new SmsService();
     }
 
     /**

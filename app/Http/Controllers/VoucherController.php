@@ -455,138 +455,21 @@ class VoucherController extends Controller
     }
 
     /**
-     * Show manual SMS voucher form
+     * Show manual SMS voucher form - DISABLED
      */
     public function showManualSms()
     {
-        $tenant = Tenant::find(session('tenant_id'));
-        
-        if (!$tenant) {
-            return redirect()->route('login');
-        }
-
-        // Get all packages for the tenant with available vouchers
-        $packages = $tenant->hotspots()
-            ->with(['packages' => function($query) {
-                $query->where('is_active', true);
-            }])
-            ->get()
-            ->flatMap(function ($hotspot) {
-                return $hotspot->packages->map(function($package) {
-                    $package->available_vouchers = $package->vouchers()
-                        ->where('status', 'unused')
-                        ->where(function($query) {
-                            $query->whereNull('expires_at')
-                                  ->orWhere('expires_at', '>', now());
-                        })
-                        ->count();
-                    return $package;
-                });
-            })
-            ->filter(function($package) {
-                return $package->available_vouchers > 0;
-            });
-
-        return view('dashboard.vouchers.manual-sms', compact('tenant', 'packages'));
+        // Manual SMS functionality has been disabled
+        return redirect()->route('vouchers.index')->with('error', 'Manual SMS voucher sending has been disabled.');
     }
 
     /**
-     * Send voucher via SMS manually
+     * Send voucher via SMS manually - DISABLED
      */
     public function sendManualSms(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
-        
-        if (!$tenant) {
-            return redirect()->route('login');
-        }
-
-        $validator = Validator::make($request->all(), [
-            'phone_number' => 'required|string|min:10|max:15',
-            'package_id' => 'required|exists:packages,id',
-        ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        // Verify the package belongs to the tenant
-        $package = Package::where('id', $request->package_id)
-            ->whereHas('hotspot', function ($query) use ($tenant) {
-                $query->where('tenant_id', $tenant->id);
-            })
-            ->first();
-
-        if (!$package) {
-            return back()->with('error', 'Unauthorized action.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            // Find an unused voucher for this package
-            $voucher = $tenant->vouchers()
-                ->where('package_id', $request->package_id)
-                ->where('status', 'unused')
-                ->where(function($query) {
-                    $query->whereNull('expires_at')
-                          ->orWhere('expires_at', '>', now());
-                })
-                ->first();
-
-            if (!$voucher) {
-                return back()->with('error', 'No available vouchers for this package.');
-            }
-
-            // Format phone number
-            $phoneNumber = $this->formatPhoneNumber($request->phone_number);
-
-            // Send SMS
-            $smsService = new UgSmsService();
-            $smsResult = $smsService->sendVoucherCode($phoneNumber, $voucher->code, $package);
-
-            if ($smsResult['success']) {
-                // Mark voucher as used
-                $voucher->update([
-                    'status' => 'used',
-                    'used_at' => now(),
-                    'phone_number' => $phoneNumber,
-                ]);
-
-                Log::info('Manual voucher SMS sent successfully', [
-                    'tenant_id' => $tenant->id,
-                    'voucher_code' => $voucher->code,
-                    'package_name' => $package->name,
-                    'phone_number' => $phoneNumber,
-                ]);
-
-                DB::commit();
-                return back()->with('success', "Voucher sent successfully to {$phoneNumber}!");
-            } else {
-                Log::error('Failed to send manual voucher SMS', [
-                    'tenant_id' => $tenant->id,
-                    'voucher_code' => $voucher->code,
-                    'package_name' => $package->name,
-                    'phone_number' => $phoneNumber,
-                    'error' => $smsResult['message'] ?? 'Unknown SMS error'
-                ]);
-
-                DB::rollBack();
-                return back()->with('error', 'Failed to send SMS: ' . ($smsResult['message'] ?? 'Unknown error'));
-            }
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Exception during manual voucher SMS sending', [
-                'tenant_id' => $tenant->id,
-                'package_id' => $request->package_id,
-                'phone_number' => $request->phone_number,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return back()->with('error', 'Failed to send voucher: ' . $e->getMessage());
-        }
+        // Manual SMS functionality has been disabled
+        return redirect()->route('vouchers.index')->with('error', 'Manual SMS voucher sending has been disabled.');
     }
 
     /**

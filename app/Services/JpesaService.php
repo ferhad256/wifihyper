@@ -15,15 +15,8 @@ class JpesaService
 
     public function __construct()
     {
-        // Debug configuration loading
-        $apiKey = config('services.jpesa.api_key');
         
-        Log::info('JpesaService: Configuration loaded', [
-            'api_key' => $apiKey ? 'SET' : 'NOT SET',
-            'base_url' => config('services.jpesa.base_url'),
-            'timeout' => config('services.jpesa.timeout'),
-        ]);
-        
+        $apiKey = config("services.jpesa.api_key");
         $this->baseUrl = config('services.jpesa.base_url', 'https://my.jpesa.com/api/');
         $this->apiKey = $apiKey;
         $this->timeout = config('services.jpesa.timeout', 400);

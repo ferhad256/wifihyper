@@ -76,9 +76,9 @@ Route::middleware('auth.tenant')->group(function () {
     Route::delete('/vouchers/delete-all-package', [VoucherController::class, 'deleteAllForPackage'])->name('vouchers.delete-all-package');
     Route::get('/vouchers/export', [VoucherController::class, 'export'])->name('vouchers.export');
     
-    // Manual SMS voucher routes
-    Route::get('/vouchers/manual-sms', [VoucherController::class, 'showManualSms'])->name('vouchers.manual-sms');
-    Route::post('/vouchers/send-sms', [VoucherController::class, 'sendManualSms'])->name('vouchers.send-sms');
+    // Manual SMS voucher routes - DISABLED
+    // Route::get('/vouchers/manual-sms', [VoucherController::class, 'showManualSms'])->name('vouchers.manual-sms');
+    // Route::post('/vouchers/send-sms', [VoucherController::class, 'sendManualSms'])->name('vouchers.send-sms');
     
     // Transaction export route
     Route::get('/transactions/export', [DashboardController::class, 'exportTransactions'])->name('transactions.export');

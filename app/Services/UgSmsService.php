@@ -25,7 +25,7 @@ class UgSmsService
     }
 
     /**
-     * Send voucher code via SMS
+     * Send voucher code via SMS with improved retry logic
      */
     public function sendVoucherCode($phoneNumber, $voucherCode, ?Package $package = null)
     {
@@ -39,48 +39,51 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $timeout = config('services.ug_sms.timeout', 30);
-            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
-            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            $timeout = config('services.ug_sms.timeout', 60);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 5);
+            $retryDelay = config('services.ug_sms.retry_delay', 2000);
+            $maxRetryDelay = config('services.ug_sms.max_retry_delay', 10000);
             
-            $response = Http::timeout($timeout)
-                ->retry($retryAttempts, $retryDelay)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($this->baseUrl, $data);
+            Log::info('UG SMS: Starting voucher SMS send', [
+                'phone_number' => $phoneNumber,
+                'voucher_code' => $voucherCode,
+                'timeout' => $timeout,
+                'retry_attempts' => $retryAttempts,
+                'retry_delay' => $retryDelay
+            ]);
 
-            if (!$response->successful()) {
+            $response = $this->makeHttpRequestWithRetry($data, $timeout, $retryAttempts, $retryDelay, $maxRetryDelay);
+
+            if (!$response['success']) {
                 Log::error('UG SMS API Error', [
                     'phone_number' => $phoneNumber,
                     'voucher_code' => $voucherCode,
-                    'error' => 'Failed to connect to SMS API',
-                    'status' => $response->status(),
-                    'body' => $response->body()
+                    'error' => $response['message'],
+                    'attempts_made' => $response['attempts_made'] ?? 0
                 ]);
 
                 return [
                     'success' => false,
-                    'message' => 'Failed to connect to SMS API'
+                    'message' => $response['message'],
+                    'attempts_made' => $response['attempts_made'] ?? 0
                 ];
             }
-
-            $responseData = $response->json();
 
             Log::info('UG SMS API Response', [
                 'phone_number' => $phoneNumber,
                 'voucher_code' => $voucherCode,
-                'response' => $responseData,
-                'status' => $response->status()
+                'response' => $response['data'],
+                'attempts_made' => $response['attempts_made'] ?? 1
             ]);
 
             // Log SMS
-            $this->logSms($phoneNumber, $message, $responseData, $voucherCode);
+            $this->logSms($phoneNumber, $message, $response['data'], $voucherCode);
 
             return [
                 'success' => true,
-                'data' => $responseData,
+                'data' => $response['data'],
                 'message' => 'SMS sent successfully',
+                'attempts_made' => $response['attempts_made'] ?? 1
             ];
 
         } catch (\Exception $e) {
@@ -88,6 +91,7 @@ class UgSmsService
                 'phone_number' => $phoneNumber,
                 'voucher_code' => $voucherCode,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return [
@@ -98,7 +102,7 @@ class UgSmsService
     }
 
     /**
-     * Send bulk SMS
+     * Send bulk SMS with improved retry logic
      */
     public function sendBulkSms($recipients, $message)
     {
@@ -110,29 +114,23 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $timeout = config('services.ug_sms.timeout', 30);
-            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
-            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            $timeout = config('services.ug_sms.timeout', 60);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 5);
+            $retryDelay = config('services.ug_sms.retry_delay', 2000);
+            $maxRetryDelay = config('services.ug_sms.max_retry_delay', 10000);
             
-            $response = Http::timeout($timeout)
-                ->retry($retryAttempts, $retryDelay)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($this->baseUrl, $data);
+            $response = $this->makeHttpRequestWithRetry($data, $timeout, $retryAttempts, $retryDelay, $maxRetryDelay);
 
-            if (!$response->successful()) {
+            if (!$response['success']) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to connect to SMS API'
+                    'message' => $response['message']
                 ];
             }
 
-            $responseData = $response->json();
-
             return [
                 'success' => true,
-                'data' => $responseData,
+                'data' => $response['data'],
                 'message' => 'Bulk SMS sent successfully',
             ];
 
@@ -285,6 +283,7 @@ class UgSmsService
                 'status' => 'sent',
                 'gateway_response' => $response,
                 'sent_at' => now(),
+                'service' => 'primary',
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to log SMS', [
@@ -304,6 +303,78 @@ class UgSmsService
     }
 
     /**
+     * Make HTTP request with exponential backoff retry logic
+     */
+    protected function makeHttpRequestWithRetry($data, $timeout, $retryAttempts, $retryDelay, $maxRetryDelay)
+    {
+        $attempts = 0;
+        $lastError = null;
+        
+        while ($attempts < $retryAttempts) {
+            $attempts++;
+            
+            try {
+                Log::info('UG SMS: Attempting request', [
+                    'attempt' => $attempts,
+                    'max_attempts' => $retryAttempts,
+                    'timeout' => $timeout
+                ]);
+                
+                $response = Http::timeout($timeout)
+                    ->withHeaders([
+                        'Content-Type' => 'application/json',
+                        'User-Agent' => 'WifiHyper/1.0',
+                        'Accept' => 'application/json',
+                    ])
+                    ->post($this->baseUrl, $data);
+
+                if ($response->successful()) {
+                    Log::info('UG SMS: Request successful', [
+                        'attempt' => $attempts,
+                        'status' => $response->status()
+                    ]);
+                    
+                    return [
+                        'success' => true,
+                        'data' => $response->json(),
+                        'attempts_made' => $attempts
+                    ];
+                } else {
+                    $lastError = "HTTP {$response->status()}: " . $response->body();
+                    Log::warning('UG SMS: Request failed', [
+                        'attempt' => $attempts,
+                        'status' => $response->status(),
+                        'body' => $response->body()
+                    ]);
+                }
+                
+            } catch (\Exception $e) {
+                $lastError = $e->getMessage();
+                Log::warning('UG SMS: Request exception', [
+                    'attempt' => $attempts,
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            // Don't sleep after the last attempt
+            if ($attempts < $retryAttempts) {
+                $delay = min($retryDelay * pow(2, $attempts - 1), $maxRetryDelay);
+                Log::info('UG SMS: Waiting before retry', [
+                    'attempt' => $attempts,
+                    'delay_ms' => $delay
+                ]);
+                usleep($delay * 1000); // Convert to microseconds
+            }
+        }
+        
+        return [
+            'success' => false,
+            'message' => "Failed after {$attempts} attempts. Last error: {$lastError}",
+            'attempts_made' => $attempts
+        ];
+    }
+
+    /**
      * Generic SMS sending method
      */
     protected function sendSms($phoneNumber, $message)
@@ -316,29 +387,23 @@ class UgSmsService
                 'message_body' => $message,
             ];
 
-            $timeout = config('services.ug_sms.timeout', 30);
-            $retryAttempts = config('services.ug_sms.retry_attempts', 3);
-            $retryDelay = config('services.ug_sms.retry_delay', 1000);
+            $timeout = config('services.ug_sms.timeout', 60);
+            $retryAttempts = config('services.ug_sms.retry_attempts', 5);
+            $retryDelay = config('services.ug_sms.retry_delay', 2000);
+            $maxRetryDelay = config('services.ug_sms.max_retry_delay', 10000);
             
-            $response = Http::timeout($timeout)
-                ->retry($retryAttempts, $retryDelay)
-                ->withHeaders([
-                    'Content-Type' => 'application/json',
-                ])
-                ->post($this->baseUrl, $data);
+            $response = $this->makeHttpRequestWithRetry($data, $timeout, $retryAttempts, $retryDelay, $maxRetryDelay);
 
-            if (!$response->successful()) {
+            if (!$response['success']) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to send SMS'
+                    'message' => $response['message']
                 ];
             }
 
-            $responseData = $response->json();
-
             return [
                 'success' => true,
-                'data' => $responseData,
+                'data' => $response['data'],
                 'message' => 'SMS sent successfully',
             ];
 
