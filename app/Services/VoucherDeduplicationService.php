@@ -58,7 +58,7 @@ class VoucherDeduplicationService
 
         // Check if voucher is still valid
         $voucher = $transaction->voucher;
-        if (!$voucher || $voucher->status !== 'unused') {
+        if (!$voucher || !in_array($voucher->status, ['unused', 'used'])) {
             Log::error('Voucher not available for SMS', [
                 'transaction_id' => $transaction->transaction_id,
                 'voucher_id' => $voucher->id ?? 'not_found',
@@ -82,11 +82,13 @@ class VoucherDeduplicationService
                 // Mark SMS as sent
                 $voucherTransaction->markSmsSent();
 
-                // Mark voucher as used
-                $voucher->update([
-                    'status' => 'used',
-                    'used_at' => now(),
-                    'phone_number' => $transaction->phone_number,
+                // Voucher is already marked as used by JpesaService, just log success
+                Log::info("Voucher SMS sent successfully (voucher already marked as used)", [
+                    "transaction_id" => $transaction->transaction_id,
+                    "voucher_code" => $voucher->code,
+                    "phone_number" => $transaction->phone_number,
+                    "package_name" => $voucher->package->name ?? "Unknown",
+                    "sms_attempts" => $voucherTransaction->sms_attempts
                 ]);
 
                 Log::info('Voucher SMS sent successfully with deduplication', [

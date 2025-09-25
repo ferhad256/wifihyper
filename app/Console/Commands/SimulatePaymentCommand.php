@@ -193,6 +193,15 @@ class SimulatePaymentCommand extends Command
         $this->info("📱 Sending voucher SMS...");
         
         $startTime = microtime(true);
+        // Mark voucher as used immediately (simulating JpesaService behavior)
+        if ($transaction->voucher && $transaction->voucher->status === "unused") {
+            $transaction->voucher->update([
+                "status" => "used",
+                "used_at" => now(),
+                "phone_number" => $transaction->phone_number,
+            ]);
+            $this->info("✅ Voucher marked as used immediately");
+        }
         $result = $deduplicationService->sendVoucherSms($transaction);
         $endTime = microtime(true);
         
