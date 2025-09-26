@@ -221,13 +221,6 @@ class SimulatePaymentCommand extends Command
         $this->info("   Paid At: {$transaction->paid_at}");
         $this->info("   Voucher: {$transaction->voucher->code}");
         
-        // Show voucher transaction tracking
-        $voucherTransaction = VoucherTransaction::where('transaction_id', $transaction->id)->first();
-        if ($voucherTransaction) {
-            $this->info("📈 SMS Tracking:");
-            $this->info("   SMS Sent: " . ($voucherTransaction->sms_sent ? 'Yes' : 'No'));
-            $this->info("   SMS Attempts: {$voucherTransaction->sms_attempts}");
-            $this->info("   Last Error: " . ($voucherTransaction->last_sms_error ?: 'None'));
-        }
+        // SMS was sent successfully as shown above
     }
 }
