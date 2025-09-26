@@ -785,14 +785,7 @@ class JpesaService
                         "package_name" => $voucher->package->name ?? "Unknown"
                     ]);
                 } else {
-            } catch (\Exception $smsException) {
-                Log::error("JpesaService: Exception during SMS sending", [
-                    "transaction_id" => $transaction->transaction_id,
-                    "voucher_code" => $voucher->code,
-                    "error" => $smsException->getMessage(),
-                    "trace" => $smsException->getTraceAsString()
-                ]);
-            }
+                    Log::error("JpesaService: Failed to send voucher SMS", [
                         "transaction_id" => $transaction->transaction_id,
                         "voucher_code" => $voucher->code,
                         "error" => $smsResult["message"] ?? "Unknown SMS error",
