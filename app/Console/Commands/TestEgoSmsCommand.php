@@ -2,73 +2,81 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Services\EgoSmsService;
-use App\Models\Package;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
-class TestSmsCommand extends Command
+class TestEgoSmsCommand extends Command
 {
-    protected $signature = 'sms:test {phone_number} {--voucher=TEST123} {--package=1}';
-    protected $description = 'Test UG SMS service';
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'sms:test-ego {phoneNumber} {--voucher=TEST123} {--package=1}';
 
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Test the EgoSMS service by sending a voucher code.';
+
+    /**
+     * Execute the console command.
+     */
     public function handle()
     {
-        $phoneNumber = $this->argument('phone_number');
+        $phoneNumber = $this->argument('phoneNumber');
         $voucherCode = $this->option('voucher');
         $packageId = $this->option('package');
-        
+
         $this->info("🧪 Testing EgoSMS Service");
         $this->info("📱 Phone: {$phoneNumber}");
         $this->info("🎫 Voucher: {$voucherCode}");
-        $this->newLine();
 
         $smsService = new EgoSmsService();
 
-        // Check if service is configured
         if (!$smsService->isConfigured()) {
-            $this->error("❌ EgoSMS service is not configured");
-            $this->newLine();
-            $this->info("📋 Required Environment Variables:");
-            $this->info("   EGO_SMS_USERNAME=your_username");
-            $this->info("   EGO_SMS_PASSWORD=your_password");
-            $this->info("   EGO_SMS_SENDER_ID=WIFIHYPER (optional)");
+            $this->error("❌ EgoSMS service is NOT configured. Please set EGO_SMS_USERNAME, EGO_SMS_PASSWORD, and EGO_SMS_BASE_URL in your .env file.");
             return 1;
         }
 
         $this->info("✅ EgoSMS service is configured");
         $this->newLine();
 
-        // Get package info
-        $package = Package::find($packageId);
-        if (!$package) {
-            $this->warn("⚠️  Package ID {$packageId} not found, using default package info");
+        // Get package if specified
+        $package = null;
+        if ($packageId) {
+            $package = \App\Models\Package::find($packageId);
+            if ($package) {
+                $this->info("📦 Package: {$package->name}");
+            }
         }
 
-        // Send test SMS
         $this->info("📱 Sending test SMS...");
         $startTime = microtime(true);
-        
         $result = $smsService->sendVoucherCode($phoneNumber, $voucherCode, $package);
-        
         $endTime = microtime(true);
         $duration = round(($endTime - $startTime) * 1000, 2);
 
-        $this->newLine();
-        
         if ($result['success']) {
             $this->info("✅ SMS sent successfully!");
             $this->info("   Duration: {$duration}ms");
-            $this->info("   Response: " . json_encode($result['data'] ?? []));
+            $this->info("   Response: " . json_encode($result['data']));
         } else {
             $this->error("❌ SMS failed!");
             $this->error("   Error: {$result['message']}");
             $this->error("   Duration: {$duration}ms");
+            if (isset($result['attempts_made'])) {
+                $this->error("   Attempts: {$result['attempts_made']}");
+            }
         }
 
         $this->newLine();
         $this->info("📊 Test completed");
         $this->info("📱 Check your phone ({$phoneNumber}) for the SMS");
 
-        return $result['success'] ? 0 : 1;
+        return 0;
     }
 }

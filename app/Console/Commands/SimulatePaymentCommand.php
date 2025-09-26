@@ -7,7 +7,7 @@ use App\Models\Voucher;
 use App\Models\Package;
 use App\Models\Hotspot;
 use App\Models\Tenant;
-use App\Services\UgSmsService;
+use App\Services\EgoSmsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -195,8 +195,8 @@ class SimulatePaymentCommand extends Command
             ]);
             $this->info("✅ Voucher marked as used immediately");
         }
-        // Send SMS using UgSmsService
-        $smsService = new UgSmsService();
+        // Send SMS using EgoSmsService
+        $smsService = new EgoSmsService();
         $result = $smsService->sendVoucherCode($transaction->phone_number, $transaction->voucher->code, $transaction->voucher->package);
         $endTime = microtime(true);
         

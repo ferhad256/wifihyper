@@ -154,8 +154,8 @@ class LongPendingTransactionService
                 'transaction_id' => $transaction->transaction_id
             ]);
 
-            // Send SMS using UgSmsService
-            $smsService = new \App\Services\UgSmsService();
+            // Send SMS using EgoSmsService
+            $smsService = new \App\Services\EgoSmsService();
             $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $transaction->voucher->code, $transaction->voucher->package);
 
             if ($smsResult['success']) {

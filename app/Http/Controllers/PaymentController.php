@@ -8,7 +8,7 @@ use App\Models\Package;
 use App\Models\Voucher;
 use App\Models\Notification;
 use App\Services\JpesaService;
-use App\Services\UgSmsService;
+use App\Services\EgoSmsService;
 use App\Services\VoucherAvailabilityService;
 use App\Services\TransactionFeeService;
 use Illuminate\Http\Request;
@@ -559,7 +559,7 @@ class PaymentController extends Controller
             $tenant->save();
 
             // Send SMS
-            $smsService = new UgSmsService();
+            $smsService = new EgoSmsService();
             $smsService->sendVoucherCode($request->phone_number, $voucher->code, $voucher->package);
 
             DB::commit();
@@ -623,7 +623,7 @@ class PaymentController extends Controller
                 
                 // Verify voucher is valid and unused
                 if ($voucher->status === 'unused' && $voucher->package_id === $transaction->package_id) {
-                    $smsService = new UgSmsService();
+                    $smsService = new EgoSmsService();
                     $smsResult = $smsService->sendVoucherCode(
                         $transaction->phone_number,
                         $voucher->code,

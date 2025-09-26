@@ -774,7 +774,7 @@ class JpesaService
 
             // Now attempt to send SMS (voucher is already marked as used)
             try {
-                $smsService = new \App\Services\UgSmsService();
+                $smsService = new \App\Services\EgoSmsService();
                 $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
                 
                 if ($smsResult["success"]) {
