@@ -13,15 +13,20 @@ return new class extends Migration
     {
         Schema::create('sms_logs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('voucher_id')->nullable()->constrained()->onDelete('set null');
+            $table->unsignedBigInteger('tenant_id')->nullable();
+            $table->unsignedBigInteger('voucher_id')->nullable();
             $table->string('phone_number');
             $table->text('message');
-            $table->enum('status', ['pending', 'sent', 'delivered', 'failed'])->default('pending');
+            $table->enum('status', ['sent', 'failed', 'pending'])->default('pending');
             $table->string('message_id')->nullable();
             $table->json('gateway_response')->nullable();
             $table->timestamp('sent_at')->nullable();
             $table->timestamps();
+
+            $table->index(['tenant_id', 'created_at']);
+            $table->index(['voucher_id', 'created_at']);
+            $table->index(['phone_number', 'created_at']);
+            $table->index(['status', 'created_at']);
         });
     }
 

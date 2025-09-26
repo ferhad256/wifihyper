@@ -774,19 +774,25 @@ class JpesaService
 
             // Now attempt to send SMS (voucher is already marked as used)
             try {
-                $deduplicationService = new \App\Services\AtomicSmsService();
-                $smsResult = $deduplicationService->sendVoucherSmsAtomicAtomic($transaction);
+                $smsService = new \App\Services\UgSmsService();
+                $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $voucher->code, $voucher->package);
                 
                 if ($smsResult["success"]) {
                     Log::info("JpesaService: Voucher SMS sent successfully", [
                         "transaction_id" => $transaction->transaction_id,
-                        "voucher_code" => $smsResult["voucher_code"] ?? $voucher->code,
+                        "voucher_code" => $voucher->code,
                         "phone_number" => $transaction->phone_number,
-                        "package_name" => $smsResult["package_name"] ?? "Unknown",
-                        "duplicate" => $smsResult["duplicate"] ?? false
+                        "package_name" => $voucher->package->name ?? "Unknown"
                     ]);
                 } else {
-                    Log::error("JpesaService: Failed to send voucher SMS (voucher already marked as used)", [
+            } catch (\Exception $smsException) {
+                Log::error("JpesaService: Exception during SMS sending", [
+                    "transaction_id" => $transaction->transaction_id,
+                    "voucher_code" => $voucher->code,
+                    "error" => $smsException->getMessage(),
+                    "trace" => $smsException->getTraceAsString()
+                ]);
+            }
                         "transaction_id" => $transaction->transaction_id,
                         "voucher_code" => $voucher->code,
                         "error" => $smsResult["message"] ?? "Unknown SMS error",

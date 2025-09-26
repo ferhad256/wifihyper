@@ -24,6 +24,7 @@ class SmsLog extends Model
 
     protected $casts = [
         'gateway_response' => 'array',
+        'service' => 'string',
         'sent_at' => 'datetime',
     ];
 
@@ -35,17 +36,5 @@ class SmsLog extends Model
     public function voucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class);
-    }
-
-    // Accessors
-    public function getStatusBadgeAttribute()
-    {
-        return match($this->status) {
-            'sent' => '<span class="badge bg-success">Sent</span>',
-            'delivered' => '<span class="badge bg-success">Delivered</span>',
-            'pending' => '<span class="badge bg-warning">Pending</span>',
-            'failed' => '<span class="badge bg-danger">Failed</span>',
-            default => '<span class="badge bg-secondary">Unknown</span>',
-        };
     }
 }
