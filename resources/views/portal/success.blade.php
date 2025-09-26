@@ -203,10 +203,6 @@
                         </div>
                         @endif
                         
-                        <div class="alert alert-info mb-3">
-                            <i class="fas fa-sms me-2"></i>
-                            <strong>SMS Sent:</strong> Your WiFi voucher code has been sent to {{ $transaction->phone_number ?? 'N/A' }}
-                        </div>
                     @else
                         <div class="alert alert-warning mb-3">
                             <i class="fas fa-exclamation-triangle me-2"></i>
@@ -214,12 +210,6 @@
                         </div>
                         
                         
-                        <div class="mt-3">
-                            <div class="alert alert-warning">
-                                <i class="fas fa-sms me-2"></i>
-                                <strong>SMS Sent!</strong> The voucher code has also been sent to your phone number: {{ $transaction->phone_number ?? 'N/A' }}
-                            </div>
-                        </div>
                     @endif
                 </div>
             </div>
