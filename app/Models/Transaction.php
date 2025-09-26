@@ -63,10 +63,6 @@ class Transaction extends Model
         return $this->belongsTo(Voucher::class);
     }
 
-    public function voucherTransaction(): HasOne
-    {
-        return $this->hasOne(VoucherTransaction::class);
-    }
 
 
     // Accessors

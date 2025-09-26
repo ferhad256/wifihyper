@@ -166,11 +166,8 @@ class PaymentController extends Controller
                 'phone_number' => $request->phone_number
             ]);
 
-            // Create voucher transaction tracking record
-            $deduplicationService = new \App\Services\VoucherDeduplicationService();
-            $deduplicationService->createVoucherTransaction($transaction);
-            
-            Log::info('Voucher transaction tracking created', [
+            // Voucher is already assigned to transaction during creation
+            Log::info('Voucher assigned to transaction', [
                 'transaction_id' => $transaction->transaction_id,
                 'voucher_id' => $voucher->id,
                 'voucher_code' => $voucher->code

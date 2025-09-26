@@ -7,9 +7,7 @@ use App\Models\Voucher;
 use App\Models\Package;
 use App\Models\Hotspot;
 use App\Models\Tenant;
-use App\Models\VoucherTransaction;
-use App\Services\SmsService;
-use App\Services\VoucherDeduplicationService;
+use App\Services\UgSmsService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -71,16 +69,11 @@ class SimulatePaymentCommand extends Command
             $transaction = $this->createTransaction($phoneNumber, $package, $hotspot, $amount);
             $this->info("💳 Transaction Created: {$transaction->transaction_id}");
             
-            // Step 4: Create voucher transaction tracking
-            $deduplicationService = new VoucherDeduplicationService();
-            $voucherTransaction = $deduplicationService->createVoucherTransaction($transaction);
-            $this->info("📊 Voucher tracking created");
-            
-            // Step 5: Simulate payment completion (JPesa callback)
+            // Step 4: Simulate payment completion (JPesa callback)
             $this->simulatePaymentCompletion($transaction);
             
-            // Step 6: Send voucher SMS
-            $this->sendVoucherSms($transaction, $deduplicationService);
+            // Step 5: Send voucher SMS
+            $this->sendVoucherSms($transaction);
             
             $this->newLine();
             $this->info("✅ Payment simulation completed successfully!");
@@ -188,7 +181,7 @@ class SimulatePaymentCommand extends Command
     /**
      * Send voucher SMS
      */
-    protected function sendVoucherSms($transaction, $deduplicationService)
+    protected function sendVoucherSms($transaction)
     {
         $this->info("📱 Sending voucher SMS...");
         
@@ -202,24 +195,21 @@ class SimulatePaymentCommand extends Command
             ]);
             $this->info("✅ Voucher marked as used immediately");
         }
-        $result = $deduplicationService->sendVoucherSms($transaction);
+        // Send SMS using UgSmsService
+        $smsService = new UgSmsService();
+        $result = $smsService->sendVoucherCode($transaction->phone_number, $transaction->voucher->code, $transaction->voucher->package);
         $endTime = microtime(true);
         
         $duration = round(($endTime - $startTime) * 1000, 2);
         
         if ($result['success']) {
-            $this->info("✅ Voucher SMS sent successfully!");
+            $this->info("✅ SMS sent successfully!");
             $this->info("   Duration: {$duration}ms");
-            $this->info("   Voucher Code: {$result['voucher_code']}");
-            $this->info("   Package: {$result['package_name']}");
-            
-            if (isset($result['duplicate']) && $result['duplicate']) {
-                $this->warn("   ⚠️  SMS was already sent (duplicate prevention)");
-            }
+            $this->info("   Voucher: {$transaction->voucher->code}");
+            $this->info("   Package: " . ($transaction->voucher->package->name ?? 'Unknown'));
         } else {
-            $this->error("❌ Voucher SMS failed!");
+            $this->error("❌ SMS failed!");
             $this->error("   Error: {$result['message']}");
-            $this->error("   Attempts: " . ($result['sms_attempts'] ?? 0));
         }
         
         // Show transaction details

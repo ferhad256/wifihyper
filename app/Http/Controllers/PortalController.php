@@ -119,9 +119,7 @@ class PortalController extends Controller
             if ($transaction && $transaction->package && $transaction->package->hotspot) {
                 $hotspotName = $transaction->package->hotspot->name;
                 
-                // Mark voucher as displayed to prevent duplicate display
-                $deduplicationService = new \App\Services\VoucherDeduplicationService();
-                $deduplicationService->markVoucherDisplayed($transaction);
+                // Voucher is already marked as used during payment completion
             }
         }
         

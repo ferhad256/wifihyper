@@ -154,14 +154,14 @@ class LongPendingTransactionService
                 'transaction_id' => $transaction->transaction_id
             ]);
 
-            $deduplicationService = new VoucherDeduplicationService();
-            $smsResult = $deduplicationService->sendVoucherSms($transaction);
+            // Send SMS using UgSmsService
+            $smsService = new \App\Services\UgSmsService();
+            $smsResult = $smsService->sendVoucherCode($transaction->phone_number, $transaction->voucher->code, $transaction->voucher->package);
 
             if ($smsResult['success']) {
                 Log::info('LongPendingTransactionService: Voucher SMS sent successfully', [
                     'transaction_id' => $transaction->transaction_id,
-                    'voucher_code' => $smsResult['voucher_code'] ?? 'Unknown',
-                    'duplicate' => $smsResult['duplicate'] ?? false
+                    'voucher_code' => $transaction->voucher->code
                 ]);
                 return ['success' => true, 'action' => 'sms_sent'];
             } else {
