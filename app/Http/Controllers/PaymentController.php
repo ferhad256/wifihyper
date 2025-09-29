@@ -405,29 +405,6 @@ class PaymentController extends Controller
         }
     }
 
-    /**
-     * Show payment success page
-     */
-    public function success(Request $request)
-    {
-        // Get the latest completed transaction for this session
-        $transactionId = session('last_transaction_id');
-        $transaction = null;
-        $hotspotName = 'default';
-        
-        if ($transactionId) {
-            $transaction = Transaction::where('transaction_id', $transactionId)
-                ->where('status', 'completed')
-                ->with(['voucher', 'package.hotspot'])
-                ->first();
-                
-            if ($transaction && $transaction->package && $transaction->package->hotspot) {
-                $hotspotName = $transaction->package->hotspot->name;
-            }
-        }
-        
-        return view('portal.success', compact('transaction', 'hotspotName'));
-    }
 
     /**
      * Show payment pending page

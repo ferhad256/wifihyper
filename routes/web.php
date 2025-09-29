@@ -140,7 +140,6 @@ Route::prefix('payment')->middleware('exclude.notifications')->group(function ()
 Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('payment.initiate');
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
 Route::post('/payment/redeem-voucher', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem-voucher');
-Route::get('/payment/success', [PaymentController::class, 'success'])->name('payment.success');
 Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
 Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
 
