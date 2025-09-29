@@ -28,7 +28,8 @@ class AdminDashboardController extends Controller
             'total_hotspots' => Hotspot::count(),
             'total_vouchers' => Voucher::count(),
             'total_transactions' => Transaction::count(),
-            'total_revenue' => Transaction::where('status', 'completed')->sum('amount'),
+            'total_revenue' => Transaction::where('status', 'completed')->sum('amount') - 
+                               WithdrawalTransaction::where('status', 'completed')->sum('amount'),
             'pending_withdrawals' => WithdrawalTransaction::where('status', 'pending')->count(),
             'pending_withdrawal_amount' => WithdrawalTransaction::where('status', 'pending')->sum('amount'),
             // Transaction fee analytics (Owner's Profit) - includes both transaction fees and withdrawal fees
@@ -117,7 +118,8 @@ class AdminDashboardController extends Controller
             ->findOrFail($id);
 
         $tenant_stats = [
-            'total_sales' => $tenant->transactions()->where('status', 'completed')->sum('amount'),
+            'total_sales' => $tenant->transactions()->where('status', 'completed')->sum('amount') - 
+                             $tenant->withdrawalTransactions()->where('status', 'completed')->sum('amount'),
             'total_transactions' => $tenant->transactions()->count(),
             'total_hotspots' => $tenant->hotspots()->count(),
             'total_vouchers' => $tenant->vouchers()->count(),

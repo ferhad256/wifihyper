@@ -139,6 +139,9 @@ class Tenant extends Model
     {
         return $this->transactions()
             ->where('status', 'completed')
+            ->sum('amount') - 
+            $this->withdrawalTransactions()
+            ->where('status', 'completed')
             ->sum('amount');
     }
 
@@ -159,6 +162,10 @@ class Tenant extends Model
     public function getTodaySalesAttribute()
     {
         return $this->transactions()
+            ->where('status', 'completed')
+            ->whereDate('created_at', today())
+            ->sum('amount') - 
+            $this->withdrawalTransactions()
             ->where('status', 'completed')
             ->whereDate('created_at', today())
             ->sum('amount');
