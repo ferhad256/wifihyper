@@ -51,6 +51,142 @@
             padding: 12px 30px;
             font-weight: 600;
         }
+        
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .portal-container {
+                padding: 8px;
+                align-items: flex-start;
+                padding-top: 15px;
+            }
+            .portal-card {
+                max-width: 100%;
+                border-radius: 12px;
+                margin: 0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            }
+            .portal-header {
+                padding: 25px 20px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .portal-header p {
+                font-size: 0.95rem;
+                margin-bottom: 5px;
+            }
+            .portal-body {
+                padding: 25px 20px !important;
+            }
+            .inactive-icon {
+                font-size: 3.5rem;
+                margin-bottom: 18px;
+            }
+            .btn {
+                font-size: 16px;
+                padding: 14px 24px;
+                min-height: 48px;
+                touch-action: manipulation;
+            }
+            .alert {
+                border-radius: 12px;
+                padding: 18px;
+                margin-bottom: 16px;
+            }
+            .alert ul {
+                padding-left: 20px;
+            }
+            .alert li {
+                margin-bottom: 6px;
+                font-size: 0.9rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .portal-container {
+                padding: 5px;
+            }
+            .portal-card {
+                border-radius: 8px;
+            }
+            .portal-header {
+                padding: 20px 15px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.3rem;
+            }
+            .portal-header p {
+                font-size: 0.9rem;
+            }
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .inactive-icon {
+                font-size: 3rem;
+                margin-bottom: 15px;
+            }
+            .btn {
+                width: 100%;
+                margin: 0;
+                min-height: 48px;
+                font-size: 15px;
+            }
+            .alert {
+                padding: 15px;
+                margin-bottom: 14px;
+            }
+            .alert li {
+                font-size: 0.85rem;
+                margin-bottom: 5px;
+            }
+            .alert strong {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* MikroTik Router Compatibility */
+        @media screen and (max-width: 320px) {
+            .portal-container {
+                padding: 3px;
+            }
+            .portal-card {
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            }
+            .portal-header {
+                padding: 18px 12px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.2rem;
+            }
+            .portal-header p {
+                font-size: 0.85rem;
+            }
+            .portal-body {
+                padding: 18px 12px !important;
+            }
+            .inactive-icon {
+                font-size: 2.5rem;
+                margin-bottom: 12px;
+            }
+            .btn {
+                font-size: 14px;
+                padding: 12px 16px;
+                min-height: 44px;
+            }
+            .alert {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            .alert li {
+                font-size: 0.8rem;
+                margin-bottom: 4px;
+            }
+            .alert strong {
+                font-size: 0.85rem;
+            }
+        }
     </style>
 </head>
 <body>

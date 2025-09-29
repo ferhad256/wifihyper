@@ -93,37 +93,98 @@
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .portal-container {
-                padding: 10px;
+                padding: 8px;
                 align-items: flex-start;
-                padding-top: 20px;
+                padding-top: 15px;
             }
             .portal-card {
                 max-width: 100%;
-                border-radius: 10px;
+                border-radius: 12px;
                 margin: 0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             .portal-header {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .portal-header p {
+                font-size: 0.95rem;
+                margin-bottom: 5px;
             }
             .portal-body {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
             }
             .btn {
                 font-size: 16px;
-                padding: 12px 20px;
+                padding: 14px 24px;
+                min-height: 48px;
+                touch-action: manipulation;
             }
             .form-control {
                 font-size: 16px;
-                padding: 12px 15px;
+                padding: 14px 16px;
+                min-height: 48px;
             }
             .package-card {
-                margin-bottom: 15px;
+                margin-bottom: 16px;
+                padding: 18px;
+                border-radius: 12px;
             }
-            .package-price {
-                font-size: 1.5rem;
+            .package-card .row {
+                align-items: center;
             }
-            .package-name {
+            .package-card .col-8 {
+                padding-right: 12px;
+            }
+            .package-card .col-4 {
+                padding-left: 12px;
+            }
+            .package-card h6 {
                 font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 6px;
+            }
+            .package-card p {
+                font-size: 0.9rem;
+                margin-bottom: 8px;
+            }
+            .package-card small {
+                font-size: 0.85rem;
+            }
+            .h5 {
+                font-size: 1.3rem;
+                font-weight: 700;
+            }
+            .btn-buy-now {
+                font-size: 14px;
+                padding: 10px 16px;
+                min-height: 44px;
+                width: 100%;
+            }
+            .modal-dialog {
+                margin: 10px;
+                max-width: calc(100% - 20px);
+            }
+            .modal-content {
+                border-radius: 12px;
+            }
+            .modal-header {
+                padding: 20px;
+            }
+            .modal-body {
+                padding: 20px;
+            }
+            .modal-footer {
+                padding: 20px;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .modal-footer .btn {
+                width: 100%;
+                margin: 0;
             }
         }
         
@@ -132,46 +193,122 @@
                 padding: 5px;
             }
             .portal-card {
-                border-radius: 5px;
+                border-radius: 8px;
             }
-            .portal-header h2 {
-                font-size: 1.5rem;
+            .portal-header {
+                padding: 20px 15px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.3rem;
             }
             .portal-header p {
                 font-size: 0.9rem;
             }
-            .btn {
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .package-card {
+                padding: 15px;
+                margin-bottom: 12px;
+            }
+            .package-card .row {
+                flex-direction: column;
+                text-align: center;
+            }
+            .package-card .col-8,
+            .package-card .col-4 {
                 width: 100%;
+                padding: 0;
+                margin-bottom: 12px;
+            }
+            .package-card .col-4 {
+                margin-bottom: 0;
+            }
+            .package-card h6 {
+                font-size: 1.1rem;
+                margin-bottom: 8px;
+            }
+            .package-card p {
+                font-size: 0.9rem;
                 margin-bottom: 10px;
             }
-            .package-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
+            .h5 {
+                font-size: 1.2rem;
+                margin-bottom: 12px;
+            }
+            .btn-buy-now {
+                font-size: 15px;
+                padding: 12px 20px;
+                min-height: 48px;
+            }
+            .modal-dialog {
+                margin: 5px;
+                max-width: calc(100% - 10px);
+            }
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding: 15px;
             }
         }
         
         /* MikroTik Router Compatibility */
         @media screen and (max-width: 320px) {
             .portal-container {
-                padding: 2px;
+                padding: 3px;
             }
             .portal-card {
-                border-radius: 3px;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
             }
             .portal-header {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.2rem;
+            }
+            .portal-header p {
+                font-size: 0.85rem;
             }
             .portal-body {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .package-card {
+                padding: 12px;
+                margin-bottom: 10px;
+            }
+            .package-card h6 {
+                font-size: 1rem;
+            }
+            .package-card p {
+                font-size: 0.85rem;
+            }
+            .h5 {
+                font-size: 1.1rem;
             }
             .btn {
                 font-size: 14px;
-                padding: 10px 15px;
+                padding: 12px 16px;
+                min-height: 44px;
             }
             .form-control {
                 font-size: 14px;
-                padding: 10px 12px;
+                padding: 12px 14px;
+                min-height: 44px;
+            }
+            .btn-buy-now {
+                font-size: 13px;
+                padding: 10px 14px;
+                min-height: 42px;
+            }
+            .modal-dialog {
+                margin: 3px;
+                max-width: calc(100% - 6px);
+            }
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding: 12px;
             }
         }
     </style>

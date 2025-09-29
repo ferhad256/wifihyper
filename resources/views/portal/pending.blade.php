@@ -97,24 +97,51 @@
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .portal-container {
-                padding: 10px;
+                padding: 8px;
                 align-items: flex-start;
-                padding-top: 20px;
+                padding-top: 15px;
             }
             .portal-card {
                 max-width: 100%;
-                border-radius: 10px;
+                border-radius: 12px;
                 margin: 0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             .portal-header {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .portal-header p {
+                font-size: 0.95rem;
             }
             .portal-body {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
+            }
+            .pending-icon {
+                width: 70px;
+                height: 70px;
+                font-size: 32px;
+                margin-bottom: 18px;
             }
             .btn {
                 font-size: 16px;
-                padding: 12px 20px;
+                padding: 14px 24px;
+                min-height: 48px;
+                touch-action: manipulation;
+            }
+            .alert {
+                border-radius: 12px;
+                padding: 18px;
+                margin-bottom: 16px;
+            }
+            .alert strong {
+                font-size: 0.95rem;
+            }
+            .alert small {
+                font-size: 0.85rem;
             }
             .spinner-border {
                 width: 2rem;
@@ -127,7 +154,10 @@
                 padding: 5px;
             }
             .portal-card {
-                border-radius: 5px;
+                border-radius: 8px;
+            }
+            .portal-header {
+                padding: 20px 15px !important;
             }
             .portal-header h3 {
                 font-size: 1.3rem;
@@ -135,9 +165,30 @@
             .portal-header p {
                 font-size: 0.9rem;
             }
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .pending-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+                margin-bottom: 15px;
+            }
             .btn {
                 width: 100%;
-                margin-bottom: 10px;
+                margin: 0;
+                min-height: 48px;
+                font-size: 15px;
+            }
+            .alert {
+                padding: 15px;
+                margin-bottom: 14px;
+            }
+            .alert strong {
+                font-size: 0.9rem;
+            }
+            .alert small {
+                font-size: 0.8rem;
             }
             .spinner-border {
                 width: 1.5rem;
@@ -148,21 +199,44 @@
         /* MikroTik Router Compatibility */
         @media screen and (max-width: 320px) {
             .portal-container {
-                padding: 2px;
+                padding: 3px;
             }
             .portal-card {
-                border-radius: 3px;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
             }
             .portal-header {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.2rem;
+            }
+            .portal-header p {
+                font-size: 0.85rem;
             }
             .portal-body {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .pending-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+                margin-bottom: 12px;
             }
             .btn {
                 font-size: 14px;
-                padding: 10px 15px;
+                padding: 12px 16px;
+                min-height: 44px;
+            }
+            .alert {
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            .alert strong {
+                font-size: 0.85rem;
+            }
+            .alert small {
+                font-size: 0.75rem;
             }
             .spinner-border {
                 width: 1.2rem;

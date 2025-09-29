@@ -67,38 +67,69 @@
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .portal-container {
-                padding: 10px;
+                padding: 8px;
                 align-items: flex-start;
-                padding-top: 20px;
+                padding-top: 15px;
             }
             .portal-card {
                 max-width: 100%;
-                border-radius: 10px;
+                border-radius: 12px;
                 margin: 0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             }
             .portal-header {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+            .portal-header p {
+                font-size: 0.95rem;
             }
             .portal-body {
-                padding: 20px 15px !important;
+                padding: 25px 20px !important;
             }
             .btn {
                 font-size: 16px;
-                padding: 12px 20px;
+                padding: 14px 24px;
+                min-height: 48px;
+                touch-action: manipulation;
             }
             .voucher-code {
-                padding: 15px;
+                padding: 20px 15px;
+                margin: 20px 0;
+                border-radius: 12px;
             }
             .voucher-code h3 {
-                font-size: 1.5rem;
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 15px;
+            }
+            .voucher-code small {
+                font-size: 0.9rem;
             }
             .d-flex {
                 flex-direction: column;
                 align-items: center !important;
+                gap: 15px;
             }
             .d-flex .btn {
-                margin-top: 10px;
-                margin-left: 0 !important;
+                margin: 0;
+                width: 100%;
+                max-width: 200px;
+            }
+            .alert {
+                border-radius: 12px;
+                padding: 18px;
+                margin-bottom: 16px;
+            }
+            .alert ul {
+                padding-left: 20px;
+            }
+            .alert li {
+                margin-bottom: 6px;
+                font-size: 0.9rem;
             }
         }
         
@@ -107,7 +138,10 @@
                 padding: 5px;
             }
             .portal-card {
-                border-radius: 5px;
+                border-radius: 8px;
+            }
+            .portal-header {
+                padding: 20px 15px !important;
             }
             .portal-header h3 {
                 font-size: 1.3rem;
@@ -115,14 +149,36 @@
             .portal-header p {
                 font-size: 0.9rem;
             }
-            .btn {
-                width: 100%;
-                margin-bottom: 10px;
+            .portal-body {
+                padding: 20px 15px !important;
+            }
+            .voucher-code {
+                padding: 18px 12px;
+                margin: 18px 0;
             }
             .voucher-code h3 {
-                font-size: 1.3rem;
+                font-size: 1.6rem;
+                margin-bottom: 12px;
+            }
+            .voucher-code small {
+                font-size: 0.85rem;
+            }
+            .btn {
+                width: 100%;
+                margin: 0;
+                min-height: 48px;
+                font-size: 15px;
             }
             .alert {
+                font-size: 0.9rem;
+                padding: 15px;
+                margin-bottom: 14px;
+            }
+            .alert li {
+                font-size: 0.85rem;
+                margin-bottom: 5px;
+            }
+            .alert strong {
                 font-size: 0.9rem;
             }
         }
@@ -130,31 +186,51 @@
         /* MikroTik Router Compatibility */
         @media screen and (max-width: 320px) {
             .portal-container {
-                padding: 2px;
+                padding: 3px;
             }
             .portal-card {
-                border-radius: 3px;
-                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
             }
             .portal-header {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .portal-header h3 {
+                font-size: 1.2rem;
+            }
+            .portal-header p {
+                font-size: 0.85rem;
             }
             .portal-body {
-                padding: 15px 10px !important;
+                padding: 18px 12px !important;
+            }
+            .voucher-code {
+                padding: 15px 10px;
+                margin: 15px 0;
+            }
+            .voucher-code h3 {
+                font-size: 1.4rem;
+                margin-bottom: 10px;
+            }
+            .voucher-code small {
+                font-size: 0.8rem;
             }
             .btn {
                 font-size: 14px;
-                padding: 10px 15px;
-            }
-            .voucher-code {
-                padding: 10px;
-            }
-            .voucher-code h3 {
-                font-size: 1.2rem;
+                padding: 12px 16px;
+                min-height: 44px;
             }
             .alert {
                 font-size: 0.8rem;
-                padding: 10px;
+                padding: 12px;
+                margin-bottom: 12px;
+            }
+            .alert li {
+                font-size: 0.8rem;
+                margin-bottom: 4px;
+            }
+            .alert strong {
+                font-size: 0.85rem;
             }
         }
     </style>
