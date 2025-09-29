@@ -103,8 +103,8 @@ class PaymentController extends Controller
                 return back()->with('error', 'No vouchers available for the ' . $package->name . ' package. Please contact the hotspot owner to upload more vouchers.')->withInput();
             }
 
-            // Find an available voucher for the specific package with enhanced validation
-            $voucher = $tenant->vouchers()
+            // Find a random available voucher for the specific package with enhanced validation
+            $availableVouchers = $tenant->vouchers()
                 ->where('status', 'unused')
                 ->where('package_id', $package->id)
                 ->whereNull('used_at')
@@ -113,7 +113,14 @@ class PaymentController extends Controller
                           ->orWhere('expires_at', '>', now());
                 })
                 ->lockForUpdate() // Prevent race conditions
-                ->first();
+                ->get();
+            
+            if ($availableVouchers->isEmpty()) {
+                $voucher = null;
+            } else {
+                // Select a random voucher from available vouchers
+                $voucher = $availableVouchers->random();
+            }
 
             if (!$voucher) {
                 Log::error('Voucher not found despite availability check', [
