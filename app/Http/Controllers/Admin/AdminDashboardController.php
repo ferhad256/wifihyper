@@ -212,7 +212,20 @@ class AdminDashboardController extends Controller
             'failed_at' => now(),
         ]);
 
-        return back()->with('success', 'Withdrawal request rejected.');
+        // Send rejection email to tenant
+        try {
+            $emailService = new \App\Services\EmailService();
+            $emailService->sendWithdrawalRejectionEmail($withdrawal->tenant, $withdrawal);
+        } catch (\Exception $emailException) {
+            // Log email error but don't fail the transaction
+            \Log::error('Failed to send withdrawal rejection email', [
+                'tenant_id' => $withdrawal->tenant->id,
+                'withdrawal_id' => $withdrawal->id,
+                'error' => $emailException->getMessage(),
+            ]);
+        }
+
+        return back()->with('success', 'Withdrawal request rejected. Email notification sent.');
     }
 
     /**
