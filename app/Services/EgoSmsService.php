@@ -87,6 +87,85 @@ class EgoSmsService
         }
     }
 
+    public function sendSms($phoneNumber, $message)
+    {
+        if (!$this->isConfigured()) {
+            Log::error('EgoSMS: Service not configured', [
+                'phone_number' => $phoneNumber,
+                'message' => $message
+            ]);
+            return ['success' => false, 'message' => 'EgoSMS service not configured'];
+        }
+
+        $formattedNumber = $this->formatPhoneNumber($phoneNumber);
+
+        Log::info('EgoSMS: Starting SMS send', [
+            'phone_number' => $phoneNumber,
+            'formatted_number' => $formattedNumber,
+            'message' => $message
+        ]);
+
+        $url = $this->buildRequestUrl($formattedNumber, $message);
+        $timeout = $this->timeout;
+
+        for ($attempt = 1; $attempt <= $this->retryAttempts; $attempt++) {
+            try {
+                $response = Http::timeout($timeout)->get($url);
+
+                if ($response->successful()) {
+                    $responseBody = trim($response->body());
+                    if (strtoupper($responseBody) === 'OK') {
+                        $this->logSms($formattedNumber, $message, 'sent', null, $response->json());
+                        
+                        Log::info('EgoSMS: SMS sent successfully', [
+                            'phone_number' => $formattedNumber,
+                            'message' => $message,
+                            'attempt' => $attempt,
+                            'response' => $responseBody
+                        ]);
+
+                        return ['success' => true, 'message' => 'SMS sent successfully'];
+                    } else {
+                        Log::warning('EgoSMS: Unexpected response', [
+                            'phone_number' => $formattedNumber,
+                            'response' => $responseBody,
+                            'attempt' => $attempt
+                        ]);
+                    }
+                } else {
+                    Log::warning('EgoSMS: HTTP request failed', [
+                        'phone_number' => $formattedNumber,
+                        'status' => $response->status(),
+                        'attempt' => $attempt
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('EgoSMS: Exception during SMS send', [
+                    'phone_number' => $formattedNumber,
+                    'attempt' => $attempt,
+                    'error' => $e->getMessage()
+                ]);
+            }
+
+            // Wait before retry (exponential backoff)
+            if ($attempt < $this->retryAttempts) {
+                $delay = min($this->retryDelay * $attempt, $this->maxRetryDelay);
+                usleep($delay * 1000); // Convert to microseconds
+            }
+        }
+
+        // All attempts failed
+        $this->logSms($formattedNumber, $message, 'failed', 'All retry attempts failed');
+        
+        Log::error('EgoSMS: SMS send failed after all retries', [
+            'phone_number' => $formattedNumber,
+            'message' => $message,
+            'attempts' => $this->retryAttempts
+        ]);
+
+        return ['success' => false, 'message' => 'Failed to send SMS after all retry attempts'];
+    }
+
     public function sendBulkSms($phoneNumbers, $message)
     {
         if (!$this->isConfigured()) {

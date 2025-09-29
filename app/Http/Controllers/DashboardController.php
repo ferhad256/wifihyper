@@ -283,6 +283,34 @@ class DashboardController extends Controller
                 'phone_number' => $phoneNumber
             ]);
 
+            // Send SMS notification to admin about new withdrawal request
+            try {
+                $smsService = new \App\Services\EgoSmsService();
+                $adminPhone = '256783052764'; // 0783052764 in international format
+                $message = "New withdrawal request from {$tenant->name}: UGX " . number_format($amount) . " (ID: {$withdrawal->withdrawal_id})";
+                
+                $smsResult = $smsService->sendSms($adminPhone, $message);
+                
+                if ($smsResult['success']) {
+                    Log::info('Admin SMS notification sent for withdrawal request', [
+                        'withdrawal_id' => $withdrawal->withdrawal_id,
+                        'admin_phone' => $adminPhone,
+                        'message' => $message
+                    ]);
+                } else {
+                    Log::warning('Failed to send admin SMS notification for withdrawal request', [
+                        'withdrawal_id' => $withdrawal->withdrawal_id,
+                        'admin_phone' => $adminPhone,
+                        'error' => $smsResult['message'] ?? 'Unknown error'
+                    ]);
+                }
+            } catch (\Exception $smsException) {
+                Log::error('Exception while sending admin SMS notification for withdrawal request', [
+                    'withdrawal_id' => $withdrawal->withdrawal_id,
+                    'error' => $smsException->getMessage()
+                ]);
+            }
+
             return redirect()->back()->with('success', 'Withdrawal request submitted successfully. An admin will review and process your request within 24 hours.');
 
         } catch (\Exception $e) {
