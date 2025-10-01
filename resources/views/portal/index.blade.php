@@ -78,16 +78,230 @@
         .loading {
             display: none;
         }
+        /* Simple Payment Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
         .modal-content {
-            border-radius: 15px;
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
         }
+        
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             color: white;
-            border-radius: 15px 15px 0 0;
+            padding: 16px 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        .btn-close {
-            filter: invert(1);
+        
+        .modal-header h5 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .close {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .close:hover {
+            opacity: 0.8;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .alert {
+            padding: 12px;
+            margin-bottom: 16px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .package-info {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .package-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .package-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: #28a745;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+        }
+        
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+        
+        .btn-pay {
+            background: #28a745;
+            color: white;
+            position: relative;
+        }
+        
+        .btn-pay:hover {
+            background: #218838;
+        }
+        
+        .btn-pay:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+                max-height: 96vh;
+            }
+            
+            .modal-header {
+                padding: 12px 16px;
+            }
+            
+            .modal-header h5 {
+                font-size: 16px;
+            }
+            
+            .modal-body {
+                padding: 16px;
+            }
+            
+            .modal-footer {
+                padding: 12px 16px;
+                flex-direction: column;
+            }
+            
+            .btn {
+                padding: 14px 20px;
+                font-size: 16px;
+            }
+            
+            .form-group input {
+                padding: 14px;
+                font-size: 16px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal-content {
+                width: 98%;
+                margin: 1% auto;
+            }
+            
+            .modal-header {
+                padding: 10px 12px;
+            }
+            
+            .modal-body {
+                padding: 12px;
+            }
+            
+            .modal-footer {
+                padding: 10px 12px;
+            }
+            
+            .package-info {
+                padding: 12px;
+            }
+            
+            .package-name {
+                font-size: 15px;
+            }
+            
+            .package-price {
+                font-size: 18px;
+            }
         }
         
         /* Mobile-specific modal enhancements */
@@ -610,75 +824,55 @@
     </div>
 
     <!-- Payment Modal -->
-    <div class="modal fade" id="paymentModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-credit-card me-2"></i>Complete Payment
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="{{ route('payment.initiate') }}" id="paymentForm">
-                    @csrf
-                    <input type="hidden" name="hotspot_id" value="{{ $hotspot->id }}">
-                    <input type="hidden" name="package_id" id="modal_package_id">
-                    
-                    <div class="modal-body">
-                        @if($errors->any())
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>Payment Error:</strong>
-                                <ul class="mb-0 mt-2">
-                                    @foreach($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                        
-                        @if(session('error'))
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <strong>Payment Error:</strong> {{ session('error') }}
-                            </div>
-                        @endif
-                        
-                        <div class="text-center mb-4">
-                            <h6 id="modal_package_name" class="text-primary"></h6>
-                            <div class="h4 text-success" id="modal_package_price"></div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="modal_phone_number" class="form-label">
-                                <i class="fas fa-phone me-1"></i>Phone Number
-                            </label>
-                            <input type="tel" class="form-control" id="modal_phone_number" name="phone_number" 
-                                   placeholder="Enter your phone number (e.g., 07xxxxxxxxx, 03xxxxxxxxx)" 
-                                   value="{{ old('phone_number') }}" required>
-                            <div class="form-text">
-                                <i class="fas fa-info-circle me-1"></i>
-                                We'll send your WiFi voucher code to this number via SMS.
-                            </div>
-                        </div>
-                        
-                    </div>
-                    
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>Cancel
-                        </button>
-                        <button type="submit" class="btn btn-success" id="processPaymentBtn">
-                            <span class="btn-text">
-                                <i class="fas fa-credit-card me-1"></i>Process Payment
-                            </span>
-                            <span class="loading">
-                                <i class="fas fa-spinner fa-spin me-1"></i>Processing...
-                            </span>
-                        </button>
-                    </div>
-                </form>
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>Complete Payment</h5>
+                <span class="close">&times;</span>
             </div>
+            
+            <form id="paymentForm" method="POST" action="{{ route('payment.initiate') }}">
+                @csrf
+                <input type="hidden" name="hotspot_id" value="{{ $hotspot->id }}">
+                <input type="hidden" name="package_id" id="modal_package_id">
+                
+                <div class="modal-body">
+                    @if($errors->any())
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong>
+                            @foreach($errors->all() as $error)
+                                <div>{{ $error }}</div>
+                            @endforeach
+                        </div>
+                    @endif
+                    
+                    @if(session('error'))
+                        <div class="alert alert-danger">
+                            <strong>Error:</strong> {{ session('error') }}
+                        </div>
+                    @endif
+                    
+                    <div class="package-info">
+                        <div class="package-name" id="modal_package_name"></div>
+                        <div class="package-price" id="modal_package_price"></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modal_phone_number">Phone Number</label>
+                        <input type="tel" id="modal_phone_number" name="phone_number" 
+                               placeholder="07xxxxxxxxx" 
+                               value="{{ old('phone_number') }}" required>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-cancel">Cancel</button>
+                    <button type="submit" class="btn btn-pay" id="processPaymentBtn">
+                        <span class="btn-text">Pay Now</span>
+                        <span class="btn-loading" style="display: none;">Processing...</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -686,8 +880,24 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        let paymentModal;
         let availabilityCheckInterval;
+        
+        // Simple modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('paymentModal');
+            if (event.target === modal) {
+                hideModal('paymentModal');
+            }
+        }
         
         // Real-time availability checking with enhanced frequency
         function checkAvailability(packageId) {
@@ -775,10 +985,28 @@
             // Clear previous phone number
             document.getElementById('modal_phone_number').value = '';
             
+            // Reset button state
+            const payButton = document.getElementById('processPaymentBtn');
+            payButton.disabled = false;
+            payButton.querySelector('.btn-text').style.display = 'inline';
+            payButton.querySelector('.btn-loading').style.display = 'none';
+            
             // Show modal
-            paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
-            paymentModal.show();
+            showModal('paymentModal');
         }
+        
+        // Modal event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close modal button
+            document.querySelector('.close').onclick = function() {
+                hideModal('paymentModal');
+            };
+            
+            // Cancel button
+            document.querySelector('.btn-cancel').onclick = function() {
+                hideModal('paymentModal');
+            };
+        });
         
         // Form submission
         document.getElementById('paymentForm').addEventListener('submit', function(e) {
@@ -805,9 +1033,10 @@
             document.getElementById('modal_phone_number').value = phoneNumber;
             
             // Show loading state
-            document.querySelector('.btn-text').style.display = 'none';
-            document.querySelector('.loading').style.display = 'inline';
-            document.getElementById('processPaymentBtn').disabled = true;
+            const payButton = document.getElementById('processPaymentBtn');
+            payButton.querySelector('.btn-text').style.display = 'none';
+            payButton.querySelector('.btn-loading').style.display = 'inline';
+            payButton.disabled = true;
         });
         
         // Function to convert phone number to international format
