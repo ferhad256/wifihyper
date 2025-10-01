@@ -90,6 +90,35 @@
             filter: invert(1);
         }
         
+        /* Mobile-specific modal enhancements */
+        @media (max-width: 768px) {
+            /* Prevent body scroll when modal is open */
+            body.modal-open {
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+            }
+            
+            /* Ensure modal backdrop covers full screen on mobile */
+            .modal-backdrop {
+                background-color: rgba(0, 0, 0, 0.7);
+            }
+            
+            /* Improve modal positioning for mobile keyboards */
+            .modal.show {
+                display: block !important;
+            }
+            
+            /* Better touch targets */
+            .btn-close {
+                width: 32px;
+                height: 32px;
+                padding: 6px;
+                margin: -6px -6px -6px auto;
+                background-size: 16px;
+            }
+        }
+        
         /* Mobile Responsive Styles */
         @media (max-width: 768px) {
             .portal-container {
@@ -164,27 +193,84 @@
                 min-height: 44px;
                 width: 100%;
             }
+            
+            /* Enhanced Modal Mobile Responsiveness */
             .modal-dialog {
                 margin: 10px;
                 max-width: calc(100% - 20px);
+                width: calc(100% - 20px);
             }
             .modal-content {
                 border-radius: 12px;
+                max-height: calc(100vh - 20px);
+                overflow-y: auto;
             }
             .modal-header {
                 padding: 20px;
+                border-radius: 12px 12px 0 0;
+                position: sticky;
+                top: 0;
+                z-index: 1055;
+            }
+            .modal-header .modal-title {
+                font-size: 1.1rem;
+                font-weight: 600;
             }
             .modal-body {
                 padding: 20px;
+                max-height: calc(100vh - 140px);
+                overflow-y: auto;
             }
             .modal-footer {
                 padding: 20px;
                 flex-direction: column;
-                gap: 10px;
+                gap: 12px;
+                border-top: 1px solid #dee2e6;
+                position: sticky;
+                bottom: 0;
+                background: white;
+                border-radius: 0 0 12px 12px;
             }
             .modal-footer .btn {
                 width: 100%;
                 margin: 0;
+                min-height: 50px;
+                font-size: 16px;
+                font-weight: 600;
+            }
+            .modal-footer .btn-secondary {
+                order: 2;
+            }
+            .modal-footer .btn-success {
+                order: 1;
+            }
+            
+            /* Form enhancements for mobile */
+            .form-label {
+                font-size: 14px;
+                font-weight: 600;
+                margin-bottom: 8px;
+            }
+            .form-control {
+                border-radius: 8px;
+                border: 2px solid #e9ecef;
+                transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+            }
+            .form-control:focus {
+                border-color: #667eea;
+                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            }
+            .form-text {
+                font-size: 13px;
+                margin-top: 6px;
+                color: #6c757d;
+            }
+            
+            /* Alert styling for mobile */
+            .alert {
+                border-radius: 8px;
+                padding: 12px 16px;
+                font-size: 14px;
             }
         }
         
@@ -241,18 +327,74 @@
                 padding: 12px 20px;
                 min-height: 48px;
             }
+            
+            /* Enhanced Modal for Small Mobile Screens */
             .modal-dialog {
                 margin: 5px;
                 max-width: calc(100% - 10px);
+                width: calc(100% - 10px);
             }
-            .modal-header,
-            .modal-body,
+            .modal-content {
+                max-height: calc(100vh - 10px);
+                border-radius: 8px;
+            }
+            .modal-header {
+                padding: 15px;
+                border-radius: 8px 8px 0 0;
+            }
+            .modal-header .modal-title {
+                font-size: 1rem;
+                line-height: 1.3;
+            }
+            .modal-body {
+                padding: 15px;
+                max-height: calc(100vh - 120px);
+            }
             .modal-footer {
                 padding: 15px;
+                gap: 10px;
+                border-radius: 0 0 8px 8px;
+            }
+            .modal-footer .btn {
+                min-height: 48px;
+                font-size: 15px;
+                padding: 12px 16px;
+            }
+            
+            /* Form styling for small screens */
+            .form-label {
+                font-size: 13px;
+                margin-bottom: 6px;
+            }
+            .form-control {
+                font-size: 16px;
+                padding: 12px 14px;
+                min-height: 46px;
+                border-radius: 6px;
+            }
+            .form-text {
+                font-size: 12px;
+                margin-top: 4px;
+            }
+            
+            /* Alert styling for small screens */
+            .alert {
+                padding: 10px 12px;
+                font-size: 13px;
+                border-radius: 6px;
+            }
+            
+            /* Package details in modal */
+            .modal-body .text-center .h4 {
+                font-size: 1.1rem;
+                margin: 8px 0;
+            }
+            .modal-body .text-primary {
+                font-size: 0.95rem;
             }
         }
         
-        /* MikroTik Router Compatibility */
+        /* MikroTik Router Compatibility - Ultra Small Screens */
         @media screen and (max-width: 320px) {
             .portal-container {
                 padding: 3px;
@@ -292,7 +434,7 @@
                 min-height: 44px;
             }
             .form-control {
-                font-size: 14px;
+                font-size: 16px;
                 padding: 12px 14px;
                 min-height: 44px;
             }
@@ -301,14 +443,70 @@
                 padding: 10px 14px;
                 min-height: 42px;
             }
+            
+            /* Enhanced Modal for Ultra Small Screens */
             .modal-dialog {
                 margin: 3px;
                 max-width: calc(100% - 6px);
+                width: calc(100% - 6px);
             }
-            .modal-header,
-            .modal-body,
+            .modal-content {
+                max-height: calc(100vh - 6px);
+                border-radius: 6px;
+            }
+            .modal-header {
+                padding: 12px;
+                border-radius: 6px 6px 0 0;
+            }
+            .modal-header .modal-title {
+                font-size: 0.95rem;
+                line-height: 1.2;
+            }
+            .modal-body {
+                padding: 12px;
+                max-height: calc(100vh - 100px);
+            }
             .modal-footer {
                 padding: 12px;
+                gap: 8px;
+                border-radius: 0 0 6px 6px;
+            }
+            .modal-footer .btn {
+                min-height: 44px;
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+            
+            /* Form styling for ultra small screens */
+            .form-label {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            .form-control {
+                font-size: 16px;
+                padding: 10px 12px;
+                min-height: 42px;
+                border-radius: 4px;
+            }
+            .form-text {
+                font-size: 11px;
+                margin-top: 3px;
+            }
+            
+            /* Alert styling for ultra small screens */
+            .alert {
+                padding: 8px 10px;
+                font-size: 12px;
+                border-radius: 4px;
+            }
+            
+            /* Package details in modal for ultra small screens */
+            .modal-body .text-center .h4 {
+                font-size: 1rem;
+                margin: 6px 0;
+            }
+            .modal-body .text-primary {
+                font-size: 0.9rem;
             }
         }
     </style>

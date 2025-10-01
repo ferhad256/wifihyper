@@ -26,9 +26,10 @@
                     <table class="table">
                         <thead>
                             <tr>
+                                <th>Withdrawal ID</th>
                                 <th>Date</th>
                                 <th>Tenant</th>
-                                <th>Amount</th>
+                                <th>Net Amount</th>
                                 <th>Phone</th>
                                 <th>Status</th>
                                 <th>Admin</th>
@@ -39,6 +40,10 @@
                             @foreach($withdrawals as $withdrawal)
                             <tr class="{{ $withdrawal->status === 'pending' ? 'table-warning' : '' }}">
                                 <td>
+                                    <strong class="text-primary">#{{ $withdrawal->id }}</strong><br>
+                                    <small class="text-muted">{{ $withdrawal->withdrawal_id ?? 'N/A' }}</small>
+                                </td>
+                                <td>
                                     {{ $withdrawal->created_at->format('M d, Y') }}<br>
                                     <small class="text-muted">{{ $withdrawal->created_at->format('H:i') }}</small>
                                 </td>
@@ -48,10 +53,10 @@
                                     <small class="text-info">Balance: UGX {{ number_format($withdrawal->tenant->wallet_balance) }}</small>
                                 </td>
                                 <td>
-                                    <strong class="text-success">UGX {{ number_format($withdrawal->amount) }}</strong><br>
+                                    <strong class="text-success" style="font-size: 18px;">UGX {{ number_format($withdrawal->net_amount) }}</strong><br>
+                                    <small class="text-muted">Gross: UGX {{ number_format($withdrawal->amount) }}</small><br>
                                     @if($withdrawal->fee > 0)
-                                        <small class="text-muted">Fee: UGX {{ number_format($withdrawal->fee) }}</small><br>
-                                        <small class="text-primary">Net: UGX {{ number_format($withdrawal->net_amount) }}</small>
+                                        <small class="text-danger">Fee: UGX {{ number_format($withdrawal->fee) }}</small>
                                     @endif
                                 </td>
                                 <td>
@@ -85,10 +90,10 @@
                                 <td>
                                     @if($withdrawal->status === 'pending')
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-success" onclick="approveWithdrawal({{ $withdrawal->id }}, '{{ $withdrawal->tenant->name }}', '{{ number_format($withdrawal->amount) }}')">
+                                            <button class="btn btn-success" onclick="approveWithdrawal({{ $withdrawal->id }}, '{{ $withdrawal->tenant->name }}', '{{ number_format($withdrawal->net_amount) }}', '{{ number_format($withdrawal->amount) }}')">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="btn btn-danger" onclick="rejectWithdrawal({{ $withdrawal->id }}, '{{ $withdrawal->tenant->name }}', '{{ number_format($withdrawal->amount) }}')">
+                                            <button class="btn btn-danger" onclick="rejectWithdrawal({{ $withdrawal->id }}, '{{ $withdrawal->tenant->name }}', '{{ number_format($withdrawal->net_amount) }}', '{{ number_format($withdrawal->amount) }}')">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
@@ -134,7 +139,8 @@
                         <h6 class="alert-heading">Withdrawal Details</h6>
                         <p class="mb-0">
                             <strong>Tenant:</strong> <span id="approve-tenant"></span><br>
-                            <strong>Amount:</strong> UGX <span id="approve-amount"></span>
+                            <strong>Net Amount:</strong> UGX <span id="approve-net-amount"></span><br>
+                            <small class="text-muted">Gross: UGX <span id="approve-gross-amount"></span></small>
                         </p>
                     </div>
                     
@@ -177,7 +183,8 @@
                         <h6 class="alert-heading">Withdrawal Details</h6>
                         <p class="mb-0">
                             <strong>Tenant:</strong> <span id="reject-tenant"></span><br>
-                            <strong>Amount:</strong> UGX <span id="reject-amount"></span>
+                            <strong>Net Amount:</strong> UGX <span id="reject-net-amount"></span><br>
+                            <small class="text-muted">Gross: UGX <span id="reject-gross-amount"></span></small>
                         </p>
                     </div>
                     
@@ -201,22 +208,24 @@
 
 @push('scripts')
 <script>
-function approveWithdrawal(id, tenantName = '', amount = '') {
+function approveWithdrawal(id, tenantName = '', netAmount = '', grossAmount = '') {
     const form = document.getElementById('approvalForm');
     form.action = `/admin/withdrawals/${id}/approve`;
     
     document.getElementById('approve-tenant').textContent = tenantName;
-    document.getElementById('approve-amount').textContent = amount;
+    document.getElementById('approve-net-amount').textContent = netAmount;
+    document.getElementById('approve-gross-amount').textContent = grossAmount;
     
     new bootstrap.Modal(document.getElementById('approvalModal')).show();
 }
 
-function rejectWithdrawal(id, tenantName = '', amount = '') {
+function rejectWithdrawal(id, tenantName = '', netAmount = '', grossAmount = '') {
     const form = document.getElementById('rejectionForm');
     form.action = `/admin/withdrawals/${id}/reject`;
     
     document.getElementById('reject-tenant').textContent = tenantName;
-    document.getElementById('reject-amount').textContent = amount;
+    document.getElementById('reject-net-amount').textContent = netAmount;
+    document.getElementById('reject-gross-amount').textContent = grossAmount;
     
     new bootstrap.Modal(document.getElementById('rejectionModal')).show();
 }

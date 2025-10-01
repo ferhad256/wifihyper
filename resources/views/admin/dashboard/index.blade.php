@@ -34,7 +34,7 @@
             <div class="stats-card">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Revenue</div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Total Tenants Funds</div>
                         <div class="h4 mb-0 font-weight-bold">UGX {{ number_format($stats['total_revenue']) }}</div>
                         <small>{{ $stats['total_transactions'] }} transactions</small>
                     </div>
@@ -46,15 +46,16 @@
         </div>
 
         <div class="col-xl-3 col-md-6 mb-4">
-            <div class="stats-card">
+            <div class="stats-card {{ $stats['pending_withdrawals'] > 0 ? 'border-left-danger' : '' }}" 
+                 style="{{ $stats['pending_withdrawals'] > 0 ? 'background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white;' : '' }}">
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-uppercase mb-1">Pending Withdrawals</div>
-                        <div class="h4 mb-0 font-weight-bold">{{ $stats['pending_withdrawals'] }}</div>
-                        <small>UGX {{ number_format($stats['pending_withdrawal_amount']) }}</small>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1 {{ $stats['pending_withdrawals'] > 0 ? 'text-white' : '' }}">Pending Withdrawals</div>
+                        <div class="h4 mb-0 font-weight-bold {{ $stats['pending_withdrawals'] > 0 ? 'text-white' : '' }}">{{ $stats['pending_withdrawals'] }}</div>
+                        <small class="{{ $stats['pending_withdrawals'] > 0 ? 'text-white-50' : '' }}">UGX {{ number_format($stats['pending_withdrawal_amount']) }}</small>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-exclamation-triangle stats-icon"></i>
+                        <i class="fas fa-exclamation-triangle stats-icon {{ $stats['pending_withdrawals'] > 0 ? 'text-white' : '' }}"></i>
                     </div>
                 </div>
             </div>
