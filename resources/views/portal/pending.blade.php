@@ -279,11 +279,6 @@
                     </div>
                     @endif
                     
-                    <div class="alert alert-warning">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <strong>Please wait...</strong><br>
-                        <small>Your payment is being processed. You'll be redirected automatically when complete.</small>
-                    </div>
                 </div>
             </div>
         </div>
