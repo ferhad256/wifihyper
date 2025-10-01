@@ -109,29 +109,189 @@
                 </div>
                 <div class="card-body">
                     @if($tenant->hotspots->count() > 0)
-                        <div class="row">
-                            @foreach($tenant->hotspots as $hotspot)
-                            <div class="col-md-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h6 class="text-primary">{{ $hotspot->name }}</h6>
-                                    <p class="text-muted mb-1">SSID: {{ $hotspot->ssid }}</p>
-                                    <p class="text-muted mb-1">Location: {{ $hotspot->location ?? 'Not specified' }}</p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted">{{ $hotspot->packages->count() }} packages</small>
-                                        @if($hotspot->is_active)
-                                            <span class="badge bg-success">Active</span>
-                                        @else
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        @endif
+                        @foreach($tenant->hotspots as $hotspot)
+                        <div class="border rounded p-4 mb-4">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="text-primary mb-1">{{ $hotspot->name }}</h6>
+                                            <p class="text-muted mb-1">
+                                                <i class="fas fa-wifi me-1"></i>SSID: <code>{{ $hotspot->ssid }}</code>
+                                            </p>
+                                            <p class="text-muted mb-1">
+                                                <i class="fas fa-map-marker-alt me-1"></i>Location: {{ $hotspot->location ?? 'Not specified' }}
+                                            </p>
+                                            <p class="text-muted mb-1">
+                                                <i class="fas fa-calendar me-1"></i>Created: {{ $hotspot->created_at->format('M d, Y H:i') }}
+                                            </p>
+                                        </div>
+                                        <div class="text-end">
+                                            @if($hotspot->is_active)
+                                                <span class="badge bg-success">Active</span>
+                                            @else
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Packages for this hotspot -->
+                                    @if($hotspot->packages->count() > 0)
+                                    <div class="mb-3">
+                                        <h6 class="text-dark mb-2">
+                                            <i class="fas fa-box me-1"></i>Packages ({{ $hotspot->packages->count() }})
+                                        </h6>
+                                        <div class="row">
+                                            @foreach($hotspot->packages as $package)
+                                            <div class="col-md-6 mb-2">
+                                                <div class="bg-light p-2 rounded">
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <div>
+                                                            <small class="text-dark fw-bold">{{ $package->name }}</small><br>
+                                                            <small class="text-muted">UGX {{ number_format($package->price) }}</small>
+                                                        </div>
+                                                        @if($package->is_active)
+                                                            <span class="badge bg-success badge-sm">Active</span>
+                                                        @else
+                                                            <span class="badge bg-secondary badge-sm">Inactive</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                    @endif
+
+                                    <!-- Vouchers for this hotspot -->
+                                    @if($hotspot->vouchers->count() > 0)
+                                    <div>
+                                        <h6 class="text-dark mb-2">
+                                            <i class="fas fa-ticket-alt me-1"></i>Vouchers ({{ $hotspot->vouchers->count() }})
+                                        </h6>
+                                        <div class="d-flex gap-2 flex-wrap">
+                                            <span class="badge bg-success">{{ $hotspot->vouchers->where('status', 'unused')->count() }} Unused</span>
+                                            <span class="badge bg-primary">{{ $hotspot->vouchers->where('status', 'used')->count() }} Used</span>
+                                            <span class="badge bg-warning">{{ $hotspot->vouchers->where('status', 'expired')->count() }} Expired</span>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <div class="h4 text-primary mb-1">{{ $hotspot->vouchers->count() }}</div>
+                                        <small class="text-muted">Total Vouchers</small>
                                     </div>
                                 </div>
                             </div>
-                            @endforeach
                         </div>
+                        @endforeach
                     @else
                         <div class="text-center py-4">
                             <i class="fas fa-wifi fa-3x text-muted mb-3"></i>
                             <p class="text-muted">No hotspots created yet</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
+
+            <!-- Voucher Details -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-ticket-alt me-2"></i>Voucher Details ({{ $tenant->vouchers->count() }})
+                    </h6>
+                </div>
+                <div class="card-body">
+                    @if($tenant->vouchers->count() > 0)
+                        <!-- Voucher Statistics -->
+                        <div class="row mb-4">
+                            <div class="col-md-3 text-center">
+                                <div class="h4 text-success">{{ $voucher_stats->get('unused', (object)['count' => 0])->count ?? 0 }}</div>
+                                <small class="text-muted">Unused</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="h4 text-primary">{{ $voucher_stats->get('used', (object)['count' => 0])->count ?? 0 }}</div>
+                                <small class="text-muted">Used</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="h4 text-warning">{{ $voucher_stats->get('expired', (object)['count' => 0])->count ?? 0 }}</div>
+                                <small class="text-muted">Expired</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="h4 text-info">{{ $tenant->vouchers->count() }}</div>
+                                <small class="text-muted">Total</small>
+                            </div>
+                        </div>
+
+                        <!-- Recent Vouchers -->
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Package</th>
+                                        <th>Hotspot</th>
+                                        <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Used/Expired</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($tenant->vouchers->take(10) as $voucher)
+                                    <tr>
+                                        <td>
+                                            <code class="text-primary">{{ $voucher->code }}</code>
+                                        </td>
+                                        <td>
+                                            <small>{{ $voucher->package->name ?? 'N/A' }}</small><br>
+                                            <small class="text-muted">UGX {{ number_format($voucher->package->price ?? 0) }}</small>
+                                        </td>
+                                        <td>
+                                            <small>{{ $voucher->hotspot->name ?? 'N/A' }}</small>
+                                        </td>
+                                        <td>
+                                            @switch($voucher->status)
+                                                @case('unused')
+                                                    <span class="badge bg-success">Unused</span>
+                                                    @break
+                                                @case('used')
+                                                    <span class="badge bg-primary">Used</span>
+                                                    @break
+                                                @case('expired')
+                                                    <span class="badge bg-warning">Expired</span>
+                                                    @break
+                                                @default
+                                                    <span class="badge bg-secondary">{{ ucfirst($voucher->status) }}</span>
+                                            @endswitch
+                                        </td>
+                                        <td>
+                                            <small>{{ $voucher->created_at->format('M d, H:i') }}</small>
+                                        </td>
+                                        <td>
+                                            @if($voucher->used_at)
+                                                <small class="text-success">{{ $voucher->used_at->format('M d, H:i') }}</small>
+                                            @elseif($voucher->expires_at && $voucher->expires_at->isPast())
+                                                <small class="text-warning">Expired</small>
+                                            @else
+                                                <small class="text-muted">-</small>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        @if($tenant->vouchers->count() > 10)
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Showing 10 of {{ $tenant->vouchers->count() }} vouchers</small>
+                        </div>
+                        @endif
+                    @else
+                        <div class="text-center py-3">
+                            <i class="fas fa-ticket-alt fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">No vouchers created yet</p>
                         </div>
                     @endif
                 </div>
@@ -154,15 +314,43 @@
                     
                     <hr>
                     
+                    <!-- Hotspot Statistics -->
+                    <div class="mb-4">
+                        <h6 class="text-dark mb-2">Hotspots</h6>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="h5 text-success">{{ $tenant_stats['active_hotspots'] }}</div>
+                                <small class="text-muted">Active</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="h5 text-secondary">{{ $tenant_stats['inactive_hotspots'] }}</div>
+                                <small class="text-muted">Inactive</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voucher Statistics -->
+                    <div class="mb-4">
+                        <h6 class="text-dark mb-2">Vouchers</h6>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="h5 text-success">{{ $tenant_stats['unused_vouchers'] }}</div>
+                                <small class="text-muted">Unused</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h5 text-primary">{{ $tenant_stats['used_vouchers'] }}</div>
+                                <small class="text-muted">Used</small>
+                            </div>
+                            <div class="col-4">
+                                <div class="h5 text-warning">{{ $tenant_stats['expired_vouchers'] }}</div>
+                                <small class="text-muted">Expired</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
                     <div class="row text-center">
-                        <div class="col-6 mb-3">
-                            <div class="h4 text-primary">{{ $tenant_stats['total_hotspots'] }}</div>
-                            <small class="text-muted">Hotspots</small>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <div class="h4 text-success">{{ $tenant_stats['total_vouchers'] }}</div>
-                            <small class="text-muted">Vouchers</small>
-                        </div>
                         <div class="col-6 mb-3">
                             <div class="h4 text-info">{{ $tenant_stats['total_transactions'] }}</div>
                             <small class="text-muted">Transactions</small>

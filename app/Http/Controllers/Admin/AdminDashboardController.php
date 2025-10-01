@@ -113,19 +113,50 @@ class AdminDashboardController extends Controller
      */
     public function showTenant($id)
     {
-        $tenant = Tenant::with(['hotspots.packages', 'transactions', 'vouchers'])
-            ->findOrFail($id);
+        $tenant = Tenant::with([
+            'hotspots.packages', 
+            'hotspots.vouchers',
+            'transactions.hotspot', 
+            'transactions.package',
+            'vouchers.package',
+            'vouchers.hotspot'
+        ])->findOrFail($id);
 
+        // Enhanced tenant statistics
         $tenant_stats = [
             'total_sales' => $tenant->transactions()->where('status', 'completed')->sum('amount') - 
                              $tenant->withdrawalTransactions()->where('status', 'completed')->sum('amount'),
             'total_transactions' => $tenant->transactions()->count(),
             'total_hotspots' => $tenant->hotspots()->count(),
             'total_vouchers' => $tenant->vouchers()->count(),
+            'used_vouchers' => $tenant->vouchers()->where('status', 'used')->count(),
+            'unused_vouchers' => $tenant->vouchers()->where('status', 'unused')->count(),
+            'expired_vouchers' => $tenant->vouchers()->where('status', 'expired')->count(),
+            'active_hotspots' => $tenant->hotspots()->where('is_active', true)->count(),
+            'inactive_hotspots' => $tenant->hotspots()->where('is_active', false)->count(),
             'wallet_balance' => $tenant->wallet_balance,
         ];
 
-        return view('admin.dashboard.tenant-details', compact('tenant', 'tenant_stats'));
+        // Get voucher statistics by status
+        $voucher_stats = $tenant->vouchers()
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->get()
+            ->keyBy('status');
+
+        // Get hotspot statistics
+        $hotspot_stats = $tenant->hotspots()
+            ->selectRaw('is_active, COUNT(*) as count')
+            ->groupBy('is_active')
+            ->get()
+            ->keyBy('is_active');
+
+        return view('admin.dashboard.tenant-details', compact(
+            'tenant', 
+            'tenant_stats', 
+            'voucher_stats', 
+            'hotspot_stats'
+        ));
     }
 
     /**
