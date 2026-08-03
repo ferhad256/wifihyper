@@ -14,6 +14,7 @@ use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class DashboardController extends Controller
 {
@@ -103,6 +104,13 @@ class DashboardController extends Controller
                     ->sum('amount'),
                 'start_date' => today()->format('M d, Y')
             ],
+            'yesterday' => [
+                'amount' => $tenant->transactions()
+                    ->where('status', 'completed')
+                    ->whereDate('created_at', today()->subDay())
+                    ->sum('amount'),
+                'start_date' => today()->subDay()->format('M d, Y')
+            ],
             'this_week' => [
                 'amount' => $tenant->transactions()
                     ->where('status', 'completed')
@@ -126,7 +134,10 @@ class DashboardController extends Controller
             ],
         ];
 
-        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data', 'sales_summary'));
+        // Check for pending withdrawal
+        $pending_withdrawal = WithdrawalTransaction::getPendingWithdrawal($tenant->id);
+
+        return view('dashboard.index', compact('tenant', 'stats', 'recent_transactions', 'filled_sales_data', 'sales_summary', 'pending_withdrawal'));
     }
 
     /**
@@ -140,10 +151,16 @@ class DashboardController extends Controller
             return redirect()->route('login');
         }
 
-        $transactions = $tenant->transactions()
+        $transactionsQuery = $tenant->transactions()
             ->with(['hotspot', 'package', 'voucher'])
-            ->latest()
-            ->paginate(20);
+            ->latest();
+        if (request()->filled('q')) {
+            $term = trim(request('q'));
+            $transactionsQuery->where(function ($q) use ($term) {
+                $q->where('phone_number', 'like', '%' . $term . '%');
+            });
+        }
+        $transactions = $transactionsQuery->paginate(20)->appends(request()->only('q'));
 
         // Get withdrawal requests for this tenant
         $withdrawal_requests = $tenant->withdrawalTransactions()
@@ -241,6 +258,12 @@ class DashboardController extends Controller
         ]);
         $amount = $request->amount;
         $phoneNumber = $this->formatPhoneNumber($request->phone_number);
+
+        // Check if tenant has a pending withdrawal request
+        if (WithdrawalTransaction::hasPendingWithdrawal($tenant->id)) {
+            $pendingWithdrawal = WithdrawalTransaction::getPendingWithdrawal($tenant->id);
+            return back()->with('error', 'You already have a pending withdrawal request (ID: ' . $pendingWithdrawal->withdrawal_id . '). Please wait for it to be approved or rejected before submitting a new request.')->withInput();
+        }
 
         // Ensure tenant has a registered phone number
         if (!$tenant->phone) {
@@ -474,5 +497,50 @@ class DashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Handle support "Request a Call" submission
+     */
+    public function requestSupportCall(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $request->validate([
+            'contact' => 'required|string|min:7|max:30',
+            'name' => 'nullable|string|max:100',
+            'preferred_time' => 'nullable|string|max:100',
+            'message' => 'nullable|string|max:500',
+        ]);
+
+        $supportEmail = 'wifihyper01@gmail.com';
+
+        try {
+            $subject = 'Request a Call - ' . ($tenant->name ?? 'Tenant');
+            $body = "A tenant requested a support call.\n\n"
+                . "Tenant Name: " . ($tenant->name ?? 'N/A') . "\n"
+                . "Tenant Email: " . ($tenant->email ?? 'N/A') . "\n"
+                . "Provided Name: " . ($request->input('name') ?: 'N/A') . "\n"
+                . "Contact to Call: " . $request->input('contact') . "\n"
+                . "Preferred Time: " . ($request->input('preferred_time') ?: 'N/A') . "\n"
+                . "Message: " . ($request->input('message') ?: 'N/A') . "\n"
+                . "Submitted At: " . now()->toDateTimeString() . "\n";
+
+            Mail::raw($body, function ($message) use ($supportEmail, $subject) {
+                $message->to($supportEmail)
+                        ->subject($subject);
+            });
+
+            return back()->with('success', 'Request submitted. Our support team will call you shortly.');
+        } catch (\Exception $e) {
+            Log::error('Support call request failed', [
+                'tenant_id' => $tenant->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return back()->with('error', 'Failed to submit request. Please try again later.');
+        }
     }
 }

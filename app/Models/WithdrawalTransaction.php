@@ -91,6 +91,48 @@ class WithdrawalTransaction extends Model
     }
 
     /**
+     * Check if withdrawal is approved
+     */
+    public function isApproved(): bool
+    {
+        return $this->approved_at !== null;
+    }
+
+    /**
+     * Check if withdrawal is rejected
+     */
+    public function isRejected(): bool
+    {
+        return $this->rejected_at !== null;
+    }
+
+    /**
+     * Check if tenant has a pending withdrawal request
+     * (includes both 'pending' and 'processing' status)
+     */
+    public static function hasPendingWithdrawal(int $tenantId): bool
+    {
+        return self::where('tenant_id', $tenantId)
+            ->whereIn('status', ['pending', 'processing'])
+            ->whereNull('approved_at')
+            ->whereNull('rejected_at')
+            ->exists();
+    }
+
+    /**
+     * Get tenant's pending withdrawal
+     * (includes both 'pending' and 'processing' status)
+     */
+    public static function getPendingWithdrawal(int $tenantId): ?self
+    {
+        return self::where('tenant_id', $tenantId)
+            ->whereIn('status', ['pending', 'processing'])
+            ->whereNull('approved_at')
+            ->whereNull('rejected_at')
+            ->first();
+    }
+
+    /**
      * Mark withdrawal as processing
      */
     public function markAsProcessing(): void

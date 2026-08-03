@@ -9,10 +9,13 @@ use App\Models\Transaction;
 use App\Models\WithdrawalTransaction;
 use App\Models\Hotspot;
 use App\Models\Voucher;
+use App\Models\Package;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use App\Models\SmsLog;
 
 class AdminDashboardController extends Controller
 {
@@ -93,7 +96,34 @@ class AdminDashboardController extends Controller
             ->take(10)
             ->get();
 
-        return view('admin.dashboard.index', compact('stats', 'recent_tenants', 'recent_transactions', 'pending_withdrawals', 'filled_fee_data'));
+        // SMS usage stats (last 14 days) and today's total
+        $days = 14;
+        $dates = collect();
+        for ($i = $days - 1; $i >= 0; $i--) {
+            $dates->push(now()->copy()->subDays($i)->startOfDay());
+        }
+
+        $smsByDate = SmsLog::whereNotNull('sent_at')
+            ->where('status', 'sent')
+            ->where('sent_at', '>=', $dates->first())
+            ->selectRaw('DATE(sent_at) as day, COUNT(*) as cnt')
+            ->groupBy('day')
+            ->pluck('cnt', 'day');
+
+        $sms_daily = $dates->map(function ($date) use ($smsByDate) {
+            $key = $date->format('Y-m-d');
+            return [
+                'date' => $date->format('M d'),
+                'count' => (int) ($smsByDate[$key] ?? 0),
+            ];
+        });
+
+        $sms_today = SmsLog::whereNotNull('sent_at')
+            ->where('status', 'sent')
+            ->whereDate('sent_at', now()->toDateString())
+            ->count();
+
+        return view('admin.dashboard.index', compact('stats', 'recent_tenants', 'recent_transactions', 'pending_withdrawals', 'filled_fee_data', 'sms_daily', 'sms_today'));
     }
 
     /**
@@ -275,9 +305,14 @@ class AdminDashboardController extends Controller
      */
     public function transactions()
     {
-        $transactions = Transaction::with(['tenant', 'hotspot', 'package', 'voucher'])
-            ->latest()
-            ->paginate(20);
+        $query = Transaction::with(['tenant', 'hotspot', 'package', 'voucher'])->latest();
+        if (request()->filled('q')) {
+            $term = trim(request('q'));
+            $query->where(function ($q) use ($term) {
+                $q->where('phone_number', 'like', '%' . $term . '%');
+            });
+        }
+        $transactions = $query->paginate(20)->appends(request()->only('q'));
 
         return view('admin.dashboard.transactions', compact('transactions'));
     }
@@ -339,5 +374,51 @@ class AdminDashboardController extends Controller
         ]);
 
         return back()->with('success', 'Password changed successfully.');
+    }
+
+    /**
+     * Permanently delete a tenant and all related data
+     */
+    public function deleteTenant(Request $request, $id)
+    {
+        $admin = Auth::guard('admin')->user();
+        $tenant = Tenant::findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            // Delete related notifications
+            Notification::where('tenant_id', $tenant->id)->delete();
+
+            // Delete transactions and withdrawal transactions
+            Transaction::where('tenant_id', $tenant->id)->delete();
+            WithdrawalTransaction::where('tenant_id', $tenant->id)->delete();
+
+            // Delete vouchers
+            Voucher::where('tenant_id', $tenant->id)->delete();
+
+            // Delete packages belonging to tenant's hotspots
+            $hotspotIds = Hotspot::where('tenant_id', $tenant->id)->pluck('id');
+            if ($hotspotIds->isNotEmpty()) {
+                Package::whereIn('hotspot_id', $hotspotIds)->delete();
+            }
+
+            // Delete hotspots
+            Hotspot::where('tenant_id', $tenant->id)->delete();
+
+            // If Tenant has subscriptionPlans relation, delete them
+            if (method_exists($tenant, 'subscriptionPlans')) {
+                $tenant->subscriptionPlans()->delete();
+            }
+
+            // Finally delete the tenant
+            $tenant->delete();
+
+            DB::commit();
+
+            return redirect()->route('admin.tenants')->with('success', 'Tenant and all related data deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to delete tenant: ' . $e->getMessage());
+        }
     }
 }

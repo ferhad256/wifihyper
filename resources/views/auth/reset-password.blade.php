@@ -3,113 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password</title>
+    <title>Reset password · WifiHyper</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
+    <meta name="theme-color" content="#0A1628">
 
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+    <link href="{{ asset('css/brand.css') }}" rel="stylesheet">
+
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .reset-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .reset-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            max-width: 450px;
-            width: 100%;
-        }
-        .reset-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .reset-body {
-            padding: 40px 30px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
-            width: 100%;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .wifi-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .brand-name {
-            color: #007bff !important;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .brand-name:hover {
-            color: #0056b3 !important;
-        }
-        .btn-outline-secondary {
-            border-color: #e9ecef;
-            color: #6c757d;
-        }
-        .btn-outline-secondary:hover {
-            background-color: #f8f9fa;
-            border-color: #667eea;
-            color: #667eea;
-        }
-        .btn-outline-secondary:focus {
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .password-strength {
-            margin-top: 5px;
-            font-size: 12px;
-        }
-        .strength-weak { color: #dc3545; }
-        .strength-medium { color: #ffc107; }
-        .strength-strong { color: #28a745; }
+        /* Strength readout under the password field. */
+        .password-strength { margin-top: 0.375rem; font-size: 0.75rem; font-weight: 600; }
+        .strength-weak   { color: var(--wh-crit-600); }
+        .strength-medium { color: var(--wh-warn-600); }
+        .strength-strong { color: var(--wh-ok-600); }
     </style>
+    
 </head>
 <body>
-    <div class="reset-container">
-        <div class="reset-card">
-            <div class="reset-header">
-                <div class="wifi-icon">
-                    <h1 class="brand-name mb-0" style="font-size: 2.5rem;">WIFIHYPER</h1>
-                </div>
-                <h2>Reset Password</h2>
-                <p class="mb-0">Create a new secure password</p>
+    <div class="wh-auth">
+        <div class="wh-auth__inner">
+            <div class="wh-auth__brand">
+                <x-brand.logo :href="route('landing')" :size="32" tone="light" />
             </div>
-            
-            <div class="reset-body">
+
+            <div class="wh-auth__card">
+                <h1 class="wh-auth__title">Set a new password</h1>
+                <p class="wh-auth__sub">Choose something you haven't used before.</p>
                 @if(session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{ session('error') }}
@@ -187,8 +109,8 @@
                 </div>
 
                 <div class="text-center mt-3">
-                    <a href="{{ route('landing') }}" class="text-muted text-decoration-none">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
+                    <a href="{{ route('landing') }}" class="wh-auth__back">
+                        <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to home
                     </a>
                 </div>
             </div>

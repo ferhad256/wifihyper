@@ -3,107 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <title>Log in · WifiHyper</title>
 
-    
-    <!-- Bootstrap CSS -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
+    <meta name="theme-color" content="#0A1628">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .login-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            max-width: 400px;
-            width: 100%;
-        }
-        .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .login-body {
-            padding: 40px 30px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
-            width: 100%;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .wifi-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .brand-name {
-            color: white !important;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .brand-name:hover {
-            color: #f8f9fa !important;
-        }
-        .btn-outline-secondary {
-            border-color: #e9ecef;
-            color: #6c757d;
-        }
-        .btn-outline-secondary:hover {
-            background-color: #f8f9fa;
-            border-color: #667eea;
-            color: #667eea;
-        }
-        .btn-outline-secondary:focus {
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-    </style>
+    <link href="{{ asset('css/brand.css') }}" rel="stylesheet">
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-header">
-                <div class="wifi-icon">
-                    <h1 class="brand-name mb-0" style="font-size: 2.5rem;">WIFIHYPER</h1>
-                </div>
-                <h2>Welcome Back</h2>
-                <p class="mb-0">Sign in to your account</p>
+    <div class="wh-auth">
+        <div class="wh-auth__inner">
+            <div class="wh-auth__brand">
+                <x-brand.logo :href="route('landing')" :size="32" tone="light" />
             </div>
-            
-            <div class="login-body">
+
+            <div class="wh-auth__card">
+                <h1 class="wh-auth__title">Welcome back</h1>
+                <p class="wh-auth__sub">Sign in to your account.</p>
                 @if(session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{ session('error') }}
@@ -122,13 +41,14 @@
                     @csrf
                     
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
+                        <label for="email" class="form-label">Email address</label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="fas fa-envelope"></i>
+                                <i class="fas fa-envelope" aria-hidden="true"></i>
                             </span>
-                            <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                   id="email" name="email" value="{{ old('email') }}" required>
+                            <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                   id="email" name="email" value="{{ old('email') }}" required
+                                   autocomplete="email" inputmode="email" autofocus>
                         </div>
                         @error('email')
                             <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -139,12 +59,13 @@
                         <label for="password" class="form-label">Password</label>
                         <div class="input-group">
                             <span class="input-group-text">
-                                <i class="fas fa-lock"></i>
+                                <i class="fas fa-lock" aria-hidden="true"></i>
                             </span>
-                            <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                   id="password" name="password" required>
-                            <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                                <i class="fas fa-eye" id="togglePasswordIcon"></i>
+                            <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                   id="password" name="password" required autocomplete="current-password">
+                            <button class="btn btn-secondary" type="button" id="togglePassword"
+                                    aria-label="Show password" aria-pressed="false">
+                                <i class="fas fa-eye" id="togglePasswordIcon" aria-hidden="true"></i>
                             </button>
                         </div>
                         @error('password')
@@ -152,42 +73,28 @@
                         @enderror
                     </div>
 
-                    <div class="mb-3 form-check d-flex justify-content-between">
-                        <div>
+                    <div class="mb-4 d-flex justify-content-between align-items-center gap-2">
+                        <div class="form-check mb-0">
                             <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                            <label class="form-check-label" for="remember">
-                                Remember me
-                            </label>
+                            <label class="form-check-label" for="remember">Remember me</label>
                         </div>
-                        <div>
-                            <a href="{{ route('password.request') }}" class="text-decoration-none small">
-                                Forgot password?
-                            </a>
-                        </div>
+                        <a href="{{ route('password.request') }}" class="text-decoration-none small">
+                            Forgot password?
+                        </a>
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg mb-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
                 </form>
 
-                <hr class="my-4">
-
-                <div class="text-center">
-                    <p class="text-muted mb-2">Don't have an account?</p>
-                    <a href="{{ route('register') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-user-plus me-2"></i>Create Account
-                    </a>
-                </div>
-
-
-
-                <div class="text-center mt-3">
-                    <a href="{{ route('landing') }}" class="text-muted text-decoration-none">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
-                    </a>
+                <div class="wh-auth__foot">
+                    Don't have an account?
+                    <a href="{{ route('register') }}" class="fw-semibold text-decoration-none">Create one</a>
                 </div>
             </div>
+
+            <a href="{{ route('landing') }}" class="wh-auth__back">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to home
+            </a>
         </div>
     </div>
 
@@ -195,20 +102,18 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Password toggle functionality
-        document.getElementById('togglePassword').addEventListener('click', function() {
-            const passwordField = document.getElementById('password');
-            const toggleIcon = document.getElementById('togglePasswordIcon');
-            
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
-            }
+        // Password visibility toggle. The button's label and pressed state are
+        // updated too, so a screen reader reports what it currently does.
+        document.getElementById('togglePassword').addEventListener('click', function () {
+            const field = document.getElementById('password');
+            const icon  = document.getElementById('togglePasswordIcon');
+            const shown = field.type === 'text';
+
+            field.type = shown ? 'password' : 'text';
+            icon.classList.toggle('fa-eye', shown);
+            icon.classList.toggle('fa-eye-slash', !shown);
+            this.setAttribute('aria-pressed', String(!shown));
+            this.setAttribute('aria-label', shown ? 'Show password' : 'Hide password');
         });
     </script>
 </body>

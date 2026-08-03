@@ -4,9 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Add New Admin</h1>
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <a href="{{ route('admin.dashboard') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
         </a>
@@ -150,21 +148,5 @@
 </div>
 @endsection
 
-@push('scripts')
-<style>
-.btn-admin {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border: none;
-    color: white;
-    border-radius: 8px;
-    padding: 12px 30px;
-    font-weight: 600;
-}
-.btn-admin:hover {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
-</style>
-@endpush
+{{-- .btn-admin is defined in brand.css; the local override that used to sit
+     here has been removed so there is one definition of the button. --}}

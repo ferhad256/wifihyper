@@ -4,9 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Hotspots Management</h1>
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addHotspotModal">
             <i class="fas fa-plus me-2"></i>Add Hotspot
         </button>

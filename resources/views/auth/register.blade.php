@@ -3,107 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    <title>Create account · WifiHyper</title>
 
-    
-    <!-- Bootstrap CSS -->
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
+    <meta name="theme-color" content="#0A1628">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+    <link href="{{ asset('css/brand.css') }}" rel="stylesheet">
+
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .register-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .register-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            max-width: 500px;
-            width: 100%;
-        }
-        .register-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        .register-body {
-            padding: 40px 30px;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 25px;
-            padding: 12px 30px;
-            font-weight: 600;
-            width: 100%;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            padding: 12px 15px;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .wifi-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .brand-name {
-            color: white !important;
-            font-weight: bold;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .brand-name:hover {
-            color: #f8f9fa !important;
-        }
-        .btn-outline-secondary {
-            border-color: #e9ecef;
-            color: #6c757d;
-        }
-        .btn-outline-secondary:hover {
-            background-color: #f8f9fa;
-            border-color: #667eea;
-            color: #667eea;
-        }
-        .btn-outline-secondary:focus {
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
+        /* Registration collects more fields, so it gets a wider card. */
+        .wh-auth__inner { max-width: 520px; }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="register-card">
-            <div class="register-header">
-                <div class="wifi-icon">
-                    <h1 class="brand-name mb-0" style="font-size: 2.5rem;">WIFIHYPER</h1>
-                </div>
-                <h2>Create Account</h2>
-                <p class="mb-0">Join us and start managing your hotspots</p>
+    <div class="wh-auth">
+        <div class="wh-auth__inner">
+            <div class="wh-auth__brand">
+                <x-brand.logo :href="route('landing')" :size="32" tone="light" />
             </div>
-            
-            <div class="register-body">
+
+            <div class="wh-auth__card">
+                <h1 class="wh-auth__title">Create your account</h1>
+                <p class="wh-auth__sub">Start selling WiFi access from your hotspots.</p>
                 @if(session('error'))
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{ session('error') }}
@@ -244,26 +168,18 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="btn btn-primary btn-lg mb-3">
-                        <i class="fas fa-user-plus me-2"></i>Create Account
-                    </button>
+                    <button type="submit" class="btn btn-primary btn-lg">Create account</button>
                 </form>
 
-                <hr class="my-4">
-
-                <div class="text-center">
-                    <p class="text-muted mb-2">Already have an account?</p>
-                    <a href="{{ route('login') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
-                    </a>
-                </div>
-
-                <div class="text-center mt-3">
-                    <a href="{{ route('landing') }}" class="text-muted text-decoration-none">
-                        <i class="fas fa-arrow-left me-1"></i>Back to Home
-                    </a>
+                <div class="wh-auth__foot">
+                    Already have an account?
+                    <a href="{{ route('login') }}" class="fw-semibold text-decoration-none">Sign in</a>
                 </div>
             </div>
+
+            <a href="{{ route('landing') }}" class="wh-auth__back">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to home
+            </a>
         </div>
     </div>
 

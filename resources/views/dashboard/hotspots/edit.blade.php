@@ -4,10 +4,8 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <div>
-            <h1 class="h3 mb-0 text-gray-800">Edit Hotspot</h1>
             <p class="text-muted">{{ $hotspot->name }}</p>
         </div>
         <div>

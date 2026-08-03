@@ -3,63 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login - WIFIHYPER</title>
+    <title>Admin sign in · WifiHyper</title>
+
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="alternate icon" href="{{ asset('favicon.ico') }}">
+    <meta name="theme-color" content="#060D18">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="{{ asset('css/brand.css') }}" rel="stylesheet">
+
     <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-        }
-        .login-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            text-align: center;
-        }
-        .brand-name {
-            font-family: 'Arial Black', sans-serif;
-            font-weight: 900;
-            font-size: 2rem;
-            letter-spacing: 2px;
-        }
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        .btn-admin {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            padding: 12px 30px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .btn-admin:hover {
-            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+        /* Matches the darker field used throughout the admin panel. */
+        .wh-auth { background-color: var(--wh-ink-900); }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-5">
-                <div class="login-card">
-                    <div class="login-header">
-                        <h1 class="brand-name mb-0">WIFIHYPER</h1>
-                        <p class="mb-0 mt-2">Admin Panel</p>
-                    </div>
-                    <div class="p-4">
+    <div class="wh-auth">
+        <div class="wh-auth__inner">
+            <div class="wh-auth__brand">
+                <x-brand.logo :size="32" tone="light" tagline="Admin" />
+            </div>
+
+            <div class="wh-auth__card">
+                <h1 class="wh-auth__title">Admin sign in</h1>
+                <p class="wh-auth__sub">Restricted to platform administrators.</p>
                         @if(session('error'))
                             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                                 <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
@@ -77,56 +45,41 @@
                         <form method="POST" action="{{ route('admin.login') }}">
                             @csrf
                             <div class="mb-3">
-                                <label for="email" class="form-label">
-                                    <i class="fas fa-envelope me-2"></i>Email Address
-                                </label>
-                                <input type="email" class="form-control @error('email') is-invalid @enderror" 
-                                       id="email" name="email" value="{{ old('email') }}" required autofocus>
+                                <label for="email" class="form-label">Email address</label>
+                                <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                       id="email" name="email" value="{{ old('email') }}" required autofocus
+                                       autocomplete="email" inputmode="email">
                                 @error('email')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                             </div>
 
                             <div class="mb-3">
-                                <label for="password" class="form-label">
-                                    <i class="fas fa-lock me-2"></i>Password
-                                </label>
-                                <input type="password" class="form-control @error('password') is-invalid @enderror" 
-                                       id="password" name="password" required>
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                       id="password" name="password" required autocomplete="current-password">
                                 @error('password')
-                                    <div class="invalid-feedback">{{ $message }}</div>
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                             </div>
 
-                            <div class="mb-3 form-check">
+                            <div class="mb-4 form-check">
                                 <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                                <label class="form-check-label" for="remember">
-                                    Remember me
-                                </label>
+                                <label class="form-check-label" for="remember">Remember me</label>
                             </div>
 
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-admin text-white">
-                                    <i class="fas fa-sign-in-alt me-2"></i>Login to Admin Panel
-                                </button>
-                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg">Sign in</button>
                         </form>
 
-                        <div class="text-center mt-4">
-                            <small class="text-muted">
-                                <i class="fas fa-shield-alt me-1"></i>
-                                Secure Admin Access Only
-                            </small>
+                        <div class="wh-auth__foot">
+                            <i class="fas fa-shield-halved me-1" aria-hidden="true"></i>
+                            Administrator access only
                         </div>
-
-                        <div class="text-center mt-3">
-                            <a href="{{ route('landing') }}" class="text-decoration-none">
-                                <i class="fas fa-arrow-left me-1"></i>Back to Website
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
+
+            <a href="{{ route('landing') }}" class="wh-auth__back">
+                <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Back to website
+            </a>
         </div>
     </div>
 

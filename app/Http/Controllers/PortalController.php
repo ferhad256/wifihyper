@@ -107,6 +107,10 @@ class PortalController extends Controller
     {
         // Get the latest completed transaction for this session
         $transactionId = session('last_transaction_id');
+        // Fallback to query parameter when session is not available (e.g., IPN set session in a different context)
+        if (!$transactionId) {
+            $transactionId = $request->query('transaction_id');
+        }
         $transaction = null;
         $hotspotName = 'default';
         

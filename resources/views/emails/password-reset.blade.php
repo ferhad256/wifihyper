@@ -22,7 +22,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             color: white;
             padding: 30px;
             text-align: center;
@@ -46,7 +46,7 @@
         }
         .reset-button {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             color: white;
             text-decoration: none;
             padding: 15px 30px;
@@ -57,20 +57,20 @@
             text-align: center;
         }
         .reset-button:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            background: #060D18;
             color: white;
             text-decoration: none;
         }
         .security-note {
             background-color: #f8f9fa;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid #0A7A6D;
             padding: 15px;
             margin: 20px 0;
             border-radius: 0 5px 5px 0;
         }
         .security-note h4 {
             margin-top: 0;
-            color: #667eea;
+            color: #0A7A6D;
         }
         .footer {
             background-color: #f8f9fa;
@@ -80,7 +80,7 @@
             font-size: 14px;
         }
         .footer a {
-            color: #667eea;
+            color: #0A7A6D;
             text-decoration: none;
         }
         .expires-info {

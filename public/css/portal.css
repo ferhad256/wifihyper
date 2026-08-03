@@ -1,0 +1,567 @@
+/* ==========================================================================
+   WIFIHYPER — Captive portal
+   Loaded after brand.css. Covers the four customer-facing screens:
+   package selection, payment pending, success, and inactive hotspot.
+
+   This is the only surface a paying customer sees, and they meet it on a
+   phone, on venue WiFi, usually in a hurry. So it diverges from the operator
+   dashboard in three ways:
+     - Mobile-first throughout; the desktop view is the adaptation.
+     - Bigger type and targets than the dashboard uses.
+     - The venue's name leads, not ours. They are buying from the cafe.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Shell
+   -------------------------------------------------------------------------- */
+
+.pt-body {
+    background: var(--wh-paper);
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.pt-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 0 2.5rem;
+}
+
+/* Venue header. Ink band so the paper card below reads as the active surface. */
+.pt-head {
+    background: var(--wh-ink-800);
+    color: #fff;
+    padding: 1.75rem 1.25rem 1.5rem;
+    text-align: center;
+}
+
+.pt-head__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    opacity: 0.75;
+}
+
+.pt-head__name {
+    font-family: var(--wh-font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: #fff;
+    margin: 0 0 0.25rem;
+    line-height: 1.15;
+}
+
+.pt-head__ssid {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+    color: var(--wh-signal-300);
+    font-weight: 500;
+    margin: 0;
+}
+
+.pt-head__meta {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.8125rem;
+    color: rgba(232, 237, 243, 0.6);
+}
+
+/* --------------------------------------------------------------------------
+   2. Card
+   -------------------------------------------------------------------------- */
+
+.pt-card {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-xl);
+    box-shadow: var(--wh-shadow-md);
+    margin: -1rem 0.875rem 0;   /* overlaps the ink band slightly */
+    position: relative;
+    overflow: hidden;
+}
+
+.pt-card__head {
+    padding: 1.25rem 1.25rem 0.75rem;
+    text-align: center;
+}
+
+.pt-card__title {
+    font-family: var(--wh-font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    margin: 0 0 0.25rem;
+}
+
+.pt-card__sub {
+    font-size: 0.875rem;
+    color: var(--wh-slate-600);
+    margin: 0;
+}
+
+.pt-card__body { padding: 0.5rem 0.875rem 1.25rem; }
+
+/* --------------------------------------------------------------------------
+   3. Package rows
+   The whole row is the target, not a small button in the corner — on a phone
+   that removes the most common mis-tap in the old layout.
+   -------------------------------------------------------------------------- */
+
+.pt-pkg {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.9375rem 1rem;
+    margin-bottom: 0.625rem;
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line-strong);
+    border-radius: var(--wh-r-lg);
+    min-height: 72px;
+    cursor: pointer;
+    transition: border-color var(--wh-dur-fast) var(--wh-ease),
+                box-shadow var(--wh-dur-fast) var(--wh-ease),
+                transform var(--wh-dur-fast) var(--wh-ease);
+}
+.pt-pkg:last-child { margin-bottom: 0; }
+
+.pt-pkg:hover:not(:disabled) {
+    border-color: var(--wh-signal-500);
+    box-shadow: var(--wh-shadow-md);
+}
+/* Subtle press feedback that doesn't move neighbouring rows. */
+.pt-pkg:active:not(:disabled) { transform: scale(0.99); }
+
+.pt-pkg:disabled,
+.pt-pkg[disabled] {
+    cursor: not-allowed;
+    background: var(--wh-paper-sunken);
+    border-color: var(--wh-line);
+    opacity: 0.72;
+}
+
+.pt-pkg__main { flex: 1 1 auto; min-width: 0; }
+
+.pt-pkg__name {
+    font-family: var(--wh-font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    margin: 0 0 0.125rem;
+    line-height: 1.25;
+}
+
+.pt-pkg__desc {
+    font-size: 0.8125rem;
+    color: var(--wh-slate-600);
+    margin: 0 0 0.375rem;
+    line-height: 1.4;
+}
+
+.pt-pkg__facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    color: var(--wh-slate-600);
+}
+.pt-pkg__facts span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.pt-pkg__facts i { font-size: 0.6875rem; opacity: 0.8; }
+
+.pt-pkg__side {
+    flex: 0 0 auto;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.375rem;
+}
+
+.pt-pkg__price {
+    font-family: var(--wh-font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--wh-ink-900);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+}
+.pt-pkg__price small {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--wh-slate-500);
+    letter-spacing: 0;
+}
+
+.pt-pkg__go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wh-signal-700);
+}
+.pt-pkg:disabled .pt-pkg__go { color: var(--wh-slate-500); }
+
+/* --------------------------------------------------------------------------
+   4. Payment modal
+   Kept as plain HTML/CSS/JS rather than the Bootstrap component — a previous
+   change moved it off Bootstrap deliberately for mobile reliability, so the
+   markup contract and the .close / .btn-cancel hooks are preserved.
+   -------------------------------------------------------------------------- */
+
+.pt-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: var(--wh-z-modal);
+    background: rgba(6, 13, 24, 0.6);
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+}
+.pt-modal.is-open { display: block; }
+
+.pt-modal__panel {
+    background: var(--wh-paper-raised);
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    border-radius: var(--wh-r-xl) var(--wh-r-xl) 0 0;
+    box-shadow: var(--wh-shadow-ink);
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    animation: pt-sheet-up 220ms var(--wh-ease);
+}
+
+/* On a phone it behaves as a bottom sheet; from sm up it centres as a dialog. */
+@media (min-width: 576px) {
+    .pt-modal { display: none; }
+    .pt-modal.is-open { display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .pt-modal__panel {
+        position: relative;
+        bottom: auto;
+        border-radius: var(--wh-r-xl);
+        animation: pt-dialog-in 200ms var(--wh-ease);
+    }
+}
+
+@keyframes pt-sheet-up {
+    from { transform: translateY(12%); opacity: 0; }
+    to   { transform: translateY(0);   opacity: 1; }
+}
+@keyframes pt-dialog-in {
+    from { transform: scale(0.97); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+.pt-modal__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--wh-line);
+}
+.pt-modal__head h5 {
+    font-family: var(--wh-font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--wh-ink-900);
+}
+
+/* Close control sized for a thumb, not for a cursor. */
+.pt-modal .close {
+    width: 40px;
+    height: 40px;
+    margin: -0.5rem -0.5rem -0.5rem 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    border-radius: var(--wh-r-md);
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--wh-slate-500);
+    cursor: pointer;
+}
+.pt-modal .close:hover { background: var(--wh-paper-sunken); color: var(--wh-ink-900); }
+
+.pt-modal__body { padding: 1.25rem; }
+.pt-modal__foot {
+    display: flex;
+    gap: 0.625rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--wh-line);
+}
+.pt-modal__foot .btn { flex: 1 1 0; }
+
+/* Order summary inside the sheet */
+.pt-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    background: var(--wh-paper-sunken);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    margin-bottom: 1.125rem;
+}
+.pt-summary .package-name {
+    font-family: var(--wh-font-display);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--wh-ink-900);
+}
+.pt-summary .package-price {
+    font-family: var(--wh-font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--wh-ink-900);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.pt-field { margin-bottom: 0.25rem; }
+.pt-field label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wh-ink-800);
+    margin-bottom: 0.375rem;
+}
+.pt-field input {
+    width: 100%;
+    min-height: 52px;          /* generous: this is the one field that matters */
+    padding: 0.75rem 0.875rem;
+    font-size: 1.0625rem;      /* >=16px so iOS doesn't zoom on focus */
+    font-variant-numeric: tabular-nums;
+    color: var(--wh-ink-900);
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line-strong);
+    border-radius: var(--wh-r-md);
+    transition: border-color var(--wh-dur-fast) var(--wh-ease);
+}
+.pt-field input:focus {
+    outline: 2px solid var(--wh-signal-500);
+    outline-offset: 1px;
+    border-color: var(--wh-signal-500);
+}
+.pt-field__hint {
+    display: block;
+    margin-top: 0.4375rem;
+    font-size: 0.75rem;
+    color: var(--wh-slate-600);
+}
+.pt-field__error {
+    display: none;
+    margin-top: 0.4375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--wh-crit-600);
+}
+.pt-field__error.is-shown { display: block; }
+.pt-field input[aria-invalid="true"] { border-color: var(--wh-crit-600); }
+
+/* --------------------------------------------------------------------------
+   5. Status screens — pending, success, failed, inactive
+   -------------------------------------------------------------------------- */
+
+.pt-status { padding: 2rem 1.25rem 2.25rem; text-align: center; }
+
+.pt-status__icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.125rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.5rem;
+}
+.pt-status__icon--ok   { background: var(--wh-ok-050);   color: var(--wh-ok-600); }
+.pt-status__icon--wait { background: var(--wh-signal-050); color: var(--wh-signal-700); }
+.pt-status__icon--warn { background: var(--wh-warn-050); color: var(--wh-warn-600); }
+.pt-status__icon--crit { background: var(--wh-crit-050); color: var(--wh-crit-600); }
+
+.pt-status__title {
+    font-family: var(--wh-font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--wh-ink-900);
+    margin: 0 0 0.5rem;
+}
+.pt-status__text {
+    font-size: 0.9375rem;
+    color: var(--wh-slate-600);
+    line-height: 1.6;
+    max-width: 40ch;
+    margin: 0 auto 1.5rem;
+}
+
+/* Voucher code — the thing the customer actually bought. Treated as the
+   hero of the success screen, at a size that reads across a room. */
+.pt-voucher {
+    background: var(--wh-ink-800);
+    border-radius: var(--wh-r-lg);
+    padding: 1.25rem 1rem;
+    margin-bottom: 1.25rem;
+}
+.pt-voucher__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--wh-signal-300);
+    margin: 0 0 0.625rem;
+}
+.pt-voucher__code {
+    font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, monospace;
+    font-size: clamp(1.5rem, 8vw, 2rem);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #fff;
+    word-break: break-all;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.pt-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+    padding: 0.5rem 0.875rem;
+    min-height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--wh-r-md);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--wh-dur-fast) var(--wh-ease);
+}
+.pt-copy:hover { background: rgba(255, 255, 255, 0.18); }
+.pt-copy.is-done { background: var(--wh-signal-600); border-color: var(--wh-signal-600); }
+
+/* Steps list on the pending screen */
+.pt-steps { list-style: none; margin: 0 0 1.25rem; padding: 0; text-align: left; }
+.pt-steps li {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.625rem 0;
+    font-size: 0.9rem;
+    color: var(--wh-slate-600);
+    border-bottom: 1px solid var(--wh-line);
+}
+.pt-steps li:last-child { border-bottom: 0; }
+.pt-steps__n {
+    flex: 0 0 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--wh-paper-sunken);
+    color: var(--wh-slate-600);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.pt-steps li.is-active .pt-steps__n { background: var(--wh-signal-600); color: #fff; }
+.pt-steps li.is-active { color: var(--wh-ink-900); font-weight: 500; }
+
+/* Indeterminate progress bar for the pending poll. */
+.pt-progress {
+    height: 3px;
+    background: var(--wh-paper-sunken);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+}
+.pt-progress__bar {
+    height: 100%;
+    width: 35%;
+    background: var(--wh-signal-500);
+    border-radius: 2px;
+    animation: pt-indeterminate 1.6s var(--wh-ease) infinite;
+}
+@keyframes pt-indeterminate {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(340%); }
+}
+
+/* --------------------------------------------------------------------------
+   6. Receipt
+   Order facts on the pending and success screens. A description list, because
+   that is what it is — label/value pairs a customer may need to quote.
+   -------------------------------------------------------------------------- */
+
+.pt-receipt {
+    border-top: 1px solid var(--wh-line);
+    padding: 0.75rem 1.25rem 1.25rem;
+}
+
+.pt-receipt__list { margin: 0; }
+
+.pt-receipt__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+.pt-receipt__row + .pt-receipt__row { border-top: 1px solid var(--wh-line); }
+
+.pt-receipt__row dt {
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--wh-slate-600);
+    margin: 0;
+}
+.pt-receipt__row dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   7. Footer
+   -------------------------------------------------------------------------- */
+
+.pt-foot {
+    text-align: center;
+    padding: 1.25rem 1rem 0;
+    font-size: 0.75rem;
+    color: var(--wh-slate-500);
+}
+.pt-foot a { color: var(--wh-slate-600); text-decoration: none; }
+.pt-foot a:hover { color: var(--wh-ink-900); }
+
+.pt-foot__mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    opacity: 0.65;
+}
+
+/* --------------------------------------------------------------------------
+   8. Motion preferences
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .pt-modal__panel { animation: none; }
+    .pt-progress__bar { animation: none; width: 100%; opacity: 0.55; }
+}

@@ -4,11 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800 text-danger">
-            <i class="fas fa-exclamation-triangle me-2"></i>Delete Account
-        </h1>
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <a href="{{ route('dashboard.profile') }}" class="btn btn-secondary">
             <i class="fas fa-arrow-left me-1"></i>Back to Profile
         </a>

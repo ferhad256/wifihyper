@@ -14,7 +14,7 @@
             padding: 20px;
         }
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             color: white;
             padding: 20px;
             text-align: center;
@@ -43,7 +43,7 @@
         .btn {
             display: inline-block;
             padding: 10px 20px;
-            background: #667eea;
+            background: #0A7A6D;
             color: white;
             text-decoration: none;
             border-radius: 4px;
@@ -99,8 +99,8 @@
             <h3><strong>Need help getting started?</strong></h3>
             <p>Our support team is ready to help you succeed:</p>
             <ul>
-                <li>📧 Email Support: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
-                <li>💬 WhatsApp Support: <a href="https://wa.me/256704791624">+256 700 000 000</a></li>
+                <li>📧 Email Support: <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a></li>
+                <li>💬 WhatsApp Support: <a href="https://wa.me/256792746413">0792746413</a></li>
                 <li>📖 Documentation: <a href="https://wifihyper.com/docs">wifihyper.com/docs</a></li>
                 <li>🌐 Visit our website: <a href="https://wifihyper.com">wifihyper.com</a></li>
             </ul>
@@ -114,7 +114,7 @@
     
     <div class="footer">
         <p>This email was sent to {{ $email }} from <strong>WIFIHYPER</strong></p>
-        <p>📧 <a href="mailto:support@wifihyper.com">support@wifihyper.com</a> | 💬 <a href="https://wa.me/256704791624">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
+        <p>📧 <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a> | 💬 <a href="https://wa.me/256792746413">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
         <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>

@@ -1,0 +1,1325 @@
+/* ==========================================================================
+   WIFIHYPER — Brand Layer
+   Loaded AFTER Bootstrap. Single source of truth for brand tokens.
+
+   Direction: "Signal & Ledger"
+   The product sells connectivity and moves money. The interface should feel
+   like an instrument panel for an operator — engineered, legible, calm —
+   not like a consumer marketing site.
+
+   Rules of the system:
+     - Sharp geometry (4/6/8px radius). No pills, no 15px card corners.
+     - Hairline borders carry structure. Shadows are a secondary cue only.
+     - One accent (signal teal). Amber is reserved for money. Never decorative.
+     - Gradients appear at most once per page, in the hero. Never on buttons,
+       cards, sidebars or headers.
+     - Numerals are tabular everywhere a figure can change.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+
+:root {
+    /* Ink — structural darks. Navy-black, never pure #000. */
+    --wh-ink-900: #060D18;
+    --wh-ink-800: #0A1628;
+    --wh-ink-700: #12243C;
+    --wh-ink-600: #1C3453;
+    --wh-ink-500: #2C4A6E;
+
+    /* Slate — secondary text and inactive states */
+    --wh-slate-600: #48586E;
+    --wh-slate-500: #64748B;
+    --wh-slate-400: #8A9AB0;
+    --wh-slate-300: #B6C2D0;
+
+    /* Paper — warm neutrals. Warmer than Bootstrap's cold #f8f9fa, which is
+       one of the fastest tells of an untouched framework default. */
+    --wh-paper: #F5F7F4;
+    --wh-paper-raised: #FFFFFF;
+    --wh-paper-sunken: #ECEFEA;
+    --wh-line: #DCE2DC;
+    --wh-line-strong: #C3CCC4;
+
+    /* Signal — the brand accent. Teal reads as connectivity and uptime, and
+       deliberately avoids the indigo/violet that marks generated interfaces. */
+    --wh-signal-700: #075E54;
+    --wh-signal-600: #0A7A6D;  /* primary fill — white text passes AA */
+    --wh-signal-500: #0E9C8A;
+    --wh-signal-400: #23C4AC;
+    --wh-signal-300: #4FE0C7;  /* on ink only */
+    --wh-signal-050: #E4F5F1;
+
+    /* Value — money, balances, payouts. Never used for generic emphasis. */
+    --wh-value-700: #7A4607;
+    --wh-value-600: #9E5A0A;   /* amber text: 5.36:1 on white, 4.90:1 on its own tint */
+    --wh-value-400: #F0A118;   /* amber fill */
+    --wh-value-300: #FFC559;   /* on ink only */
+    --wh-value-050: #FDF4E3;
+
+    /* Status — operational states */
+    --wh-ok-600: #167C52;
+    --wh-ok-050: #E4F4EC;
+    --wh-warn-600: #945705;   /* 5.79:1 on white, 5.23:1 on its own tint */
+    --wh-warn-050: #FDF2E0;
+    --wh-crit-600: #B3302A;
+    --wh-crit-050: #FBEAE9;
+
+    /* Type */
+    --wh-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+    --wh-font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    /* Geometry — infrastructural, not soft */
+    /* One weight for every meaning-keyed edge rule (stat tiles, alerts,
+       flagged panels). Kept deliberately thin: it should register as a
+       hairline keyed to state, not as a coloured tab stuck on a card. */
+    --wh-rule-accent: 2px;
+    --wh-r-sm: 4px;
+    --wh-r-md: 6px;
+    --wh-r-lg: 8px;
+    --wh-r-xl: 12px;
+
+    /* Elevation — ink-tinted, tight. Two layers: a contact shadow and a
+       diffuse one. Generic UI uses a single soft blur; this reads sharper. */
+    --wh-shadow-sm: 0 1px 2px rgba(10, 22, 40, 0.06);
+    --wh-shadow-md: 0 1px 2px rgba(10, 22, 40, 0.06), 0 4px 12px rgba(10, 22, 40, 0.06);
+    --wh-shadow-lg: 0 1px 3px rgba(10, 22, 40, 0.08), 0 12px 32px rgba(10, 22, 40, 0.10);
+    --wh-shadow-ink: 0 12px 32px rgba(6, 13, 24, 0.35);
+
+    /* Motion — 150-250ms, ease-out entering. */
+    --wh-ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+    --wh-dur-fast: 140ms;
+    --wh-dur: 200ms;
+
+    /* Layering scale — declared once so nothing guesses a z-index. */
+    --wh-z-base: 1;
+    --wh-z-sticky: 100;
+    --wh-z-nav: 1030;
+    --wh-z-drawer: 1045;
+    --wh-z-modal: 1055;
+    --wh-z-toast: 1080;
+}
+
+/* --------------------------------------------------------------------------
+   2. Bootstrap variable remap
+   Retunes the framework's own tokens so untouched markup inherits the brand.
+   -------------------------------------------------------------------------- */
+
+:root {
+    --bs-font-sans-serif: var(--wh-font-body);
+    --bs-body-font-family: var(--wh-font-body);
+    --bs-body-font-size: 1rem;
+    --bs-body-line-height: 1.6;
+    --bs-body-color: var(--wh-ink-800);
+    --bs-body-color-rgb: 10, 22, 40;
+    --bs-body-bg: var(--wh-paper);
+    --bs-emphasis-color: var(--wh-ink-900);
+    --bs-secondary-color: var(--wh-slate-600);
+
+    --bs-primary: var(--wh-signal-600);
+    --bs-primary-rgb: 10, 122, 109;
+    --bs-secondary-rgb: 72, 88, 110;
+    --bs-success-rgb: 22, 124, 82;
+    --bs-warning-rgb: 148, 87, 5;
+    --bs-danger-rgb: 179, 48, 42;
+    --bs-info-rgb: 28, 52, 83;
+    --bs-light-rgb: 245, 247, 244;
+    --bs-dark-rgb: 10, 22, 40;
+
+    --bs-link-color: var(--wh-signal-700);
+    --bs-link-color-rgb: 7, 94, 84;
+    --bs-link-hover-color: var(--wh-signal-600);
+
+    --bs-border-color: var(--wh-line);
+    --bs-border-radius: var(--wh-r-md);
+    --bs-border-radius-sm: var(--wh-r-sm);
+    --bs-border-radius-lg: var(--wh-r-lg);
+    --bs-border-radius-xl: var(--wh-r-xl);
+    --bs-border-radius-pill: var(--wh-r-md); /* neutralises stray pill classes */
+}
+
+/* --------------------------------------------------------------------------
+   3. Base
+   -------------------------------------------------------------------------- */
+
+body {
+    font-family: var(--wh-font-body);
+    background-color: var(--wh-paper);
+    color: var(--wh-ink-800);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+.wh-display {
+    font-family: var(--wh-font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--wh-ink-900);
+    line-height: 1.15;
+    /* Evens out the last line so headings don't strand a single word.
+       Ignored by browsers that don't support it, which simply wrap as before. */
+    text-wrap: balance;
+}
+
+/* Lead paragraphs get the lighter treatment: only the last line is protected. */
+.wh-hero__lead,
+.wh-section__head p,
+.wh-empty__text {
+    text-wrap: pretty;
+}
+
+h1 { letter-spacing: -0.032em; }
+h2 { letter-spacing: -0.026em; }
+
+/* Any figure that can change gets fixed-width digits so columns and counters
+   never jitter as values update. */
+.wh-num,
+.wh-stat__value,
+table td,
+table th {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
+
+::selection {
+    background: var(--wh-signal-300);
+    color: var(--wh-ink-900);
+}
+
+/* --------------------------------------------------------------------------
+   4. Focus — one visible ring for every interactive element.
+   -------------------------------------------------------------------------- */
+
+:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible,
+.nav-link:focus-visible {
+    outline: 2px solid var(--wh-signal-500);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.wh-sidebar :focus-visible,
+.wh-hero :focus-visible {
+    outline-color: var(--wh-signal-300);
+}
+
+/* Skip link — keyboard users land here first. */
+.wh-skip {
+    position: absolute;
+    left: 8px;
+    top: -60px;
+    z-index: var(--wh-z-toast);
+    padding: 10px 16px;
+    background: var(--wh-ink-800);
+    color: #fff;
+    border-radius: var(--wh-r-sm);
+    font-weight: 600;
+    text-decoration: none;
+    transition: top var(--wh-dur) var(--wh-ease);
+}
+.wh-skip:focus { top: 8px; color: #fff; }
+
+/* --------------------------------------------------------------------------
+   5. Brand marks
+   -------------------------------------------------------------------------- */
+
+.wh-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: inherit;
+}
+.wh-logo:hover { color: inherit; text-decoration: none; }
+
+.wh-logo__mark {
+    flex: 0 0 auto;
+    display: block;
+}
+
+.wh-logo__word {
+    font-family: var(--wh-font-display);
+    font-weight: 700;
+    font-size: 1.16rem;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
+    /* The two halves of the name are set in different weights rather than
+       different colours — it survives one-colour printing and dark surfaces. */
+}
+.wh-logo__word b { font-weight: 700; }
+.wh-logo__word span { font-weight: 500; opacity: 0.72; }
+
+.wh-logo__tag {
+    padding-left: 0.6rem;
+    margin-left: 0.1rem;
+    border-left: 1px solid currentColor;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.55;
+    white-space: nowrap;
+}
+@media (max-width: 575.98px) {
+    .wh-logo__tag { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   6. Buttons — flat, bordered, sharp. No gradients.
+   -------------------------------------------------------------------------- */
+
+.btn {
+    font-family: var(--wh-font-body);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    letter-spacing: -0.006em;
+    border-radius: var(--wh-r-md);
+    padding: 0.5625rem 1.125rem;
+    min-height: 44px;              /* touch target floor */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    border-width: 1px;
+    transition: background-color var(--wh-dur-fast) var(--wh-ease),
+                border-color var(--wh-dur-fast) var(--wh-ease),
+                color var(--wh-dur-fast) var(--wh-ease),
+                transform var(--wh-dur-fast) var(--wh-ease);
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-lg { padding: 0.75rem 1.5rem; font-size: 1rem; min-height: 50px; }
+.btn-sm { padding: 0.375rem 0.75rem; font-size: 0.8125rem; min-height: 36px; }
+
+.btn-primary {
+    --bs-btn-bg: var(--wh-signal-600);
+    --bs-btn-border-color: var(--wh-signal-600);
+    --bs-btn-hover-bg: var(--wh-signal-700);
+    --bs-btn-hover-border-color: var(--wh-signal-700);
+    --bs-btn-active-bg: var(--wh-signal-700);
+    --bs-btn-active-border-color: var(--wh-signal-700);
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+    --bs-btn-disabled-bg: var(--wh-slate-300);
+    --bs-btn-disabled-border-color: var(--wh-slate-300);
+    background-image: none;
+    box-shadow: var(--wh-shadow-sm);
+}
+
+.btn-outline-primary {
+    --bs-btn-color: var(--wh-signal-700);
+    --bs-btn-border-color: var(--wh-line-strong);
+    --bs-btn-hover-bg: var(--wh-signal-050);
+    --bs-btn-hover-border-color: var(--wh-signal-600);
+    --bs-btn-hover-color: var(--wh-signal-700);
+    --bs-btn-active-bg: var(--wh-signal-050);
+    --bs-btn-active-color: var(--wh-signal-700);
+    --bs-btn-active-border-color: var(--wh-signal-600);
+    background-color: var(--wh-paper-raised);
+}
+
+.btn-secondary {
+    --bs-btn-bg: var(--wh-paper-raised);
+    --bs-btn-border-color: var(--wh-line-strong);
+    --bs-btn-color: var(--wh-ink-800);
+    --bs-btn-hover-bg: var(--wh-paper-sunken);
+    --bs-btn-hover-border-color: var(--wh-slate-400);
+    --bs-btn-hover-color: var(--wh-ink-900);
+    --bs-btn-active-bg: var(--wh-paper-sunken);
+    --bs-btn-active-color: var(--wh-ink-900);
+    --bs-btn-active-border-color: var(--wh-slate-400);
+}
+
+.btn-success {
+    --bs-btn-bg: var(--wh-ok-600);
+    --bs-btn-border-color: var(--wh-ok-600);
+    --bs-btn-hover-bg: #10603F;
+    --bs-btn-hover-border-color: #10603F;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+}
+
+.btn-danger {
+    --bs-btn-bg: var(--wh-crit-600);
+    --bs-btn-border-color: var(--wh-crit-600);
+    --bs-btn-hover-bg: #93251F;
+    --bs-btn-hover-border-color: #93251F;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-color: #fff;
+}
+
+.btn-warning {
+    --bs-btn-bg: var(--wh-value-400);
+    --bs-btn-border-color: var(--wh-value-400);
+    --bs-btn-hover-bg: #DA8F0C;
+    --bs-btn-hover-border-color: #DA8F0C;
+    --bs-btn-color: var(--wh-ink-900);
+    --bs-btn-hover-color: var(--wh-ink-900);
+}
+
+.btn-light {
+    --bs-btn-bg: #fff;
+    --bs-btn-border-color: #fff;
+    --bs-btn-color: var(--wh-ink-900);
+    --bs-btn-hover-bg: var(--wh-paper-sunken);
+    --bs-btn-hover-border-color: var(--wh-paper-sunken);
+    --bs-btn-hover-color: var(--wh-ink-900);
+}
+
+.btn-outline-light {
+    --bs-btn-color: #fff;
+    --bs-btn-border-color: rgba(255, 255, 255, 0.32);
+    --bs-btn-hover-bg: rgba(255, 255, 255, 0.10);
+    --bs-btn-hover-border-color: rgba(255, 255, 255, 0.55);
+    --bs-btn-hover-color: #fff;
+}
+
+/* Disabled reads as disabled — dimmed, no pointer, no hover. */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* --------------------------------------------------------------------------
+   7. Cards & surfaces
+   Structure comes from a hairline border. The shadow only lifts it slightly.
+   -------------------------------------------------------------------------- */
+
+.card {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    box-shadow: var(--wh-shadow-sm);
+}
+
+.card-header {
+    background: transparent;
+    border-bottom: 1px solid var(--wh-line);
+    padding: 1rem 1.25rem;
+    font-family: var(--wh-font-display);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--wh-ink-900);
+    border-radius: 0 !important;
+}
+
+.card-body { padding: 1.25rem; }
+.card-footer { background: transparent; border-top: 1px solid var(--wh-line); }
+
+/* Panel: the workhorse container for dashboard content. */
+.wh-panel {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    box-shadow: var(--wh-shadow-sm);
+}
+.wh-panel__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--wh-line);
+}
+.wh-panel__title {
+    font-family: var(--wh-font-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--wh-ink-900);
+}
+.wh-panel__body { padding: 1.25rem; }
+
+/* --------------------------------------------------------------------------
+   8. Eyebrow / micro-label
+   Uppercase tracked labels are the instrument-panel cue that separates this
+   from a generic marketing template.
+   -------------------------------------------------------------------------- */
+
+.wh-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--wh-font-body);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--wh-slate-600);
+    margin: 0;
+}
+.wh-eyebrow--onink { color: var(--wh-signal-300); }
+
+/* --------------------------------------------------------------------------
+   9. Stat tile — the core dashboard unit
+   -------------------------------------------------------------------------- */
+
+.wh-stat {
+    position: relative;
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    padding: 1.125rem 1.25rem;
+    height: 100%;
+    overflow: hidden;
+    transition: border-color var(--wh-dur) var(--wh-ease),
+                box-shadow var(--wh-dur) var(--wh-ease);
+}
+.wh-stat:hover {
+    border-color: var(--wh-line-strong);
+    box-shadow: var(--wh-shadow-md);
+}
+
+/* A hairline rule keyed to the metric's meaning, rather than a coloured card.
+   Always paired with an icon chip and a text label, so the state is never
+   carried by colour alone. */
+.wh-stat::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--wh-rule-accent);
+    background: var(--wh-slate-300);
+}
+.wh-stat--signal::before { background: var(--wh-signal-500); }
+.wh-stat--value::before  { background: var(--wh-value-400); }
+.wh-stat--ok::before     { background: var(--wh-ok-600); }
+.wh-stat--warn::before   { background: var(--wh-warn-600); }
+.wh-stat--crit::before   { background: var(--wh-crit-600); }
+
+.wh-stat__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+}
+.wh-stat__label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--wh-slate-600);
+}
+.wh-stat__icon {
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--wh-r-sm);
+    background: var(--wh-paper-sunken);
+    color: var(--wh-slate-600);
+    font-size: 0.875rem;
+}
+.wh-stat--signal .wh-stat__icon { background: var(--wh-signal-050); color: var(--wh-signal-700); }
+.wh-stat--value  .wh-stat__icon { background: var(--wh-value-050);  color: var(--wh-value-700); }
+.wh-stat--ok     .wh-stat__icon { background: var(--wh-ok-050);     color: var(--wh-ok-600); }
+.wh-stat--warn   .wh-stat__icon { background: var(--wh-warn-050);   color: var(--wh-warn-600); }
+.wh-stat--crit   .wh-stat__icon { background: var(--wh-crit-050);   color: var(--wh-crit-600); }
+
+.wh-stat__value {
+    font-family: var(--wh-font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    color: var(--wh-ink-900);
+    display: block;
+}
+.wh-stat__value small {
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--wh-slate-500);
+    letter-spacing: 0;
+}
+.wh-stat__meta {
+    margin: 0.375rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--wh-slate-600);
+}
+
+/* --------------------------------------------------------------------------
+   10. Status — dot + pill. Never colour alone: each carries a text label.
+   -------------------------------------------------------------------------- */
+
+.wh-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: var(--wh-slate-400);
+    display: inline-block;
+}
+.wh-dot--ok   { background: var(--wh-ok-600); }
+.wh-dot--warn { background: var(--wh-warn-600); }
+.wh-dot--crit { background: var(--wh-crit-600); }
+.wh-dot--live {
+    background: var(--wh-signal-400);
+    box-shadow: 0 0 0 0 rgba(35, 196, 172, 0.7);
+    animation: wh-pulse 2.4s var(--wh-ease) infinite;
+}
+@keyframes wh-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(35, 196, 172, 0.6); }
+    70%  { box-shadow: 0 0 0 7px rgba(35, 196, 172, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(35, 196, 172, 0); }
+}
+
+.wh-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5625rem;
+    border-radius: var(--wh-r-sm);
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    background: var(--wh-paper-sunken);
+    color: var(--wh-slate-600);
+    border-color: var(--wh-line);
+}
+.wh-pill--ok   { background: var(--wh-ok-050);   color: var(--wh-ok-600);   border-color: rgba(22, 124, 82, 0.22); }
+.wh-pill--warn { background: var(--wh-warn-050); color: var(--wh-warn-600); border-color: rgba(148, 87, 5, 0.22); }
+.wh-pill--crit { background: var(--wh-crit-050); color: var(--wh-crit-600); border-color: rgba(179, 48, 42, 0.22); }
+.wh-pill--info { background: var(--wh-signal-050); color: var(--wh-signal-700); border-color: rgba(10, 122, 109, 0.22); }
+.wh-pill--value{ background: var(--wh-value-050); color: var(--wh-value-700); border-color: rgba(158, 90, 10, 0.22); }
+
+/* Retune Bootstrap badges to match rather than leaving two visual languages. */
+.badge {
+    font-weight: 600;
+    letter-spacing: 0;
+    border-radius: var(--wh-r-sm);
+    padding: 0.3rem 0.55rem;
+}
+
+/* --------------------------------------------------------------------------
+   11. Tables — data first
+   -------------------------------------------------------------------------- */
+
+.table {
+    --bs-table-border-color: var(--wh-line);
+    margin-bottom: 0;
+    color: var(--wh-ink-800);
+}
+.table > thead th {
+    background: var(--wh-paper-sunken);
+    border-bottom: 1px solid var(--wh-line);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--wh-slate-600);
+    padding: 0.6875rem 1rem;
+    white-space: nowrap;
+}
+.table > tbody td {
+    padding: 0.8125rem 1rem;
+    border-bottom: 1px solid var(--wh-line);
+    vertical-align: middle;
+    font-size: 0.9375rem;
+}
+.table > tbody tr:last-child td { border-bottom: 0; }
+.table-hover > tbody > tr:hover > * {
+    background-color: var(--wh-signal-050);
+    --bs-table-accent-bg: transparent;
+}
+
+/* Money column: fixed digits, weighted, aligned right. */
+.wh-money {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    white-space: nowrap;
+}
+.wh-money--in  { color: var(--wh-ok-600); }
+.wh-money--out { color: var(--wh-crit-600); }
+.wh-money__cur {
+    font-size: 0.75em;
+    font-weight: 500;
+    color: var(--wh-slate-500);
+    margin-right: 0.15em;
+}
+
+/* --------------------------------------------------------------------------
+   12. Forms
+   -------------------------------------------------------------------------- */
+
+.form-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wh-ink-800);
+    margin-bottom: 0.375rem;
+}
+.form-control,
+.form-select {
+    border: 1px solid var(--wh-line-strong);
+    border-radius: var(--wh-r-md);
+    padding: 0.5625rem 0.75rem;
+    min-height: 44px;
+    font-size: 1rem;              /* 16px — stops iOS zoom-on-focus */
+    color: var(--wh-ink-900);
+    background-color: var(--wh-paper-raised);
+    transition: border-color var(--wh-dur-fast) var(--wh-ease);
+}
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--wh-signal-500);
+    box-shadow: 0 0 0 3px rgba(14, 156, 138, 0.16);
+}
+.form-control::placeholder { color: var(--wh-slate-400); }
+.form-control:disabled,
+.form-select:disabled {
+    background-color: var(--wh-paper-sunken);
+    color: var(--wh-slate-500);
+    cursor: not-allowed;
+}
+.form-text { font-size: 0.8125rem; color: var(--wh-slate-600); }
+.invalid-feedback { font-size: 0.8125rem; color: var(--wh-crit-600); }
+.is-invalid { border-color: var(--wh-crit-600) !important; }
+
+/* --------------------------------------------------------------------------
+   13. Alerts
+   -------------------------------------------------------------------------- */
+
+/* Alerts carry a tinted ground, an icon and text. The leading rule is a
+   scanning aid on top of those, not the thing doing the work. */
+.alert {
+    border-radius: var(--wh-r-md);
+    border: 1px solid transparent;
+    border-left-width: var(--wh-rule-accent);
+    padding: 0.875rem 1rem;
+    font-size: 0.9375rem;
+}
+.alert-success { background: var(--wh-ok-050);   border-color: rgba(22,124,82,0.2);  border-left-color: var(--wh-ok-600);   color: #0F5537; }
+.alert-danger  { background: var(--wh-crit-050); border-color: rgba(179,48,42,0.2);  border-left-color: var(--wh-crit-600); color: #8C241F; }
+.alert-warning { background: var(--wh-warn-050); border-color: rgba(148,87,5,0.2);   border-left-color: var(--wh-warn-600); color: #7A4805; }
+.alert-info    { background: var(--wh-signal-050); border-color: rgba(10,122,109,0.2); border-left-color: var(--wh-signal-600); color: var(--wh-signal-700); }
+
+/* --------------------------------------------------------------------------
+   14. Dark surfaces — sidebar, hero, footer
+   -------------------------------------------------------------------------- */
+
+.wh-ink {
+    background-color: var(--wh-ink-800);
+    color: #E8EDF3;
+}
+.wh-ink h1, .wh-ink h2, .wh-ink h3, .wh-ink h4, .wh-ink h5, .wh-ink h6 { color: #fff; }
+
+/* --------------------------------------------------------------------------
+   15. Sidebar (tenant + admin share this)
+   -------------------------------------------------------------------------- */
+
+.wh-sidebar {
+    background: var(--wh-ink-800);
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+.wh-sidebar__brand {
+    padding: 1.125rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+.wh-sidebar__section {
+    padding: 1.25rem 1.25rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.38);
+}
+.wh-sidebar .nav-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1px 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--wh-r-md);
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.9rem;
+    font-weight: 500;
+    min-height: 44px;
+    transition: background-color var(--wh-dur-fast) var(--wh-ease),
+                color var(--wh-dur-fast) var(--wh-ease);
+}
+.wh-sidebar .nav-link i,
+.wh-sidebar .nav-link svg {
+    width: 18px;
+    flex: 0 0 18px;
+    text-align: center;
+    font-size: 0.9375rem;
+    opacity: 0.75;
+}
+.wh-sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+/* Active state uses a fill AND a left marker — position is legible without
+   relying on colour perception. */
+.wh-sidebar .nav-link.active {
+    background: rgba(35, 196, 172, 0.14);
+    color: #fff;
+    font-weight: 600;
+}
+.wh-sidebar .nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: -0.625rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 2px 2px 0;
+    background: var(--wh-signal-400);
+}
+.wh-sidebar .nav-link.active i,
+.wh-sidebar .nav-link.active svg { opacity: 1; color: var(--wh-signal-300); }
+
+.wh-sidebar__foot {
+    margin-top: auto;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.42);
+}
+
+/* --------------------------------------------------------------------------
+   16. App shell
+   Shared by the tenant and admin panels. Fixed rail on desktop, off-canvas
+   drawer below lg. The main column is offset with padding rather than margin
+   so the sticky topbar still spans the full content width.
+   -------------------------------------------------------------------------- */
+
+.wh-shell { min-height: 100vh; min-height: 100dvh; }
+
+.wh-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    z-index: var(--wh-z-drawer);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.wh-main {
+    padding-left: 250px;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.wh-content {
+    padding: 1.5rem;
+    flex: 1;
+}
+
+@media (max-width: 991.98px) {
+    .wh-sidebar {
+        transform: translateX(-100%);
+        transition: transform var(--wh-dur) var(--wh-ease);
+        width: 84vw;
+        max-width: 300px;
+        box-shadow: var(--wh-shadow-ink);
+    }
+    .wh-sidebar.is-open { transform: translateX(0); }
+    .wh-main { padding-left: 0; }
+    .wh-content { padding: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wh-sidebar { transition: none; }
+}
+
+.wh-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 13, 24, 0.55);
+    z-index: calc(var(--wh-z-drawer) - 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--wh-dur) var(--wh-ease), visibility var(--wh-dur);
+}
+.wh-scrim.is-open { opacity: 1; visibility: visible; }
+
+/* --------------------------------------------------------------------------
+   17. Topbar
+   -------------------------------------------------------------------------- */
+
+.wh-topbar {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(1.4) blur(10px);
+    -webkit-backdrop-filter: saturate(1.4) blur(10px);
+    border-bottom: 1px solid var(--wh-line);
+    box-shadow: none;
+    position: sticky;
+    top: 0;
+    z-index: var(--wh-z-sticky);
+}
+
+.wh-page-title {
+    font-family: var(--wh-font-display);
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--wh-ink-900);
+    margin: 0;
+}
+.wh-page-sub {
+    font-size: 0.875rem;
+    color: var(--wh-slate-600);
+    margin: 0.125rem 0 0;
+}
+
+.wh-topbar__inner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    min-height: 62px;
+}
+@media (max-width: 991.98px) {
+    .wh-topbar__inner { padding: 0.625rem 1rem; }
+}
+
+/* Square icon affordance — 40px visual, 44px effective with the gap around it. */
+.wh-iconbtn {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: var(--wh-r-md);
+    background: transparent;
+    color: var(--wh-slate-600);
+    font-size: 0.9375rem;
+    position: relative;
+    cursor: pointer;
+    transition: background-color var(--wh-dur-fast) var(--wh-ease),
+                color var(--wh-dur-fast) var(--wh-ease);
+}
+.wh-iconbtn:hover { background: var(--wh-paper-sunken); color: var(--wh-ink-900); }
+
+.wh-userbtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0.625rem;
+    min-height: 40px;
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-md);
+    background: var(--wh-paper-raised);
+    color: var(--wh-ink-800);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+.wh-userbtn:hover { background: var(--wh-paper-sunken); color: var(--wh-ink-900); }
+
+.wh-avatar {
+    width: 26px;
+    height: 26px;
+    flex: 0 0 26px;
+    border-radius: var(--wh-r-sm);
+    background: var(--wh-signal-050);
+    color: var(--wh-signal-700);
+    display: grid;
+    place-items: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Unread count on the bell, ringed in the surface colour so it reads as a
+   separate object rather than a smudge on the icon. */
+.wh-badge-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: var(--wh-crit-600);
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 17px;
+    text-align: center;
+    border: 2px solid var(--wh-paper-raised);
+    font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   17. Dropdowns & modals
+   -------------------------------------------------------------------------- */
+
+.dropdown-menu {
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    box-shadow: var(--wh-shadow-lg);
+    padding: 0.375rem;
+}
+.dropdown-item {
+    border-radius: var(--wh-r-sm);
+    padding: 0.5rem 0.625rem;
+    font-size: 0.9rem;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.dropdown-item:hover { background: var(--wh-paper-sunken); color: var(--wh-ink-900); }
+.dropdown-item.text-danger:hover { background: var(--wh-crit-050); color: var(--wh-crit-600); }
+
+.modal-content {
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-xl);
+    box-shadow: var(--wh-shadow-lg);
+}
+.modal-header {
+    border-bottom: 1px solid var(--wh-line);
+    padding: 1.125rem 1.25rem;
+}
+.modal-title {
+    font-family: var(--wh-font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+}
+.modal-footer { border-top: 1px solid var(--wh-line); padding: 1rem 1.25rem; }
+/* Scrim heavy enough to isolate the dialog from the page behind it. */
+.modal-backdrop.show { opacity: 0.55; background: var(--wh-ink-900); }
+
+/* --------------------------------------------------------------------------
+   18. Empty state
+   -------------------------------------------------------------------------- */
+
+.wh-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+.wh-empty__icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    display: grid;
+    place-items: center;
+    border-radius: var(--wh-r-lg);
+    background: var(--wh-paper-sunken);
+    color: var(--wh-slate-400);
+    font-size: 1.25rem;
+}
+.wh-empty__title {
+    font-family: var(--wh-font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    margin-bottom: 0.25rem;
+}
+.wh-empty__text {
+    font-size: 0.9rem;
+    color: var(--wh-slate-600);
+    max-width: 42ch;
+    margin: 0 auto 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   19. Utilities
+   -------------------------------------------------------------------------- */
+
+.wh-hairline { border-color: var(--wh-line) !important; }
+.wh-muted { color: var(--wh-slate-600) !important; }
+.wh-mono { font-variant-numeric: tabular-nums; }
+
+/* Bootstrap's .text-muted resolves too light against warm paper. */
+.text-muted { color: var(--wh-slate-600) !important; }
+
+/* Code-like identifiers: voucher codes, transaction refs, hotspot slugs. */
+.wh-code {
+    font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, monospace;
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    background: var(--wh-paper-sunken);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-sm);
+    padding: 0.15rem 0.4rem;
+    color: var(--wh-ink-700);
+}
+
+/* Horizontal overflow is contained per-component, never on the page body. */
+.wh-scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --------------------------------------------------------------------------
+   20. Dark theme
+   Driven by [data-theme="dark"] on <html>, set by the dashboard's existing
+   switchTheme(). Because every surface reads from tokens, retuning the tokens
+   themes the whole product — no per-component dark rules needed.
+
+   Darks are desaturated navy rather than inverted greys, and each foreground
+   is re-checked against its own surface rather than assumed from light mode.
+   -------------------------------------------------------------------------- */
+
+[data-theme="dark"] {
+    --wh-paper: #0C1727;
+    --wh-paper-raised: #15243A;
+    --wh-paper-sunken: #101D30;
+    --wh-line: #26374F;
+    --wh-line-strong: #364B67;
+
+    /* Text ramp inverts: "ink" now means the light foreground. */
+    --wh-ink-900: #F1F6FB;
+    --wh-ink-800: #DFE8F2;
+    --wh-ink-700: #C6D3E2;
+
+    --wh-slate-600: #A0B2C8;   /* 7.0:1 on raised surface */
+    --wh-slate-500: #8B9EB6;
+    --wh-slate-400: #6F8299;
+    --wh-slate-300: #4E6280;
+
+    /* Accents brighten so they hold against a dark field. */
+    --wh-signal-700: #6FE7D0;
+    --wh-signal-600: #2ACFB5;
+    --wh-signal-500: #23C4AC;
+    --wh-signal-050: rgba(35, 196, 172, 0.14);
+
+    --wh-value-700: #FFD08A;
+    --wh-value-600: #FFC559;
+    --wh-value-050: rgba(240, 161, 24, 0.14);
+
+    --wh-ok-600: #56D69B;
+    --wh-ok-050: rgba(86, 214, 155, 0.14);
+    --wh-warn-600: #F5BC4E;
+    --wh-warn-050: rgba(245, 188, 78, 0.14);
+    --wh-crit-600: #F98080;
+    --wh-crit-050: rgba(249, 128, 128, 0.14);
+
+    --bs-body-bg: var(--wh-paper);
+    --bs-body-color: var(--wh-ink-800);
+    --bs-border-color: var(--wh-line);
+    --bs-link-color: var(--wh-signal-600);
+    --bs-link-hover-color: var(--wh-signal-700);
+}
+
+/* On dark, a mid-teal fill can't carry white text at AA. The primary button
+   flips to a bright fill with dark text instead of dimming the accent. */
+[data-theme="dark"] .btn-primary {
+    --bs-btn-bg: var(--wh-signal-600);
+    --bs-btn-border-color: var(--wh-signal-600);
+    --bs-btn-color: #06121F;
+    --bs-btn-hover-bg: var(--wh-signal-700);
+    --bs-btn-hover-border-color: var(--wh-signal-700);
+    --bs-btn-hover-color: #06121F;
+    --bs-btn-active-bg: var(--wh-signal-700);
+    --bs-btn-active-color: #06121F;
+}
+[data-theme="dark"] .btn-success,
+[data-theme="dark"] .btn-danger { --bs-btn-color: #06121F; --bs-btn-hover-color: #06121F; }
+
+[data-theme="dark"] .btn-secondary,
+[data-theme="dark"] .btn-outline-primary {
+    background-color: var(--wh-paper-raised);
+    --bs-btn-bg: var(--wh-paper-raised);
+    --bs-btn-hover-bg: var(--wh-paper-sunken);
+}
+
+[data-theme="dark"] .wh-topbar {
+    background: rgba(21, 36, 58, 0.88);
+    border-bottom-color: var(--wh-line);
+}
+[data-theme="dark"] .table > thead th { background: var(--wh-paper-sunken); }
+[data-theme="dark"] .table-hover > tbody > tr:hover > * { background-color: rgba(35, 196, 172, 0.08); }
+[data-theme="dark"] .modal-backdrop.show { opacity: 0.7; }
+[data-theme="dark"] .wh-code { background: var(--wh-paper-sunken); color: var(--wh-ink-700); }
+
+/* --------------------------------------------------------------------------
+   21. Compact density
+   Toggled by the settings screen. Tightens the rhythm one step without
+   changing any type size below the readable floor.
+   -------------------------------------------------------------------------- */
+
+.compact-mode .card-body,
+.compact-mode .wh-panel__body { padding: 0.875rem; }
+.compact-mode .wh-stat { padding: 0.875rem 1rem; }
+.compact-mode .wh-stat__value { font-size: 1.5rem; }
+.compact-mode .table > tbody td { padding: 0.5rem 0.75rem; }
+.compact-mode .table > thead th { padding: 0.5rem 0.75rem; }
+
+/* --------------------------------------------------------------------------
+   22. Auth pages
+   Login, register, password reset — tenant and admin. The card sits on the
+   ink field with the logo above it rather than inside a coloured header bar,
+   so the mark is never trapped on a second background.
+   -------------------------------------------------------------------------- */
+
+.wh-auth {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background-color: var(--wh-ink-800);
+}
+
+.wh-auth__inner {
+    width: 100%;
+    max-width: 410px;
+}
+
+.wh-auth__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.wh-auth__card {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-xl);
+    box-shadow: var(--wh-shadow-ink);
+    padding: 2rem 1.75rem;
+}
+
+.wh-auth__title {
+    font-family: var(--wh-font-display);
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--wh-ink-900);
+    margin: 0 0 0.25rem;
+}
+
+.wh-auth__sub {
+    font-size: 0.9375rem;
+    color: var(--wh-slate-600);
+    margin: 0 0 1.5rem;
+}
+
+.wh-auth__foot {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--wh-line);
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--wh-slate-600);
+}
+
+.wh-auth__back {
+    display: block;
+    margin-top: 1.25rem;
+    text-align: center;
+    font-size: 0.875rem;
+    color: rgba(232, 237, 243, 0.6);
+    text-decoration: none;
+}
+.wh-auth__back:hover { color: #fff; }
+
+/* Full-width submit is the single primary action on these screens. */
+.wh-auth .btn-primary { width: 100%; }
+
+/* Leading icon inside the field group */
+.wh-auth .input-group-text {
+    background: var(--wh-paper-sunken);
+    border: 1px solid var(--wh-line-strong);
+    border-right: 0;
+    color: var(--wh-slate-500);
+    border-radius: var(--wh-r-md) 0 0 var(--wh-r-md);
+}
+.wh-auth .input-group .form-control { border-left: 0; }
+.wh-auth .input-group:focus-within .input-group-text { border-color: var(--wh-signal-500); }
+
+@media (max-width: 400px) {
+    .wh-auth__card { padding: 1.5rem 1.25rem; }
+}
+
+/* --------------------------------------------------------------------------
+   23. Legacy compatibility
+   These classes were defined inline in the old layouts and are still used by
+   pages that have not been reworked yet. They are remapped onto brand tokens
+   so nothing regresses in the meantime. Prefer .wh-stat, .wh-panel and
+   .wh-muted in new markup; this block can be deleted once the last usage
+   listed below is gone.
+
+   Still in use: dashboard/billing, dashboard/vouchers, dashboard/hotspots*,
+   dashboard/profile, dashboard/settings, admin/dashboard/{tenants,
+   tenant-details, transactions, withdrawals, profile}, admin/auth/*.
+   -------------------------------------------------------------------------- */
+
+.text-gray-800 { color: var(--wh-ink-900) !important; }
+.text-gray-500 { color: var(--wh-slate-600) !important; }
+.text-gray-300 { color: var(--wh-slate-400) !important; }
+
+/* Held at the system's accent weight rather than the 4px the old theme used.
+   These sit on .card in the not-yet-reworked pages, which is the one place the
+   accent rule really does read as a coloured tab — when those pages are redone
+   the state should move onto a pill or an icon and these can go. */
+.border-left-primary   { border-left: var(--wh-rule-accent) solid var(--wh-signal-600) !important; }
+.border-left-secondary { border-left: var(--wh-rule-accent) solid var(--wh-slate-400) !important; }
+.border-left-info      { border-left: var(--wh-rule-accent) solid var(--wh-signal-500) !important; }
+.border-left-success   { border-left: var(--wh-rule-accent) solid var(--wh-ok-600) !important; }
+.border-left-warning   { border-left: var(--wh-rule-accent) solid var(--wh-warn-600) !important; }
+.border-left-danger    { border-left: var(--wh-rule-accent) solid var(--wh-crit-600) !important; }
+
+/* The old admin button; now just the primary button under another name. */
+.btn-admin {
+    background: var(--wh-signal-600);
+    border: 1px solid var(--wh-signal-600);
+    color: #fff;
+    border-radius: var(--wh-r-md);
+    padding: 0.5625rem 1.125rem;
+    min-height: 44px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: background-color var(--wh-dur-fast) var(--wh-ease);
+}
+.btn-admin:hover { background: var(--wh-signal-700); border-color: var(--wh-signal-700); color: #fff; }
+
+/* Older pages set their own chart wrapper height. */
+.chart-area { position: relative; height: 20rem; width: 100%; }
+@media (max-width: 575.98px) { .chart-area { height: 15rem; } }
+
+/* Bootstrap utility sizes the old markup leaned on. */
+.text-xs { font-size: 0.75rem; }
+.font-weight-bold { font-weight: 600; }
+
+/* --------------------------------------------------------------------------
+   24. Motion preferences
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+    .wh-dot--live { animation: none; }
+}

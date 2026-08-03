@@ -50,6 +50,12 @@ class WithdrawalController extends Controller
         $phoneNumber = $request->phone_number;
         $description = $request->description ?? 'Wallet withdrawal';
 
+        // Check if tenant has a pending withdrawal request
+        if (WithdrawalTransaction::hasPendingWithdrawal($tenant->id)) {
+            $pendingWithdrawal = WithdrawalTransaction::getPendingWithdrawal($tenant->id);
+            return back()->with('error', 'You already have a pending withdrawal request (ID: ' . $pendingWithdrawal->withdrawal_id . '). Please wait for it to be processed before submitting a new request.')->withInput();
+        }
+
         // Validate phone number format
         $phoneNumber = $this->formatPhoneNumber($phoneNumber);
         if (!$this->isValidUgandaPhoneNumber($phoneNumber)) {

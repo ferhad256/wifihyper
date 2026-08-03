@@ -4,9 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Tenant Management</h1>
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <div class="text-muted">
             <i class="fas fa-users me-1"></i>
             {{ $tenants->total() }} total tenants
@@ -87,6 +85,14 @@
                                             <button type="submit" class="btn {{ $tenant->is_active ? 'btn-warning' : 'btn-success' }}" 
                                                     onclick="return confirm('Are you sure you want to {{ $tenant->is_active ? 'deactivate' : 'activate' }} this tenant?')">
                                                 <i class="fas fa-{{ $tenant->is_active ? 'pause' : 'play' }}"></i>
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.tenants.destroy', $tenant->id) }}" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger"
+                                                    onclick="return confirm('This will permanently delete the tenant and all related data. Are you sure?')">
+                                                <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
                                     </div>

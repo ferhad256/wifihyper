@@ -4,14 +4,30 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Transaction Monitoring</h1>
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
         <div class="text-muted">
             <i class="fas fa-exchange-alt me-1"></i>
             {{ $transactions->total() }} total transactions
         </div>
     </div>
+
+    <!-- Search -->
+    <form method="GET" class="mb-3">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="Search by phone number (e.g., 07..., 256...)" value="{{ request('q') }}">
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search me-1"></i>Search
+            </button>
+            @if(request('q'))
+                <a href="{{ route('admin.transactions') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i>Clear
+                </a>
+            @endif
+        </div>
+        @if(request('q'))
+            <small class="text-muted d-block mt-1">Showing results for: <code>{{ request('q') }}</code></small>
+        @endif
+    </form>
 
     <!-- Transactions Table -->
     <div class="card">

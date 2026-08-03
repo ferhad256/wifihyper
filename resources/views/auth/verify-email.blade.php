@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             min-height: 100vh;
             overflow-x: hidden;
         }
@@ -105,7 +105,7 @@
         .logo {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -129,7 +129,7 @@
         .brand-title {
             font-size: 2.5rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -179,7 +179,7 @@
         }
 
         .email-highlight {
-            color: #667eea;
+            color: #0A7A6D;
             font-weight: 600;
         }
 
@@ -251,7 +251,7 @@
 
         .verification-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: #0A7A6D;
             background: white;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
             transform: translateY(-2px);
@@ -273,7 +273,7 @@
         .submit-btn {
             width: 100%;
             padding: 16px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0A1628;
             color: white;
             border: none;
             border-radius: 12px;
@@ -327,7 +327,7 @@
         .resend-btn {
             background: none;
             border: none;
-            color: #667eea;
+            color: #0A7A6D;
             font-weight: 600;
             cursor: pointer;
             text-decoration: underline;
@@ -335,7 +335,7 @@
         }
 
         .resend-btn:hover {
-            color: #5a67d8;
+            color: #075E54;
         }
 
         .countdown-container {
@@ -372,7 +372,7 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #667eea;
+            color: #0A7A6D;
             text-decoration: none;
             font-weight: 600;
             margin-top: 24px;

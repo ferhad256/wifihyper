@@ -357,6 +357,43 @@ class VoucherController extends Controller
     }
 
     /**
+     * Delete all vouchers for a specific hotspot (all packages under that hotspot)
+     */
+    public function deleteAllForHotspot(Request $request)
+    {
+        $tenant = Tenant::find(session('tenant_id'));
+        
+        if (!$tenant) {
+            return redirect()->route('login');
+        }
+
+        $validator = Validator::make($request->all(), [
+            'hotspot_id' => 'required|exists:hotspots,id',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->with('error', 'Invalid hotspot selected.');
+        }
+
+        // Verify the hotspot belongs to the tenant
+        $hotspot = $tenant->hotspots()->where('id', $request->hotspot_id)->first();
+        if (!$hotspot) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
+        try {
+            $deletedCount = $tenant->vouchers()
+                ->where('hotspot_id', $request->hotspot_id)
+                ->where('status', 'unused')
+                ->delete();
+
+            return back()->with('success', "Successfully deleted {$deletedCount} vouchers for hotspot '{$hotspot->name}'.");
+        } catch (\Exception $e) {
+            return back()->with('error', 'Failed to delete vouchers: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Upload vouchers from CSV file
      */
     public function uploadCsv(Request $request)
@@ -454,46 +491,4 @@ class VoucherController extends Controller
         }
     }
 
-    /**
-     * Show manual SMS voucher form - DISABLED
-     */
-    public function showManualSms()
-    {
-        // Manual SMS functionality has been disabled
-        return redirect()->route('vouchers.index')->with('error', 'Manual SMS voucher sending has been disabled.');
-    }
-
-    /**
-     * Send voucher via SMS manually - DISABLED
-     */
-    public function sendManualSms(Request $request)
-    {
-        // Manual SMS functionality has been disabled
-        return redirect()->route('vouchers.index')->with('error', 'Manual SMS voucher sending has been disabled.');
-    }
-
-    /**
-     * Format phone number for SMS
-     */
-    private function formatPhoneNumber($phoneNumber)
-    {
-        // Remove any non-numeric characters
-        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
-        
-        // Add country code if not present
-        if (strlen($phoneNumber) === 9 && substr($phoneNumber, 0, 1) === '7') {
-            $phoneNumber = '256' . $phoneNumber;
-        } elseif (strlen($phoneNumber) === 10 && substr($phoneNumber, 0, 2) === '07') {
-            $phoneNumber = '256' . substr($phoneNumber, 1);
-        } elseif (strlen($phoneNumber) === 12 && substr($phoneNumber, 0, 3) === '256') {
-            // Already formatted correctly
-        } else {
-            // Default to adding 256 if it looks like a local number
-            if (strlen($phoneNumber) === 9) {
-                $phoneNumber = '256' . $phoneNumber;
-            }
-        }
-        
-        return $phoneNumber;
-    }
 }

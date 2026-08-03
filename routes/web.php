@@ -66,6 +66,9 @@ Route::middleware('auth.tenant')->group(function () {
     Route::get('/notifications/count', [DashboardController::class, 'getUnreadNotificationsCount'])->name('notifications.count');
     Route::get('/notifications', [DashboardController::class, 'getNotifications'])->name('notifications.get');
     
+    // Support: Request a call
+    Route::post('/support/request-call', [DashboardController::class, 'requestSupportCall'])->name('support.request-call');
+    
     // Voucher management routes
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
     Route::post('/vouchers/upload', [VoucherController::class, 'upload'])->name('vouchers.upload');
@@ -74,11 +77,8 @@ Route::middleware('auth.tenant')->group(function () {
     Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
     Route::delete('/vouchers/{voucher}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
     Route::delete('/vouchers/delete-all-package', [VoucherController::class, 'deleteAllForPackage'])->name('vouchers.delete-all-package');
+    Route::delete('/vouchers/delete-all-hotspot', [VoucherController::class, 'deleteAllForHotspot'])->name('vouchers.delete-all-hotspot');
     Route::get('/vouchers/export', [VoucherController::class, 'export'])->name('vouchers.export');
-    
-    // Manual SMS voucher routes - DISABLED
-    // Route::get('/vouchers/manual-sms', [VoucherController::class, 'showManualSms'])->name('vouchers.manual-sms');
-    // Route::post('/vouchers/send-sms', [VoucherController::class, 'sendManualSms'])->name('vouchers.send-sms');
     
     // Transaction export route
     Route::get('/transactions/export', [DashboardController::class, 'exportTransactions'])->name('transactions.export');
@@ -141,7 +141,10 @@ Route::post('/payment/initiate', [PaymentController::class, 'initiate'])->name('
 Route::get('/payment/status/{transactionId}', [PaymentController::class, 'checkStatus'])->name('payment.status');
 Route::post('/payment/redeem-voucher', [PaymentController::class, 'redeemVoucher'])->name('payment.redeem-voucher');
 Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pending'])->name('payment.pending');
-Route::get('/payment/failed', [PaymentController::class, 'failed'])->name('payment.failed');
+// NOTE: a duplicate `/payment/failed` route pointed at PaymentController@failed,
+// which does not exist. Registered after the group above, it shadowed the working
+// PortalController@failed and made every failed payment throw BadMethodCallException.
+// Removed so the failure screen resolves again.
 
 // Unified IPN endpoint for all payment responses (success, failure, pending)
 Route::post('/payment/ipn', [PaymentController::class, 'unifiedIpn'])
@@ -190,6 +193,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/tenants', [App\Http\Controllers\Admin\AdminDashboardController::class, 'tenants'])->name('tenants');
         Route::get('/tenants/{id}', [App\Http\Controllers\Admin\AdminDashboardController::class, 'showTenant'])->name('tenants.show');
         Route::post('/tenants/{id}/toggle-status', [App\Http\Controllers\Admin\AdminDashboardController::class, 'toggleTenantStatus'])->name('tenants.toggle-status');
+        Route::delete('/tenants/{id}', [App\Http\Controllers\Admin\AdminDashboardController::class, 'deleteTenant'])->name('tenants.destroy');
         
         // Withdrawal management
         Route::get('/withdrawals', [App\Http\Controllers\Admin\AdminDashboardController::class, 'withdrawals'])->name('withdrawals');

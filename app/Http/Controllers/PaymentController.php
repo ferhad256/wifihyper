@@ -213,7 +213,7 @@ class PaymentController extends Controller
                     
                     // For simulated payments, redirect directly to success
                     session(['last_transaction_id' => $transaction->transaction_id]);
-                    return redirect()->route('payment.success')->with('success', 'Payment completed successfully! Check your phone for the WiFi voucher code.');
+                    return redirect()->route('payment.success', ['transaction_id' => $transaction->transaction_id])->with('success', 'Payment completed successfully! Check your phone for the WiFi voucher code.');
                 } else {
                     Log::info('Production mode: Redirecting to pending page', [
                         'transaction_id' => $transaction->transaction_id

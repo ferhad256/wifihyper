@@ -4,18 +4,14 @@
 
 @section('content')
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Vouchers Management</h1>
-        <div>
-            {{-- Manual SMS button disabled --}}
-            {{-- <a href="{{ route('vouchers.manual-sms') }}" class="btn btn-info me-2">
-                <i class="fas fa-sms me-2"></i>Send SMS Voucher
-            </a> --}}
-            <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#uploadMultipleModal">
+    <div class="d-sm-flex align-items-center justify-content-end mb-4">
+        {{-- One primary action; the rest are secondary. Amber is reserved for
+             money elsewhere in the system, so it is not used for file uploads. --}}
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#uploadMultipleModal">
                 <i class="fas fa-upload me-2"></i>Upload Multiple
             </button>
-            <button class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#uploadCsvModal">
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#uploadCsvModal">
                 <i class="fas fa-file-csv me-2"></i>Upload CSV
             </button>
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addVoucherModal">
@@ -122,20 +118,20 @@
                             {{ $vouchers->count() }} available vouchers across {{ $vouchers->groupBy('package_id')->count() }} packages
                         </small>
                     </div>
-                    <div>
-                        <button class="btn btn-success btn-sm me-2" 
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-secondary btn-sm" 
                                 onclick="uploadForHotspot({{ $hotspotId }}, '{{ $hotspotName }}')">
                             <i class="fas fa-upload me-1"></i>Add More
                         </button>
-                        <button class="btn btn-warning btn-sm me-2" 
+                        <button class="btn btn-secondary btn-sm" 
                                 onclick="uploadCsvForHotspot({{ $hotspotId }}, '{{ $hotspotName }}')">
                             <i class="fas fa-file-csv me-1"></i>Upload CSV
                         </button>
-                        <button class="btn btn-danger btn-sm me-2" 
+                        <button class="btn btn-danger btn-sm" 
                                 onclick="deleteAllVouchersForHotspot({{ $hotspotId }}, '{{ $hotspotName }}', {{ $vouchers->count() }})">
                             <i class="fas fa-trash me-1"></i>Delete All
                         </button>
-                        <a href="{{ route('vouchers.export') }}" class="btn btn-info btn-sm">
+                        <a href="{{ route('vouchers.export') }}" class="btn btn-secondary btn-sm">
                             <i class="fas fa-download me-1"></i>Export
                         </a>
                     </div>
@@ -417,7 +413,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-warning">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-file-csv me-1"></i>Upload CSV
                     </button>
                 </div>
@@ -426,7 +422,7 @@
     </div>
 </div>
 
-<!-- Delete All Vouchers Confirmation Modal -->
+<!-- Delete All Vouchers (Hotspot) Confirmation Modal -->
 <div class="modal fade" id="deleteAllModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -436,11 +432,11 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ route('vouchers.delete-all-package') }}">
+            <form method="POST" action="{{ route('vouchers.delete-all-hotspot') }}">
                 @csrf
                 @method('DELETE')
                 <div class="modal-body">
-                    <input type="hidden" id="delete_package_id" name="package_id">
+                    <input type="hidden" id="delete_hotspot_id" name="hotspot_id">
                     
                     <div class="text-center mb-4">
                         <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
@@ -449,7 +445,7 @@
                     </div>
                     
                     <div class="alert alert-warning">
-                        <strong>Package:</strong> <span id="delete_package_name"></span><br>
+                        <strong>Hotspot:</strong> <span id="delete_hotspot_name"></span><br>
                         <strong>Vouchers to delete:</strong> <span id="delete_voucher_count"></span> unused vouchers
                     </div>
                     
@@ -538,7 +534,8 @@ function uploadCsvForHotspot(hotspotId, hotspotName) {
 
 function deleteAllVouchersForHotspot(hotspotId, hotspotName, voucherCount) {
     // Show the delete modal for hotspot
-    document.getElementById('delete_package_name').textContent = hotspotName;
+    document.getElementById('delete_hotspot_id').value = hotspotId;
+    document.getElementById('delete_hotspot_name').textContent = hotspotName;
     document.getElementById('delete_voucher_count').textContent = voucherCount;
     
     // Show the modal

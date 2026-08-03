@@ -2,1089 +2,404 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    {{-- Zoom is deliberately NOT disabled here. The previous viewport used
+         maximum-scale=1, user-scalable=no, which blocks pinch-zoom — a WCAG
+         failure on a screen where people read a code and type a phone number. --}}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="format-detection" content="telephone=no">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>{{ $hotspot->name }} - WiFi Portal</title>
-    
-    <!-- Bootstrap CSS -->
+    <meta name="theme-color" content="#0A1628">
+    <title>{{ $hotspot->name }} · WiFi</title>
+
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .portal-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .portal-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            max-width: 600px;
-            width: 100%;
-        }
-        .portal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .portal-body {
-            padding: 30px;
-        }
-        .package-card {
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
-            transition: all 0.3s ease;
-        }
-        .package-card:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-        .btn-buy-now {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-            border-radius: 25px;
-            padding: 8px 20px;
-            font-weight: 600;
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-buy-now:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            color: white;
-        }
-        .wifi-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-        .loading {
-            display: none;
-        }
-        /* Simple Payment Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-        
-        .modal-content {
-            background-color: #fff;
-            margin: 5% auto;
-            padding: 0;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 400px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        .modal-header {
-            background: #667eea;
-            color: white;
-            padding: 16px 20px;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .modal-header h5 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .close {
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1;
-        }
-        
-        .close:hover {
-            opacity: 0.8;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .alert {
-            padding: 12px;
-            margin-bottom: 16px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .alert-danger {
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-            color: #721c24;
-        }
-        
-        .package-info {
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 16px;
-            background: #f8f9fa;
-            border-radius: 6px;
-        }
-        
-        .package-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        
-        .package-price {
-            font-size: 20px;
-            font-weight: 700;
-            color: #28a745;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
-        }
-        
-        .modal-footer {
-            padding: 16px 20px;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 12px;
-        }
-        
-        .btn {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            flex: 1;
-        }
-        
-        .btn-cancel {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-cancel:hover {
-            background: #5a6268;
-        }
-        
-        .btn-pay {
-            background: #28a745;
-            color: white;
-            position: relative;
-        }
-        
-        .btn-pay:hover {
-            background: #218838;
-        }
-        
-        .btn-pay:disabled {
-            background: #6c757d;
-            cursor: not-allowed;
-        }
-        
-        /* Mobile Optimizations */
-        @media (max-width: 768px) {
-            .modal-content {
-                width: 95%;
-                margin: 2% auto;
-                max-height: 96vh;
-            }
-            
-            .modal-header {
-                padding: 12px 16px;
-            }
-            
-            .modal-header h5 {
-                font-size: 16px;
-            }
-            
-            .modal-body {
-                padding: 16px;
-            }
-            
-            .modal-footer {
-                padding: 12px 16px;
-                flex-direction: column;
-            }
-            
-            .btn {
-                padding: 14px 20px;
-                font-size: 16px;
-            }
-            
-            .form-group input {
-                padding: 14px;
-                font-size: 16px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .modal-content {
-                width: 98%;
-                margin: 1% auto;
-            }
-            
-            .modal-header {
-                padding: 10px 12px;
-            }
-            
-            .modal-body {
-                padding: 12px;
-            }
-            
-            .modal-footer {
-                padding: 10px 12px;
-            }
-            
-            .package-info {
-                padding: 12px;
-            }
-            
-            .package-name {
-                font-size: 15px;
-            }
-            
-            .package-price {
-                font-size: 18px;
-            }
-        }
-        
-        /* Mobile-specific modal enhancements */
-        @media (max-width: 768px) {
-            /* Prevent body scroll when modal is open */
-            body.modal-open {
-                overflow: hidden;
-                position: fixed;
-                width: 100%;
-            }
-            
-            /* Ensure modal backdrop covers full screen on mobile */
-            .modal-backdrop {
-                background-color: rgba(0, 0, 0, 0.7);
-            }
-            
-            /* Improve modal positioning for mobile keyboards */
-            .modal.show {
-                display: block !important;
-            }
-            
-            /* Better touch targets */
-            .btn-close {
-                width: 32px;
-                height: 32px;
-                padding: 6px;
-                margin: -6px -6px -6px auto;
-                background-size: 16px;
-            }
-        }
-        
-        /* Mobile Responsive Styles */
-        @media (max-width: 768px) {
-            .portal-container {
-                padding: 8px;
-                align-items: flex-start;
-                padding-top: 15px;
-            }
-            .portal-card {
-                max-width: 100%;
-                border-radius: 12px;
-                margin: 0;
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            }
-            .portal-header {
-                padding: 25px 20px !important;
-            }
-            .portal-header h3 {
-                font-size: 1.4rem;
-                margin-bottom: 8px;
-            }
-            .portal-header p {
-                font-size: 0.95rem;
-                margin-bottom: 5px;
-            }
-            .portal-body {
-                padding: 25px 20px !important;
-            }
-            .btn {
-                font-size: 16px;
-                padding: 14px 24px;
-                min-height: 48px;
-                touch-action: manipulation;
-            }
-            .form-control {
-                font-size: 16px;
-                padding: 14px 16px;
-                min-height: 48px;
-            }
-            .package-card {
-                margin-bottom: 16px;
-                padding: 18px;
-                border-radius: 12px;
-            }
-            .package-card .row {
-                align-items: center;
-            }
-            .package-card .col-8 {
-                padding-right: 12px;
-            }
-            .package-card .col-4 {
-                padding-left: 12px;
-            }
-            .package-card h6 {
-                font-size: 1.1rem;
-                font-weight: 600;
-                margin-bottom: 6px;
-            }
-            .package-card p {
-                font-size: 0.9rem;
-                margin-bottom: 8px;
-            }
-            .package-card small {
-                font-size: 0.85rem;
-            }
-            .h5 {
-                font-size: 1.3rem;
-                font-weight: 700;
-            }
-            .btn-buy-now {
-                font-size: 14px;
-                padding: 10px 16px;
-                min-height: 44px;
-                width: 100%;
-            }
-            
-            /* Enhanced Modal Mobile Responsiveness */
-            .modal-dialog {
-                margin: 10px;
-                max-width: calc(100% - 20px);
-                width: calc(100% - 20px);
-            }
-            .modal-content {
-                border-radius: 12px;
-                max-height: calc(100vh - 20px);
-                overflow-y: auto;
-            }
-            .modal-header {
-                padding: 20px;
-                border-radius: 12px 12px 0 0;
-                position: sticky;
-                top: 0;
-                z-index: 1055;
-            }
-            .modal-header .modal-title {
-                font-size: 1.1rem;
-                font-weight: 600;
-            }
-            .modal-body {
-                padding: 20px;
-                max-height: calc(100vh - 140px);
-                overflow-y: auto;
-            }
-            .modal-footer {
-                padding: 20px;
-                flex-direction: column;
-                gap: 12px;
-                border-top: 1px solid #dee2e6;
-                position: sticky;
-                bottom: 0;
-                background: white;
-                border-radius: 0 0 12px 12px;
-            }
-            .modal-footer .btn {
-                width: 100%;
-                margin: 0;
-                min-height: 50px;
-                font-size: 16px;
-                font-weight: 600;
-            }
-            .modal-footer .btn-secondary {
-                order: 2;
-            }
-            .modal-footer .btn-success {
-                order: 1;
-            }
-            
-            /* Form enhancements for mobile */
-            .form-label {
-                font-size: 14px;
-                font-weight: 600;
-                margin-bottom: 8px;
-            }
-            .form-control {
-                border-radius: 8px;
-                border: 2px solid #e9ecef;
-                transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-            }
-            .form-control:focus {
-                border-color: #667eea;
-                box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-            }
-            .form-text {
-                font-size: 13px;
-                margin-top: 6px;
-                color: #6c757d;
-            }
-            
-            /* Alert styling for mobile */
-            .alert {
-                border-radius: 8px;
-                padding: 12px 16px;
-                font-size: 14px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .portal-container {
-                padding: 5px;
-            }
-            .portal-card {
-                border-radius: 8px;
-            }
-            .portal-header {
-                padding: 20px 15px !important;
-            }
-            .portal-header h3 {
-                font-size: 1.3rem;
-            }
-            .portal-header p {
-                font-size: 0.9rem;
-            }
-            .portal-body {
-                padding: 20px 15px !important;
-            }
-            .package-card {
-                padding: 15px;
-                margin-bottom: 12px;
-            }
-            .package-card .row {
-                flex-direction: column;
-                text-align: center;
-            }
-            .package-card .col-8,
-            .package-card .col-4 {
-                width: 100%;
-                padding: 0;
-                margin-bottom: 12px;
-            }
-            .package-card .col-4 {
-                margin-bottom: 0;
-            }
-            .package-card h6 {
-                font-size: 1.1rem;
-                margin-bottom: 8px;
-            }
-            .package-card p {
-                font-size: 0.9rem;
-                margin-bottom: 10px;
-            }
-            .h5 {
-                font-size: 1.2rem;
-                margin-bottom: 12px;
-            }
-            .btn-buy-now {
-                font-size: 15px;
-                padding: 12px 20px;
-                min-height: 48px;
-            }
-            
-            /* Enhanced Modal for Small Mobile Screens */
-            .modal-dialog {
-                margin: 5px;
-                max-width: calc(100% - 10px);
-                width: calc(100% - 10px);
-            }
-            .modal-content {
-                max-height: calc(100vh - 10px);
-                border-radius: 8px;
-            }
-            .modal-header {
-                padding: 15px;
-                border-radius: 8px 8px 0 0;
-            }
-            .modal-header .modal-title {
-                font-size: 1rem;
-                line-height: 1.3;
-            }
-            .modal-body {
-                padding: 15px;
-                max-height: calc(100vh - 120px);
-            }
-            .modal-footer {
-                padding: 15px;
-                gap: 10px;
-                border-radius: 0 0 8px 8px;
-            }
-            .modal-footer .btn {
-                min-height: 48px;
-                font-size: 15px;
-                padding: 12px 16px;
-            }
-            
-            /* Form styling for small screens */
-            .form-label {
-                font-size: 13px;
-                margin-bottom: 6px;
-            }
-            .form-control {
-                font-size: 16px;
-                padding: 12px 14px;
-                min-height: 46px;
-                border-radius: 6px;
-            }
-            .form-text {
-                font-size: 12px;
-                margin-top: 4px;
-            }
-            
-            /* Alert styling for small screens */
-            .alert {
-                padding: 10px 12px;
-                font-size: 13px;
-                border-radius: 6px;
-            }
-            
-            /* Package details in modal */
-            .modal-body .text-center .h4 {
-                font-size: 1.1rem;
-                margin: 8px 0;
-            }
-            .modal-body .text-primary {
-                font-size: 0.95rem;
-            }
-        }
-        
-        /* MikroTik Router Compatibility - Ultra Small Screens */
-        @media screen and (max-width: 320px) {
-            .portal-container {
-                padding: 3px;
-            }
-            .portal-card {
-                border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-            }
-            .portal-header {
-                padding: 18px 12px !important;
-            }
-            .portal-header h3 {
-                font-size: 1.2rem;
-            }
-            .portal-header p {
-                font-size: 0.85rem;
-            }
-            .portal-body {
-                padding: 18px 12px !important;
-            }
-            .package-card {
-                padding: 12px;
-                margin-bottom: 10px;
-            }
-            .package-card h6 {
-                font-size: 1rem;
-            }
-            .package-card p {
-                font-size: 0.85rem;
-            }
-            .h5 {
-                font-size: 1.1rem;
-            }
-            .btn {
-                font-size: 14px;
-                padding: 12px 16px;
-                min-height: 44px;
-            }
-            .form-control {
-                font-size: 16px;
-                padding: 12px 14px;
-                min-height: 44px;
-            }
-            .btn-buy-now {
-                font-size: 13px;
-                padding: 10px 14px;
-                min-height: 42px;
-            }
-            
-            /* Enhanced Modal for Ultra Small Screens */
-            .modal-dialog {
-                margin: 3px;
-                max-width: calc(100% - 6px);
-                width: calc(100% - 6px);
-            }
-            .modal-content {
-                max-height: calc(100vh - 6px);
-                border-radius: 6px;
-            }
-            .modal-header {
-                padding: 12px;
-                border-radius: 6px 6px 0 0;
-            }
-            .modal-header .modal-title {
-                font-size: 0.95rem;
-                line-height: 1.2;
-            }
-            .modal-body {
-                padding: 12px;
-                max-height: calc(100vh - 100px);
-            }
-            .modal-footer {
-                padding: 12px;
-                gap: 8px;
-                border-radius: 0 0 6px 6px;
-            }
-            .modal-footer .btn {
-                min-height: 44px;
-                font-size: 14px;
-                padding: 10px 14px;
-            }
-            
-            /* Form styling for ultra small screens */
-            .form-label {
-                font-size: 12px;
-                margin-bottom: 4px;
-            }
-            .form-control {
-                font-size: 16px;
-                padding: 10px 12px;
-                min-height: 42px;
-                border-radius: 4px;
-            }
-            .form-text {
-                font-size: 11px;
-                margin-top: 3px;
-            }
-            
-            /* Alert styling for ultra small screens */
-            .alert {
-                padding: 8px 10px;
-                font-size: 12px;
-                border-radius: 4px;
-            }
-            
-            /* Package details in modal for ultra small screens */
-            .modal-body .text-center .h4 {
-                font-size: 1rem;
-                margin: 6px 0;
-            }
-            .modal-body .text-primary {
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+    <link href="{{ asset('css/brand.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/portal.css') }}" rel="stylesheet">
 </head>
-<body>
-    <div class="portal-container">
-        <div class="portal-card">
-            <div class="portal-header">
-                <div class="wifi-icon">
-                    <i class="fas fa-wifi"></i>
+<body class="pt-body">
+
+<div class="pt-wrap">
+    <header class="pt-head">
+        <div class="pt-head__brand">
+            <x-brand.logo :size="24" tone="light" />
+        </div>
+
+        <h1 class="pt-head__name">{{ $hotspot->name }}</h1>
+
+        @if($hotspot->ssid)
+            <p class="pt-head__ssid">
+                <i class="fas fa-wifi" aria-hidden="true"></i>{{ $hotspot->ssid }}
+            </p>
+        @endif
+
+        @if($hotspot->location)
+            <span class="pt-head__meta">
+                <i class="fas fa-location-dot me-1" aria-hidden="true"></i>{{ $hotspot->location }}
+            </span>
+        @endif
+    </header>
+
+    <main class="pt-card">
+        @if($hotspot->is_active)
+            @if($packages->count() > 0)
+                <div class="pt-card__head">
+                    <h2 class="pt-card__title">Choose how long you need</h2>
+                    <p class="pt-card__sub">Pay with mobile money — your code arrives by SMS.</p>
                 </div>
-                <h3>{{ $hotspot->name }}</h3>
-                <p class="mb-0">{{ $hotspot->ssid }}</p>
-                @if($hotspot->location)
-                    <small><i class="fas fa-map-marker-alt me-1"></i>{{ $hotspot->location }}</small>
-                @endif
-            </div>
-            
-            <div class="portal-body">
-                @if($hotspot->is_active)
-                    @if($packages->count() > 0)
-                        <h5 class="text-center mb-4">Choose Your WiFi Package</h5>
-                        
-                        <div class="packages-container">
-                            @foreach($packages as $package)
-                            <div class="package-card" data-package-id="{{ $package->id }}">
-                                <div class="row align-items-center">
-                                    <div class="col-8">
-                                        <h6 class="mb-1">{{ $package->name }}</h6>
-                                        <p class="text-muted mb-1">{{ $package->description }}</p>
-                                        @if($package->duration_value && $package->duration_unit)
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>{{ $package->formatted_duration }}
-                                            </small>
-                                        @elseif($package->duration_hours)
-                                            <small class="text-muted">
-                                                <i class="fas fa-clock me-1"></i>{{ $package->duration_hours }} hours
-                                            </small>
-                                        @endif
-                                        @if($package->data_limit_mb)
-                                            <small class="text-muted ms-2">
-                                                <i class="fas fa-database me-1"></i>{{ $package->data_limit_mb }}MB
-                                            </small>
-                                        @endif
-                                        
-                                        <!-- Stock status indicator with count -->
-                                        <div class="stock-status mt-2">
-                                            @if($package->is_out_of_stock)
-                                                <small class="text-danger">
-                                                    <i class="fas fa-times-circle me-1"></i>Out of Stock
-                                                </small>
-                                            @else
-                                                <small class="text-success">
-                                                    <i class="fas fa-check-circle me-1"></i>Available
-                                                </small>
-                                            @endif
-                                            
-                                        </div>
-                                    </div>
-                                    <div class="col-4 text-end">
-                                        <div class="h5 mb-2 text-primary">UGX {{ number_format($package->price) }}</div>
+
+                <div class="pt-card__body packages-container">
+                    @foreach($packages as $package)
+                        {{-- The whole row is the control. Name and price are carried as
+                             data attributes so the availability poller never has to read
+                             them back out of the visible markup. --}}
+                        <button
+                            type="button"
+                            class="pt-pkg"
+                            data-package-id="{{ $package->id }}"
+                            data-package-name="{{ $package->name }}"
+                            data-package-price="{{ $package->price }}"
+                            @if(!$package->has_vouchers) disabled @endif
+                            onclick="openPaymentModal({{ $package->id }}, @js($package->name), {{ $package->price }})"
+                        >
+                            <span class="pt-pkg__main">
+                                <span class="pt-pkg__name">{{ $package->name }}</span>
+
+                                @if($package->description)
+                                    <span class="pt-pkg__desc">{{ $package->description }}</span>
+                                @endif
+
+                                <span class="pt-pkg__facts">
+                                    @if($package->duration_value && $package->duration_unit)
+                                        <span><i class="fas fa-clock" aria-hidden="true"></i>{{ $package->formatted_duration }}</span>
+                                    @elseif($package->duration_hours)
+                                        <span><i class="fas fa-clock" aria-hidden="true"></i>{{ $package->duration_hours }} hours</span>
+                                    @endif
+
+                                    @if($package->data_limit_mb)
+                                        <span><i class="fas fa-database" aria-hidden="true"></i>{{ $package->data_limit_mb }}MB</span>
+                                    @endif
+
+                                    <span class="stock-status">
                                         @if($package->has_vouchers)
-                                            <button type="button" class="btn btn-buy-now" 
-                                                    onclick="openPaymentModal({{ $package->id }}, '{{ $package->name }}', {{ $package->price }})"
-                                                    data-package-id="{{ $package->id }}">
-                                                <i class="fas fa-shopping-cart me-1"></i>Buy Now
-                                            </button>
+                                            <span class="wh-pill wh-pill--ok">Available</span>
                                         @else
-                                            <button type="button" class="btn btn-secondary" disabled>
-                                                <i class="fas fa-times-circle me-1"></i>Out of Stock
-                                            </button>
-                                            <small class="text-muted d-block mt-1">
-                                                <i class="fas fa-exclamation-triangle me-1"></i>No vouchers available
-                                            </small>
+                                            <span class="wh-pill wh-pill--crit">Sold out</span>
                                         @endif
-                                    </div>
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                        
-                        <div class="text-center mt-4">
-                            <!-- Payment security notice removed -->
-                        </div>
-                    @else
-                        <div class="text-center py-4">
-                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
-                            <h5>No Packages Available</h5>
-                            <p class="text-muted">This hotspot doesn't have any packages configured yet.</p>
-                        </div>
-                    @endif
-                @else
-                    <div class="text-center py-4">
-                        <i class="fas fa-wifi fa-3x text-muted mb-3"></i>
-                        <h5>Hotspot Inactive</h5>
-                        <p class="text-muted">This WiFi hotspot is currently inactive.</p>
+                                    </span>
+                                </span>
+                            </span>
+
+                            <span class="pt-pkg__side">
+                                <span class="pt-pkg__price">
+                                    <small>UGX</small> {{ number_format($package->price) }}
+                                </span>
+                                <span class="pt-pkg__go">
+                                    @if($package->has_vouchers)
+                                        Buy <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                    @else
+                                        Unavailable
+                                    @endif
+                                </span>
+                            </span>
+                        </button>
+                    @endforeach
+                </div>
+            @else
+                <div class="pt-status">
+                    <div class="pt-status__icon pt-status__icon--warn">
+                        <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+                    </div>
+                    <h2 class="pt-status__title">No packages yet</h2>
+                    <p class="pt-status__text">
+                        This hotspot hasn't set up any packages. Please ask at the counter.
+                    </p>
+                </div>
+            @endif
+        @else
+            <div class="pt-status">
+                <div class="pt-status__icon pt-status__icon--warn">
+                    <i class="fas fa-wifi" aria-hidden="true"></i>
+                </div>
+                <h2 class="pt-status__title">This hotspot is offline</h2>
+                <p class="pt-status__text">
+                    It isn't selling access right now. Please ask at the counter.
+                </p>
+            </div>
+        @endif
+    </main>
+
+    <footer class="pt-foot">
+        <span class="pt-foot__mark">
+            <x-brand.mark :size="14" tone="solid" /> Powered by WifiHyper
+        </span>
+    </footer>
+</div>
+
+<!-- ============ Payment sheet ============
+     Deliberately plain HTML/CSS/JS rather than the Bootstrap modal component —
+     an earlier change moved it off Bootstrap for mobile reliability, so that
+     decision and the .close / .btn-cancel hooks are preserved here. -->
+<div id="paymentModal" class="pt-modal" role="dialog" aria-modal="true" aria-labelledby="paymentModalTitle">
+    <div class="pt-modal__panel" role="document">
+        <div class="pt-modal__head">
+            <h5 id="paymentModalTitle">Confirm your purchase</h5>
+            <button type="button" class="close" aria-label="Close">&times;</button>
+        </div>
+
+        <form id="paymentForm" method="POST" action="{{ route('payment.initiate') }}">
+            @csrf
+            <input type="hidden" name="hotspot_id" value="{{ $hotspot->id }}">
+            <input type="hidden" name="package_id" id="modal_package_id">
+
+            <div class="pt-modal__body">
+                @if($errors->any())
+                    <div class="alert alert-danger" role="alert">
+                        @foreach($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                        @endforeach
                     </div>
                 @endif
-            </div>
-        </div>
-    </div>
 
-    <!-- Payment Modal -->
-    <div id="paymentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5>Complete Payment</h5>
-                <span class="close">&times;</span>
-            </div>
-            
-            <form id="paymentForm" method="POST" action="{{ route('payment.initiate') }}">
-                @csrf
-                <input type="hidden" name="hotspot_id" value="{{ $hotspot->id }}">
-                <input type="hidden" name="package_id" id="modal_package_id">
-                
-                <div class="modal-body">
-                    @if($errors->any())
-                        <div class="alert alert-danger">
-                            <strong>Error:</strong>
-                            @foreach($errors->all() as $error)
-                                <div>{{ $error }}</div>
-                            @endforeach
-                        </div>
-                    @endif
-                    
-                    @if(session('error'))
-                        <div class="alert alert-danger">
-                            <strong>Error:</strong> {{ session('error') }}
-                        </div>
-                    @endif
-                    
-                    <div class="package-info">
-                        <div class="package-name" id="modal_package_name"></div>
-                        <div class="package-price" id="modal_package_price"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="modal_phone_number">Phone Number</label>
-                        <input type="tel" id="modal_phone_number" name="phone_number" 
-                               placeholder="07xxxxxxxxx" 
-                               value="{{ old('phone_number') }}" required>
-                    </div>
-                </div>
-                
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-cancel">Cancel</button>
-                    <button type="submit" class="btn btn-pay" id="processPaymentBtn">
-                        <span class="btn-text">Pay Now</span>
-                        <span class="btn-loading" style="display: none;">Processing...</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+                @if(session('error'))
+                    <div class="alert alert-danger" role="alert">{{ session('error') }}</div>
+                @endif
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        let availabilityCheckInterval;
-        
-        // Simple modal functions
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
+                <div class="pt-summary">
+                    <span class="package-name" id="modal_package_name"></span>
+                    <span class="package-price" id="modal_package_price"></span>
+                </div>
+
+                <div class="pt-field">
+                    <label for="modal_phone_number">Mobile money number</label>
+                    <input
+                        type="tel"
+                        id="modal_phone_number"
+                        name="phone_number"
+                        placeholder="07XX XXX XXX"
+                        value="{{ old('phone_number') }}"
+                        inputmode="numeric"
+                        autocomplete="tel"
+                        maxlength="10"
+                        required
+                        aria-describedby="phoneHint"
+                    >
+                    <span class="pt-field__hint" id="phoneHint">
+                        You'll get a prompt on this phone to approve the payment.
+                    </span>
+                    {{-- Replaces the old alert() calls: the message appears beside the
+                         field it refers to and is announced to screen readers. --}}
+                    <span class="pt-field__error" id="phoneError" role="alert"></span>
+                </div>
+            </div>
+
+            <div class="pt-modal__foot">
+                <button type="button" class="btn btn-secondary btn-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="processPaymentBtn">
+                    <span class="btn-text">Pay now</span>
+                    <span class="btn-loading" style="display: none;">Processing…</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let availabilityCheckInterval;
+    let lastFocusedTrigger = null;
+
+    const modalEl = document.getElementById('paymentModal');
+    const phoneInput = document.getElementById('modal_phone_number');
+    const phoneError = document.getElementById('phoneError');
+
+    // ---- Modal ------------------------------------------------------------
+    function showModal(modalId) {
+        document.getElementById(modalId).classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal(modalId) {
+        document.getElementById(modalId).classList.remove('is-open');
+        document.body.style.overflow = '';
+        clearPhoneError();
+        // Send focus back to the package the customer opened, so keyboard and
+        // screen-reader users don't get dropped at the top of the page.
+        if (lastFocusedTrigger) {
+            lastFocusedTrigger.focus();
+            lastFocusedTrigger = null;
         }
-        
-        function hideModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
+    }
+
+    // Tapping the backdrop dismisses the sheet.
+    modalEl.addEventListener('click', function (event) {
+        if (event.target === modalEl) hideModal('paymentModal');
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modalEl.classList.contains('is-open')) {
+            hideModal('paymentModal');
         }
-        
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('paymentModal');
-            if (event.target === modal) {
-                hideModal('paymentModal');
-            }
+    });
+
+    // ---- Availability polling ---------------------------------------------
+    function checkAvailability(packageId) {
+        fetch(`{{ route('portal.check-availability', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({ package_id: packageId })
+        })
+        .then(response => response.json())
+        .then(data => updatePackageAvailability(packageId, data))
+        .catch(error => console.error('Error checking availability:', error));
+    }
+
+    function updatePackageAvailability(packageId, availability) {
+        const card = document.querySelector(`[data-package-id="${packageId}"]`);
+        if (!card) return;
+
+        const stock = card.querySelector('.stock-status');
+        const go    = card.querySelector('.pt-pkg__go');
+        const inStock = !!availability.has_vouchers;
+
+        if (stock) {
+            stock.innerHTML = inStock
+                ? '<span class="wh-pill wh-pill--ok">Available</span>'
+                : '<span class="wh-pill wh-pill--crit">Sold out</span>';
         }
-        
-        // Real-time availability checking with enhanced frequency
-        function checkAvailability(packageId) {
-            fetch(`{{ route('portal.check-availability', $hotspot->url_name ?: 'hotspot-' . $hotspot->id) }}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    package_id: packageId
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                updatePackageAvailability(packageId, data);
-            })
-            .catch(error => {
-                console.error('Error checking availability:', error);
-            });
+
+        if (go) {
+            go.innerHTML = inStock
+                ? 'Buy <i class="fas fa-arrow-right" aria-hidden="true"></i>'
+                : 'Unavailable';
         }
-        
-        function updatePackageAvailability(packageId, availability) {
-            const packageCard = document.querySelector(`[data-package-id="${packageId}"]`);
-            if (!packageCard) return;
-            
-            const buyButton = packageCard.querySelector('.btn-buy-now');
-            const stockStatus = packageCard.querySelector('.stock-status');
-            
-            // Update stock status
-            if (stockStatus) {
-                if (!availability.has_vouchers) {
-                    stockStatus.innerHTML = '<small class="text-danger"><i class="fas fa-times-circle me-1"></i>Out of Stock</small>';
-                } else {
-                    stockStatus.innerHTML = '<small class="text-success"><i class="fas fa-check-circle me-1"></i>Available</small>';
-                }
-            }
-            
-            // Update buy button
-            if (buyButton) {
-                if (!availability.has_vouchers) {
-                    buyButton.disabled = true;
-                    buyButton.className = 'btn btn-secondary';
-                    buyButton.innerHTML = '<i class="fas fa-times-circle me-1"></i>Out of Stock';
-                    buyButton.onclick = null;
-                } else {
-                    buyButton.disabled = false;
-                    buyButton.className = 'btn btn-buy-now';
-                    buyButton.innerHTML = '<i class="fas fa-shopping-cart me-1"></i>Buy Now';
-                    buyButton.onclick = function() {
-                        openPaymentModal(packageId, packageCard.querySelector('h6').textContent, 
-                                      parseInt(packageCard.querySelector('.text-primary').textContent.replace(/[^\d]/g, '')));
-                    };
-                }
-            }
+
+        // The row is the control, so availability is just its disabled state.
+        card.disabled = !inStock;
+
+        // If the package being bought sells out while the sheet is open, close it
+        // rather than let the customer submit a payment that cannot be filled.
+        if (!inStock && modalEl.classList.contains('is-open')
+            && document.getElementById('modal_package_id').value == packageId) {
+            hideModal('paymentModal');
         }
-        
-        // Check availability for all packages with increased frequency
-        function startAvailabilityChecking() {
-            const packageIds = Array.from(document.querySelectorAll('[data-package-id]'))
-                .map(card => card.getAttribute('data-package-id'));
-            
-            // Check availability every 10 seconds for real-time updates
-            availabilityCheckInterval = setInterval(() => {
-                packageIds.forEach(packageId => {
-                    checkAvailability(packageId);
-                });
-            }, 10000);
-            
-            // Also check immediately when page loads
-            packageIds.forEach(packageId => {
-                checkAvailability(packageId);
-            });
+    }
+
+    function startAvailabilityChecking() {
+        const packageIds = Array.from(document.querySelectorAll('[data-package-id]'))
+            .map(card => card.getAttribute('data-package-id'));
+
+        availabilityCheckInterval = setInterval(() => {
+            packageIds.forEach(checkAvailability);
+        }, 10000);
+
+        packageIds.forEach(checkAvailability);
+    }
+
+    // ---- Opening the sheet --------------------------------------------------
+    function openPaymentModal(packageId, packageName, packagePrice) {
+        checkAvailability(packageId);
+
+        lastFocusedTrigger = document.querySelector(`[data-package-id="${packageId}"]`);
+
+        document.getElementById('modal_package_id').value = packageId;
+        document.getElementById('modal_package_name').textContent = packageName;
+        document.getElementById('modal_package_price').textContent = 'UGX ' + packagePrice.toLocaleString();
+
+        phoneInput.value = '';
+        clearPhoneError();
+
+        const payButton = document.getElementById('processPaymentBtn');
+        payButton.disabled = false;
+        payButton.querySelector('.btn-text').style.display = 'inline';
+        payButton.querySelector('.btn-loading').style.display = 'none';
+
+        showModal('paymentModal');
+
+        // Focus the one field they have to fill.
+        setTimeout(() => phoneInput.focus(), 60);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelector('.close').onclick = () => hideModal('paymentModal');
+        document.querySelector('.btn-cancel').onclick = () => hideModal('paymentModal');
+        startAvailabilityChecking();
+    });
+
+    // ---- Validation ----------------------------------------------------------
+    function showPhoneError(message) {
+        phoneError.textContent = message;
+        phoneError.classList.add('is-shown');
+        phoneInput.setAttribute('aria-invalid', 'true');
+        phoneInput.focus();
+    }
+
+    function clearPhoneError() {
+        phoneError.textContent = '';
+        phoneError.classList.remove('is-shown');
+        phoneInput.removeAttribute('aria-invalid');
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', function (e) {
+        let phoneNumber = phoneInput.value;
+
+        if (!phoneNumber) {
+            e.preventDefault();
+            showPhoneError('Enter the phone number you want to pay from.');
+            return;
         }
-        
-        function openPaymentModal(packageId, packageName, packagePrice) {
-            // Check availability before opening modal
-            checkAvailability(packageId);
-            
-            // Set modal content
-            document.getElementById('modal_package_id').value = packageId;
-            document.getElementById('modal_package_name').textContent = packageName;
-            document.getElementById('modal_package_price').textContent = 'UGX ' + packagePrice.toLocaleString();
-            
-            // Clear previous phone number
-            document.getElementById('modal_phone_number').value = '';
-            
-            // Reset button state
-            const payButton = document.getElementById('processPaymentBtn');
-            payButton.disabled = false;
-            payButton.querySelector('.btn-text').style.display = 'inline';
-            payButton.querySelector('.btn-loading').style.display = 'none';
-            
-            // Show modal
-            showModal('paymentModal');
+
+        phoneNumber = convertToInternationalFormat(phoneNumber);
+
+        const phoneRegex = /^256[0-9]{9}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            e.preventDefault();
+            showPhoneError('That does not look like a Ugandan number. Try 07XXXXXXXX.');
+            return;
         }
-        
-        // Modal event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Close modal button
-            document.querySelector('.close').onclick = function() {
-                hideModal('paymentModal');
-            };
-            
-            // Cancel button
-            document.querySelector('.btn-cancel').onclick = function() {
-                hideModal('paymentModal');
-            };
-        });
-        
-        // Form submission
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            let phoneNumber = document.getElementById('modal_phone_number').value;
-            
-            if (!phoneNumber) {
-                e.preventDefault();
-                alert('Please enter your phone number.');
-                return;
-            }
-            
-            // Convert phone number to international format
-            phoneNumber = convertToInternationalFormat(phoneNumber);
-            
-            // Validate phone number format (Uganda international format)
-            const phoneRegex = /^256[0-9]{9}$/;
-            if (!phoneRegex.test(phoneNumber)) {
-                e.preventDefault();
-                alert('Please enter a valid Uganda phone number (e.g., 07xxxxxxxxx, 03xxxxxxxxx).');
-                return;
-            }
-            
-            // Update the form field with the converted number
-            document.getElementById('modal_phone_number').value = phoneNumber;
-            
-            // Show loading state
-            const payButton = document.getElementById('processPaymentBtn');
-            payButton.querySelector('.btn-text').style.display = 'none';
-            payButton.querySelector('.btn-loading').style.display = 'inline';
-            payButton.disabled = true;
-        });
-        
-        // Function to convert phone number to international format
-        function convertToInternationalFormat(phoneNumber) {
-            // Remove all non-digit characters
-            let cleanNumber = phoneNumber.replace(/\D/g, '');
-            
-            // If number starts with 0, remove it and add 256
-            if (cleanNumber.startsWith('0')) {
-                cleanNumber = '256' + cleanNumber.substring(1);
-            }
-            // If number doesn't start with 256, add it
-            else if (!cleanNumber.startsWith('256')) {
-                cleanNumber = '256' + cleanNumber;
-            }
-            
-            // Ensure the final number is exactly 12 digits (256 + 9 digits)
-            if (cleanNumber.length > 12) {
-                cleanNumber = cleanNumber.substring(0, 12);
-            }
-            
-            return cleanNumber;
+
+        clearPhoneError();
+        phoneInput.value = phoneNumber;
+
+        const payButton = document.getElementById('processPaymentBtn');
+        payButton.querySelector('.btn-text').style.display = 'none';
+        payButton.querySelector('.btn-loading').style.display = 'inline';
+        payButton.disabled = true;
+    });
+
+    function convertToInternationalFormat(phoneNumber) {
+        let cleanNumber = phoneNumber.replace(/\D/g, '');
+
+        if (cleanNumber.startsWith('0')) {
+            cleanNumber = '256' + cleanNumber.substring(1);
+        } else if (!cleanNumber.startsWith('256')) {
+            cleanNumber = '256' + cleanNumber;
         }
-        
-        // Phone number input formatting (show user-friendly format)
-        document.getElementById('modal_phone_number').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            
-            // Limit to 10 digits for local format (e.g., 0744744888)
-            if (value.length > 10) {
-                value = value.substring(0, 10);
-            }
-            
-            // Format as local number (e.g., 0744744888)
-            e.target.value = value;
-        });
-        
-        // Start availability checking when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            startAvailabilityChecking();
-        });
-        
-        // Clean up interval when page unloads
-        window.addEventListener('beforeunload', function() {
-            if (availabilityCheckInterval) {
-                clearInterval(availabilityCheckInterval);
-            }
-        });
-    </script>
+
+        if (cleanNumber.length > 12) {
+            cleanNumber = cleanNumber.substring(0, 12);
+        }
+
+        return cleanNumber;
+    }
+
+    phoneInput.addEventListener('input', function (e) {
+        let value = e.target.value.replace(/\D/g, '');
+        if (value.length > 10) value = value.substring(0, 10);
+        e.target.value = value;
+        if (phoneError.classList.contains('is-shown')) clearPhoneError();
+    });
+
+    window.addEventListener('beforeunload', function () {
+        if (availabilityCheckInterval) clearInterval(availabilityCheckInterval);
+    });
+</script>
 </body>
-</html> 
+</html>

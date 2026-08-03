@@ -1,0 +1,371 @@
+/* ==========================================================================
+   WIFIHYPER - Landing page
+   Loaded after brand.css. Only the marketing page uses these rules; everything
+   structural (tokens, buttons, cards, the grid texture) comes from brand.css.
+   ========================================================================== */
+
+html { scroll-behavior: smooth; }
+
+/* ---- Navigation ------------------------------------------------ */
+.wh-nav {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: saturate(1.5) blur(12px);
+    -webkit-backdrop-filter: saturate(1.5) blur(12px);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--wh-dur) var(--wh-ease),
+                background-color var(--wh-dur) var(--wh-ease);
+    z-index: var(--wh-z-nav);
+}
+.wh-nav.is-stuck { border-bottom-color: var(--wh-line); }
+.wh-nav .nav-link {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--wh-slate-600);
+    padding: 0.5rem 0.875rem;
+    border-radius: var(--wh-r-sm);
+}
+.wh-nav .nav-link:hover { color: var(--wh-ink-900); background: var(--wh-paper-sunken); }
+
+/* ---- Hero ------------------------------------------------------- */
+.wh-hero {
+    position: relative;
+    background: var(--wh-ink-800);
+    color: #E8EDF3;
+    padding: 8.5rem 0 5rem;
+    overflow: hidden;
+}
+/* The one gradient in the whole product: a soft signal bloom behind
+   the copy. Sits under the grid so both read as a single surface. */
+.wh-hero::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -10%;
+    width: 70%;
+    height: 130%;
+    background: radial-gradient(closest-side, rgba(35, 196, 172, 0.20), transparent);
+    pointer-events: none;
+}
+.wh-hero > .container { position: relative; z-index: 1; }
+
+.wh-hero h1 {
+    font-size: clamp(2.1rem, 5.2vw, 3.4rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.06;
+    color: #fff;
+    margin-bottom: 1.125rem;
+}
+.wh-hero h1 em {
+    font-style: normal;
+    color: var(--wh-signal-300);
+}
+.wh-hero__lead {
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: rgba(232, 237, 243, 0.76);
+    max-width: 46ch;
+    margin-bottom: 1.75rem;
+}
+.wh-hero__proof {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-size: 0.8125rem;
+    color: rgba(232, 237, 243, 0.6);
+}
+.wh-hero__proof span { display: inline-flex; align-items: center; gap: 0.5rem; }
+.wh-hero__proof i { color: var(--wh-signal-300); font-size: 0.75rem; }
+
+/* ---- Console preview -------------------------------------------
+   Replaces the decorative hero icon. Showing the actual shape of the
+   product does more convincing than an illustration can.            */
+.wh-console {
+    background: var(--wh-paper-raised);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--wh-r-xl);
+    box-shadow: var(--wh-shadow-ink);
+    overflow: hidden;
+}
+.wh-console__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--wh-paper-sunken);
+    border-bottom: 1px solid var(--wh-line);
+}
+.wh-console__title {
+    font-family: var(--wh-font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    margin: 0;
+}
+.wh-console__live {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--wh-signal-700);
+}
+.wh-console__summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    border-bottom: 1px solid var(--wh-line);
+}
+.wh-console__summary > div { padding: 0.875rem 1rem; }
+.wh-console__summary > div + div { border-left: 1px solid var(--wh-line); }
+.wh-console__k {
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--wh-slate-600);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+.wh-console__v {
+    font-family: var(--wh-font-display);
+    font-size: 1.375rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--wh-ink-900);
+    font-variant-numeric: tabular-nums;
+}
+.wh-console__v small { font-size: 0.75rem; font-weight: 500; color: var(--wh-slate-500); }
+
+.wh-console__row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+}
+.wh-console__row + .wh-console__row { border-top: 1px solid var(--wh-line); }
+.wh-console__name { font-weight: 600; color: var(--wh-ink-900); }
+.wh-console__sub { font-size: 0.75rem; color: var(--wh-slate-600); }
+.wh-console__amt {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--wh-ink-900);
+    white-space: nowrap;
+}
+
+/* ---- Capability strip -------------------------------------------- */
+.wh-strip {
+    background: var(--wh-ink-900);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+.wh-strip__item {
+    padding: 1.5rem 1.25rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    height: 100%;
+}
+.wh-strip__item:last-child { border-right: 0; }
+.wh-strip__v {
+    font-family: var(--wh-font-display);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #fff;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+.wh-strip__k { font-size: 0.8125rem; color: rgba(232, 237, 243, 0.58); margin: 0; }
+@media (max-width: 767.98px) {
+    .wh-strip__item {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        padding: 1.125rem 1.25rem;
+    }
+}
+
+/* ---- Sections ---------------------------------------------------- */
+.wh-section { padding: 5rem 0; }
+.wh-section--sunken { background: var(--wh-paper-sunken); }
+.wh-section__head { max-width: 56ch; margin-bottom: 2.75rem; }
+.wh-section__head h2 {
+    font-size: clamp(1.6rem, 3.4vw, 2.25rem);
+    font-weight: 700;
+    margin: 0.75rem 0 0.75rem;
+}
+.wh-section__head p { font-size: 1.0625rem; color: var(--wh-slate-600); margin: 0; }
+
+/* ---- Feature card ------------------------------------------------ */
+.wh-feature {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-lg);
+    padding: 1.5rem;
+    height: 100%;
+    transition: border-color var(--wh-dur) var(--wh-ease),
+                box-shadow var(--wh-dur) var(--wh-ease);
+}
+.wh-feature:hover { border-color: var(--wh-line-strong); box-shadow: var(--wh-shadow-md); }
+.wh-feature__icon {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--wh-r-md);
+    background: var(--wh-signal-050);
+    color: var(--wh-signal-700);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+.wh-feature h3 { font-size: 1.0625rem; font-weight: 600; margin-bottom: 0.5rem; }
+.wh-feature p { font-size: 0.9375rem; color: var(--wh-slate-600); margin: 0; line-height: 1.6; }
+
+/* ---- Steps -------------------------------------------------------
+   Numbered as tracked labels rather than big filled circles — the
+   circle-with-a-number is the most template-looking element there is. */
+.wh-step { position: relative; padding-top: 1.25rem; height: 100%; }
+.wh-step::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--wh-line-strong);
+}
+.wh-step--done::before { background: var(--wh-signal-500); }
+.wh-step__n {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: var(--wh-signal-700);
+    display: block;
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+.wh-step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.375rem; }
+.wh-step p { font-size: 0.9rem; color: var(--wh-slate-600); margin: 0; line-height: 1.55; }
+
+/* ---- Pricing ------------------------------------------------------ */
+.wh-price {
+    background: var(--wh-paper-raised);
+    border: 1px solid var(--wh-line);
+    border-radius: var(--wh-r-xl);
+    overflow: hidden;
+    box-shadow: var(--wh-shadow-md);
+}
+.wh-price__head {
+    padding: 2rem 2rem 1.75rem;
+    border-bottom: 1px solid var(--wh-line);
+    background: var(--wh-paper-sunken);
+}
+.wh-price__amount {
+    font-family: var(--wh-font-display);
+    font-size: clamp(2rem, 5vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    color: var(--wh-ink-900);
+    line-height: 1;
+    margin: 0.5rem 0 0.625rem;
+}
+.wh-price__body { padding: 1.75rem 2rem 2rem; }
+.wh-price__list { list-style: none; margin: 0; padding: 0; }
+.wh-price__list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.4375rem 0;
+    font-size: 0.9375rem;
+    color: var(--wh-ink-800);
+}
+.wh-price__list i {
+    color: var(--wh-signal-600);
+    font-size: 0.75rem;
+    margin-top: 0.35rem;
+    flex: 0 0 auto;
+}
+@media (max-width: 575.98px) {
+    .wh-price__head, .wh-price__body { padding-left: 1.25rem; padding-right: 1.25rem; }
+}
+
+/* ---- Closing CTA --------------------------------------------------- */
+.wh-cta {
+    background: var(--wh-ink-800);
+    border-radius: var(--wh-r-xl);
+    padding: 3rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.wh-cta h2 {
+    color: #fff;
+    font-size: clamp(1.5rem, 3.4vw, 2.125rem);
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    position: relative;
+}
+.wh-cta p {
+    color: rgba(232, 237, 243, 0.72);
+    font-size: 1.0625rem;
+    max-width: 52ch;
+    margin: 0 auto 1.75rem;
+    position: relative;
+}
+.wh-cta .btn { position: relative; }
+
+/* ---- Footer --------------------------------------------------------- */
+.wh-footer {
+    background: var(--wh-ink-900);
+    color: rgba(232, 237, 243, 0.62);
+    padding: 3.5rem 0 2rem;
+}
+.wh-footer h6 {
+    color: #fff;
+    font-family: var(--wh-font-body);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+.wh-footer a {
+    color: rgba(232, 237, 243, 0.62);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color var(--wh-dur-fast) var(--wh-ease);
+}
+.wh-footer a:hover { color: #fff; }
+.wh-footer li { padding: 0.25rem 0; }
+.wh-footer__rule { border-top: 1px solid rgba(255, 255, 255, 0.09); margin: 2.5rem 0 1.5rem; }
+.wh-footer__fine { font-size: 0.8125rem; color: rgba(232, 237, 243, 0.45); }
+
+/* ---- WhatsApp float --------------------------------------------------- */
+.wh-wa {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #25D366;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    text-decoration: none;
+    box-shadow: 0 6px 20px rgba(6, 13, 24, 0.28);
+    z-index: var(--wh-z-sticky);
+    transition: transform var(--wh-dur) var(--wh-ease), background-color var(--wh-dur) var(--wh-ease);
+}
+.wh-wa:hover { background: #1EBE5A; color: #fff; transform: scale(1.06); }
+.wh-wa:active { transform: scale(0.97); }
+
+@media (max-width: 991.98px) {
+    .wh-hero { padding: 7rem 0 3.5rem; }
+    .wh-section { padding: 3.5rem 0; }
+    .wh-nav .navbar-nav { padding-top: 0.5rem; }
+    .wh-nav .navbar-nav .btn { width: 100%; margin-top: 0.5rem; }
+}

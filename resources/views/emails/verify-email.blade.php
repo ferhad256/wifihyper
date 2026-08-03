@@ -128,8 +128,8 @@
 
         <p><strong>Need help?</strong> Our support team is here to assist you:</p>
         <ul>
-            <li>📧 Email: <a href="mailto:support@wifihyper.com">support@wifihyper.com</a></li>
-            <li>💬 WhatsApp: <a href="https://wa.me/256704791624">+256 700 000 000</a></li>
+            <li>📧 Email: <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a></li>
+            <li>💬 WhatsApp: <a href="https://wa.me/256792746413">0792746413</a></li>
             <li>🌐 Website: <a href="https://wifihyper.com">wifihyper.com</a></li>
         </ul>
 
@@ -139,7 +139,7 @@
 
         <div class="footer">
             <p>This email was sent from <strong>WIFIHYPER</strong> - <a href="https://wifihyper.com" style="color: #2563eb;">wifihyper.com</a></p>
-            <p>📧 <a href="mailto:support@wifihyper.com" style="color: #2563eb;">support@wifihyper.com</a> | 💬 <a href="https://wa.me/256704791624" style="color: #2563eb;">WhatsApp Support</a></p>
+            <p>📧 <a href="mailto:wifihyper01@gmail.com" style="color: #2563eb;">wifihyper01@gmail.com</a> | 💬 <a href="https://wa.me/256792746413" style="color: #2563eb;">WhatsApp Support</a></p>
             <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
         </div>
     </div>

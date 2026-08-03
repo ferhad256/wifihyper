@@ -1,410 +1,409 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard')
+@section('title', 'Overview')
+@section('subtitle', 'Your hotspots, sales and balance at a glance')
 
 @section('content')
-<div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
-        <div>
-            <a href="{{ route('vouchers.index') }}" class="btn btn-primary btn-sm">
-                <i class="fas fa-ticket-alt me-2"></i>Manage Vouchers
-            </a>
-            <a href="{{ route('dashboard.hotspots') }}" class="btn btn-success btn-sm">
-                <i class="fas fa-wifi me-2"></i>Add Hotspot
-            </a>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-info btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-headset me-2"></i>Support
-                </button>
-                <ul class="dropdown-menu">
-                    <li>
-                        <a class="dropdown-item" href="https://wa.me/256704791624?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
-                            <i class="fab fa-whatsapp me-2"></i>WhatsApp: +256704791624
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="https://wa.me/256783052764?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
-                            <i class="fab fa-whatsapp me-2"></i>WhatsApp: +256783052764
-                        </a>
-                    </li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <a class="dropdown-item" href="tel:0392998816">
-                            <i class="fas fa-phone me-2"></i>Call: 0392998816
-                        </a>
-                    </li>
-                    <li>
-                        <a class="dropdown-item" href="tel:0783052764">
-                            <i class="fas fa-phone me-2"></i>Call: 0783052764
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
 
+@push('styles')
+<style>
+    /* Wallet panel — the single most important number on the page, so it gets
+       its own surface rather than competing as one tile among four. */
+    .wh-wallet {
+        background: var(--wh-ink-800);
+        border-radius: var(--wh-r-lg);
+        padding: 1.5rem;
+        color: #E8EDF3;
+    }
+    .wh-wallet__amount {
+        font-family: var(--wh-font-display);
+        font-size: clamp(1.875rem, 5vw, 2.5rem);
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        color: #fff;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+    .wh-wallet__amount small {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--wh-signal-300);
+        letter-spacing: 0;
+        margin-right: 0.35rem;
+    }
 
+    /* Summary rows: label left, money right, hairline between. Reads far
+       faster than five centred columns squeezed into a narrow column. */
+    .wh-summary { list-style: none; margin: 0; padding: 0; }
+    .wh-summary li {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.6875rem 0;
+        border-bottom: 1px solid var(--wh-line);
+    }
+    .wh-summary li:last-child { border-bottom: 0; padding-bottom: 0; }
+    .wh-summary li:first-child { padding-top: 0; }
+    .wh-summary__k { font-size: 0.875rem; color: var(--wh-slate-600); }
+    .wh-summary__k b { display: block; font-weight: 600; color: var(--wh-ink-900); }
+    .wh-summary__k span { font-size: 0.75rem; }
 
-    <!-- Balance Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card border-left-info shadow">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Current Wallet Balance
-                            </div>
-                            <div class="h2 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($tenant->wallet_balance) }}
-                            </div>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <div class="d-flex gap-2 justify-content-end">
-                                <a href="{{ route('dashboard.billing') }}" class="btn btn-info btn-lg">
-                                    <i class="fas fa-list me-2"></i>View Transactions
-                                </a>
-                                @if($tenant->wallet_balance >= 5000 && $tenant->phone)
-                                    <button class="btn btn-warning btn-lg" data-bs-toggle="modal" data-bs-target="#withdrawModal">
-                                        <i class="fas fa-money-bill-wave me-2"></i>Request Withdrawal
-                                    </button>
-                                @elseif($tenant->wallet_balance >= 5000 && !$tenant->phone)
-                                    <a href="{{ route('dashboard.profile') }}" class="btn btn-outline-warning btn-lg">
-                                        <i class="fas fa-user-edit me-2"></i>Add Phone Number to Withdraw
-                                    </a>
-                                @else
-                                    <button class="btn btn-outline-secondary btn-lg" disabled title="Minimum withdrawal amount is UGX 5,000">
-                                        <i class="fas fa-lock me-2"></i>Withdrawal Locked
-                                        <br><small>Min. UGX 5,000</small>
-                                    </button>
-                                @endif
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    .wh-chart { position: relative; height: 20rem; width: 100%; }
+    @media (max-width: 575.98px) { .wh-chart { height: 15rem; } }
+</style>
+@endpush
 
-    <!-- Statistics Cards -->
-    <div class="row">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Available Vouchers</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ $stats['unused_vouchers'] }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-ticket-alt fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
+<!-- ============ Wallet + primary actions ============ -->
+<div class="wh-wallet mb-3">
+    <div class="row align-items-center g-3">
+        <div class="col-lg-5">
+            <p class="wh-eyebrow wh-eyebrow--onink mb-2">Wallet balance</p>
+            <div class="wh-wallet__amount" id="walletBalance">
+                <small>UGX</small>{{ number_format($tenant->wallet_balance) }}
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Active Hotspots</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ $stats['total_hotspots'] }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-wifi fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div class="col-lg-7">
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
+                <a href="{{ route('dashboard.billing') }}" class="btn btn-outline-light">
+                    <i class="fas fa-list" aria-hidden="true"></i> Transactions
+                </a>
 
-    <!-- Sales Chart -->
-    <div class="row">
-        <div class="col-xl-8 col-lg-7">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Sales Overview ({{ now()->year }})</h6>
-                    <div class="dropdown">
-                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-download me-1"></i>Export
-                        </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" onclick="exportChart('png')">PNG Image</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportChart('pdf')">PDF Document</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="chart-area">
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="col-xl-4 col-lg-5">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
-                        <a href="{{ route('vouchers.index') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-upload me-2"></i>Upload Vouchers
-                        </a>
-                        <a href="{{ route('dashboard.hotspots') }}" class="btn btn-success btn-sm">
-                            <i class="fas fa-plus me-2"></i>Create Hotspot
-                        </a>
-                        <a href="{{ route('dashboard.billing') }}" class="btn btn-info btn-sm">
-                            <i class="fas fa-chart-bar me-2"></i>View Transactions
-                        </a>
-                        <a href="{{ route('dashboard.settings') }}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-cog me-2"></i>Settings
-                        </a>
-                        <div class="btn-group w-100" role="group">
-                            <button type="button" class="btn btn-info btn-sm dropdown-toggle w-100" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-headset me-2"></i>Get Support
-                            </button>
-                            <ul class="dropdown-menu w-100">
-                                <li>
-                                    <a class="dropdown-item" href="https://wa.me/256704791624?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
-                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp Support 1
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="https://wa.me/256783052764?text=Hello! I need help with my WIFIHYPER dashboard" target="_blank">
-                                        <i class="fab fa-whatsapp me-2 text-success"></i>WhatsApp Support 2
-                                    </a>
-                                </li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="tel:0392998816">
-                                        <i class="fas fa-phone me-2 text-primary"></i>0392998816
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="tel:0783052764">
-                                        <i class="fas fa-phone me-2 text-primary"></i>0783052764
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-            <!-- Sales Summary -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">Sales Summary</h6>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase">
-                                Today
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($sales_summary['today']['amount']) }}
-                            </div>
-                            <div class="text-xs text-muted">
-                                Since {{ $sales_summary['today']['start_date'] }}
-                            </div>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <div class="text-xs font-weight-bold text-success text-uppercase">
-                                This Week
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($sales_summary['this_week']['amount']) }}
-                            </div>
-                            <div class="text-xs text-muted">
-                                Since {{ $sales_summary['this_week']['start_date'] }}
-                            </div>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <div class="text-xs font-weight-bold text-info text-uppercase">
-                                This Month
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($sales_summary['this_month']['amount']) }}
-                            </div>
-                            <div class="text-xs text-muted">
-                                Since {{ $sales_summary['this_month']['start_date'] }}
-                            </div>
-                        </div>
-                        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                            <div class="text-xs font-weight-bold text-secondary text-uppercase">
-                                This Year
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800">
-                                UGX {{ number_format($sales_summary['this_year']['amount']) }}
-                            </div>
-                            <div class="text-xs text-muted">
-                                Since {{ $sales_summary['this_year']['start_date'] }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
-                    <a href="{{ route('dashboard.billing') }}" class="btn btn-primary btn-sm">View All</a>
-                </div>
-                <div class="card-body">
-                    @if($recent_transactions->count() > 0)
-                        <div class="table-responsive">
-                            <table class="table table-bordered" width="100%" cellspacing="0">
-                                <thead>
-                                    <tr>
-                                        <th>Date & Time</th>
-                                        <th>Transaction ID</th>
-                                        <th>Hotspot</th>
-                                        <th>Package</th>
-                                        <th>Voucher Sold</th>
-                                        <th>Amount</th>
-                                        <th>Fee</th>
-                                        <th>Net Amount</th>
-                                        <th>Phone Number</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($recent_transactions as $transaction)
-                                    <tr>
-                                        <td>{{ $transaction->created_at->format('M d, Y H:i') }}</td>
-                                        <td>
-                                            <code>{{ $transaction->transaction_id }}</code>
-                                        </td>
-                                        <td>{{ $transaction->hotspot->name ?? 'N/A' }}</td>
-                                        <td>{{ $transaction->package->name ?? 'N/A' }}</td>
-                                        <td>
-                                            @if($transaction->voucher)
-                                                <span class="badge bg-success">
-                                                    <i class="fas fa-ticket-alt me-1"></i>
-                                                    {{ $transaction->voucher->code }}
-                                                </span>
-                                            @else
-                                                <span class="text-muted">N/A</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="text-primary fw-bold">UGX {{ number_format($transaction->amount) }}</div>
-                                            <small class="text-muted">{{ $transaction->fee_percentage }}% fee</small>
-                                        </td>
-                                        <td>
-                                            <div class="text-warning">UGX {{ number_format($transaction->transaction_fee) }}</div>
-                                        </td>
-                                        <td>
-                                            <div class="text-success fw-bold">UGX {{ number_format($transaction->net_amount) }}</div>
-                                        </td>
-                                        <td>{{ $transaction->phone_number ?? 'N/A' }}</td>
-                                        <td>{!! $transaction->status_badge !!}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    @else
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox fa-3x text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">No transactions yet. Start by creating hotspots and processing payments.</p>
-                        </div>
-                    @endif
-                </div>
+                @if($pending_withdrawal)
+                    <button class="btn btn-light" disabled>
+                        <i class="fas fa-clock" aria-hidden="true"></i> Withdrawal pending
+                    </button>
+                @elseif($tenant->wallet_balance >= 5000 && $tenant->phone)
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#withdrawModal">
+                        <i class="fas fa-money-bill-wave" aria-hidden="true"></i> Request withdrawal
+                    </button>
+                @elseif($tenant->wallet_balance >= 5000 && !$tenant->phone)
+                    <a href="{{ route('dashboard.profile') }}" class="btn btn-primary">
+                        <i class="fas fa-user-pen" aria-hidden="true"></i> Add phone to withdraw
+                    </a>
+                @else
+                    {{-- Explains why it is unavailable instead of only greying out. --}}
+                    <button class="btn btn-light" disabled>
+                        <i class="fas fa-lock" aria-hidden="true"></i> Withdraw at UGX 5,000
+                    </button>
+                @endif
             </div>
         </div>
     </div>
 </div>
 
-<!-- Withdraw Modal -->
+<!-- ============ Pending withdrawal ============ -->
+@if($pending_withdrawal)
+<div class="wh-panel mb-3" style="border-left: var(--wh-rule-accent) solid var(--wh-warn-600);">
+    <div class="wh-panel__head">
+        <h2 class="wh-panel__title">
+            <i class="fas fa-clock me-2" style="color:var(--wh-warn-600);" aria-hidden="true"></i>
+            Withdrawal under review
+        </h2>
+        <span class="wh-pill wh-pill--warn">
+            {{ $pending_withdrawal->created_at->diffForHumans() }}
+        </span>
+    </div>
+    <div class="wh-panel__body">
+        <div class="row g-3">
+            <div class="col-6 col-lg-3">
+                <span class="wh-stat__label d-block mb-1">Amount</span>
+                <span class="wh-money">UGX {{ number_format($pending_withdrawal->amount) }}</span>
+            </div>
+            <div class="col-6 col-lg-3">
+                <span class="wh-stat__label d-block mb-1">Fee (5%)</span>
+                <span class="wh-money wh-money--out">UGX {{ number_format($pending_withdrawal->fee) }}</span>
+            </div>
+            <div class="col-6 col-lg-3">
+                <span class="wh-stat__label d-block mb-1">You receive</span>
+                <span class="wh-money wh-money--in">UGX {{ number_format($pending_withdrawal->net_amount) }}</span>
+            </div>
+            <div class="col-6 col-lg-3">
+                <span class="wh-stat__label d-block mb-1">To number</span>
+                <span class="wh-money">{{ $pending_withdrawal->phone_number }}</span>
+            </div>
+        </div>
+
+        <hr class="my-3 wh-hairline">
+
+        <div class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2">
+            <p class="mb-0 wh-muted" style="font-size:0.875rem;max-width:64ch;">
+                Reference <span class="wh-code">{{ $pending_withdrawal->withdrawal_id }}</span> ·
+                requested {{ $pending_withdrawal->created_at->format('M d, Y H:i') }}.
+                An admin reviews it within 24 hours. You can't submit another request until this one is settled.
+            </p>
+            <a href="{{ route('dashboard.billing') }}" class="btn btn-secondary btn-sm flex-shrink-0">View details</a>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- ============ Stats ============ -->
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="wh-stat wh-stat--signal">
+            <div class="wh-stat__head">
+                <span class="wh-stat__label">Available vouchers</span>
+                <span class="wh-stat__icon"><i class="fas fa-ticket-alt" aria-hidden="true"></i></span>
+            </div>
+            <span class="wh-stat__value">{{ number_format($stats['unused_vouchers']) }}</span>
+            <p class="wh-stat__meta">
+                @if($stats['unused_vouchers'] == 0)
+                    <span class="wh-pill wh-pill--crit">Out of stock</span>
+                @elseif($stats['unused_vouchers'] < 20)
+                    <span class="wh-pill wh-pill--warn">Running low</span>
+                @else
+                    Ready to sell
+                @endif
+                <a href="{{ route('vouchers.index') }}" class="ms-1">Manage</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="wh-stat wh-stat--value">
+            <div class="wh-stat__head">
+                <span class="wh-stat__label">Active hotspots</span>
+                <span class="wh-stat__icon"><i class="fas fa-tower-broadcast" aria-hidden="true"></i></span>
+            </div>
+            <span class="wh-stat__value">{{ number_format($stats['total_hotspots']) }}</span>
+            <p class="wh-stat__meta">
+                Sites you're currently selling from
+                <a href="{{ route('dashboard.hotspots') }}" class="ms-1">Manage</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Chart + summary ============ -->
+<div class="row g-3 mb-3">
+    <div class="col-xl-8">
+        <div class="wh-panel h-100">
+            <div class="wh-panel__head">
+                <h2 class="wh-panel__title">Sales overview · {{ now()->year }}</h2>
+                <div class="dropdown">
+                    <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><button type="button" class="dropdown-item" onclick="exportChart('png')">PNG image</button></li>
+                        <li><a class="dropdown-item" href="{{ route('transactions.export') }}">Transactions CSV</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="wh-panel__body">
+                <div class="wh-chart">
+                    <canvas id="salesChart"
+                            aria-label="Monthly sales for {{ now()->year }} in Ugandan shillings"
+                            role="img"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="wh-panel h-100">
+            <div class="wh-panel__head">
+                <h2 class="wh-panel__title">Takings</h2>
+            </div>
+            <div class="wh-panel__body">
+                <ul class="wh-summary">
+                    <li>
+                        <span class="wh-summary__k">
+                            <b>Today</b>
+                            <span>since {{ $sales_summary['today']['start_date'] }}</span>
+                        </span>
+                        <span class="wh-money">
+                            <span class="wh-money__cur">UGX</span>{{ number_format($sales_summary['today']['amount']) }}
+                        </span>
+                    </li>
+                    <li>
+                        <span class="wh-summary__k">
+                            <b>Yesterday</b>
+                            <span>{{ $sales_summary['yesterday']['start_date'] }}</span>
+                        </span>
+                        <span class="wh-money">
+                            <span class="wh-money__cur">UGX</span>{{ number_format($sales_summary['yesterday']['amount']) }}
+                        </span>
+                    </li>
+                    <li>
+                        <span class="wh-summary__k">
+                            <b>This week</b>
+                            <span>since {{ $sales_summary['this_week']['start_date'] }}</span>
+                        </span>
+                        <span class="wh-money">
+                            <span class="wh-money__cur">UGX</span>{{ number_format($sales_summary['this_week']['amount']) }}
+                        </span>
+                    </li>
+                    <li>
+                        <span class="wh-summary__k">
+                            <b>This month</b>
+                            <span>since {{ $sales_summary['this_month']['start_date'] }}</span>
+                        </span>
+                        <span class="wh-money">
+                            <span class="wh-money__cur">UGX</span>{{ number_format($sales_summary['this_month']['amount']) }}
+                        </span>
+                    </li>
+                    <li>
+                        <span class="wh-summary__k">
+                            <b>This year</b>
+                            <span>since {{ $sales_summary['this_year']['start_date'] }}</span>
+                        </span>
+                        <span class="wh-money">
+                            <span class="wh-money__cur">UGX</span>{{ number_format($sales_summary['this_year']['amount']) }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ Recent transactions ============ -->
+<div class="wh-panel">
+    <div class="wh-panel__head">
+        <h2 class="wh-panel__title">Recent transactions</h2>
+        <a href="{{ route('dashboard.billing') }}" class="btn btn-secondary btn-sm">View all</a>
+    </div>
+
+    @if($recent_transactions->count() > 0)
+        <div class="wh-scroll-x">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Reference</th>
+                        <th scope="col">Hotspot</th>
+                        <th scope="col">Package</th>
+                        <th scope="col">Voucher</th>
+                        <th scope="col" class="text-end">Amount</th>
+                        <th scope="col" class="text-end">Fee</th>
+                        <th scope="col" class="text-end">Net</th>
+                        <th scope="col">Phone</th>
+                        <th scope="col">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($recent_transactions as $transaction)
+                    <tr>
+                        <td class="text-nowrap">
+                            {{ $transaction->created_at->format('M d') }}
+                            <span class="wh-muted d-block" style="font-size:0.75rem;">
+                                {{ $transaction->created_at->format('H:i') }}
+                            </span>
+                        </td>
+                        <td><span class="wh-code">{{ $transaction->transaction_id }}</span></td>
+                        <td>{{ $transaction->hotspot->name ?? '—' }}</td>
+                        <td>{{ $transaction->package->name ?? '—' }}</td>
+                        <td>
+                            @if($transaction->voucher)
+                                <span class="wh-code">{{ $transaction->voucher->code }}</span>
+                            @else
+                                <span class="wh-muted">—</span>
+                            @endif
+                        </td>
+                        <td class="text-end">
+                            <span class="wh-money">{{ number_format($transaction->amount) }}</span>
+                            <span class="wh-muted d-block" style="font-size:0.75rem;">
+                                {{ $transaction->fee_percentage }}% fee
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <span class="wh-money wh-money--out">{{ number_format($transaction->transaction_fee) }}</span>
+                        </td>
+                        <td class="text-end">
+                            <span class="wh-money wh-money--in">{{ number_format($transaction->net_amount) }}</span>
+                        </td>
+                        <td class="text-nowrap">{{ $transaction->phone_number ?? '—' }}</td>
+                        <td>{!! $transaction->status_badge !!}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @else
+        <div class="wh-empty">
+            <div class="wh-empty__icon"><i class="fas fa-inbox" aria-hidden="true"></i></div>
+            <p class="wh-empty__title">No sales yet</p>
+            <p class="wh-empty__text">
+                Once you've added a hotspot and uploaded vouchers, every sale will appear here
+                with its fee and net amount.
+            </p>
+            <a href="{{ route('dashboard.hotspots') }}" class="btn btn-primary">Add your first hotspot</a>
+        </div>
+    @endif
+</div>
+
+<!-- ============ Withdraw modal ============ -->
 <div class="modal fade" id="withdrawModal" tabindex="-1" aria-labelledby="withdrawModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="withdrawModalLabel">Request Withdrawal</h5>
+                <h5 class="modal-title" id="withdrawModalLabel">Request a withdrawal</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ route('dashboard.withdraw') }}" method="POST">
                 @csrf
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="withdraw_amount" class="form-label">Withdrawal Amount (UGX)</label>
-                        <input type="number" class="form-control" id="withdraw_amount" name="amount" 
-                               min="5000" max="{{ $tenant->wallet_balance }}" required onchange="calculateWithdrawalFee()">
-                        <div class="form-text">Minimum: UGX 5,000 | Maximum: UGX {{ number_format($tenant->wallet_balance) }}</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <div class="row">
-                            <div class="col-4">
-                                <label class="form-label text-muted">Withdrawal Fee (5%)</label>
-                                <div class="h6 text-warning" id="fee_display">UGX 0</div>
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label text-muted">Net Amount</label>
-                                <div class="h6 text-success" id="net_display">UGX 0</div>
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label text-muted">You Will Receive</label>
-                                <div class="h5 text-primary fw-bold" id="receive_display">UGX 0</div>
-                            </div>
+                        <label for="withdraw_amount" class="form-label">
+                            Amount to withdraw <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text">UGX</span>
+                            <input type="number" class="form-control" id="withdraw_amount" name="amount"
+                                   min="5000" max="{{ $tenant->wallet_balance }}" step="1" required
+                                   inputmode="numeric" oninput="calculateWithdrawalFee()">
+                        </div>
+                        <div class="form-text">
+                            Minimum UGX 5,000 · available UGX {{ number_format($tenant->wallet_balance) }}
                         </div>
                     </div>
+
+                    <!-- Live breakdown so the deduction is visible before submitting -->
+                    <div class="wh-panel mb-3" style="background:var(--wh-paper-sunken);">
+                        <div class="wh-panel__body py-2">
+                            <div class="d-flex justify-content-between align-items-baseline py-1">
+                                <span class="wh-summary__k">Withdrawal fee (5%)</span>
+                                <span class="wh-money wh-money--out" id="fee_display">UGX 0</span>
+                            </div>
+                            <hr class="my-2 wh-hairline">
+                            <div class="d-flex justify-content-between align-items-baseline py-1">
+                                <span class="wh-summary__k"><b>You will receive</b></span>
+                                <span class="wh-money wh-money--in" id="receive_display" style="font-size:1.125rem;">UGX 0</span>
+                            </div>
+                            {{-- Kept for the existing script contract; the value duplicates
+                                 "you will receive" so it is not shown twice. --}}
+                            <span id="net_display" class="d-none">UGX 0</span>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
-                        <label for="withdraw_phone" class="form-label">Phone Number (Registered Contact)</label>
-                        <input type="tel" class="form-control" id="withdraw_phone" name="phone_number" 
-                               value="{{ $tenant->phone }}" readonly required>
+                        <label for="withdraw_phone" class="form-label">Mobile money number</label>
+                        <input type="tel" class="form-control" id="withdraw_phone" name="phone_number"
+                               value="{{ $tenant->phone }}" readonly required autocomplete="tel">
                         <div class="form-text">
-                            <i class="fas fa-lock me-1"></i>
-                            Withdrawals can only be made to your registered phone number for security purposes.
+                            <i class="fas fa-lock me-1" aria-hidden="true"></i>
+                            For security, payouts only go to the number registered on your account.
                             @if(!$tenant->phone)
-                                <span class="text-danger">Please update your profile with a phone number to make withdrawals.</span>
+                                <span class="text-danger d-block mt-1">
+                                    Add a phone number to your profile before withdrawing.
+                                </span>
                             @endif
                         </div>
                     </div>
-                    <div class="alert alert-info">
-                        <h6 class="alert-heading">
-                            <i class="fas fa-info-circle me-2"></i>Withdrawal Request Process
-                        </h6>
-                        <ul class="mb-2">
-                            <li><strong>Step 1:</strong> Submit withdrawal request</li>
-                            <li><strong>Step 2:</strong> Admin reviews and approves request</li>
-                            <li><strong>Step 3:</strong> Funds sent to your mobile money account</li>
-                            <li><strong>Processing Time:</strong> Within 24 hours</li>
-                        </ul>
-                        <div class="alert alert-warning mb-0">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>Fee Notice:</strong> A 5% transaction fee will be deducted from your withdrawal amount.
-                        </div>
+
+                    <div class="alert alert-info mb-0">
+                        <strong class="d-block mb-1">What happens next</strong>
+                        You submit the request, an admin reviews it, then the funds are sent to your
+                        mobile money account — usually within 24 hours.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary" {{ !$tenant->phone ? 'disabled' : '' }}>
-                        @if($tenant->phone)
-                            Request Withdrawal
-                        @else
-                            Update Profile First
-                        @endif
+                        {{ $tenant->phone ? 'Request withdrawal' : 'Update profile first' }}
                     </button>
                 </div>
             </form>
@@ -415,115 +414,110 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Sales Chart
-var ctx = document.getElementById('salesChart').getContext('2d');
-var salesChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-        labels: {!! json_encode($filled_sales_data->pluck('formatted_date')) !!},
-        datasets: [{
-            label: 'Monthly Sales (UGX)',
-            data: {!! json_encode($filled_sales_data->pluck('total')) !!},
-            backgroundColor: 'rgba(78, 115, 223, 0.8)',
-            borderColor: 'rgb(78, 115, 223)',
-            borderWidth: 1,
-            borderRadius: 4,
-            borderSkipped: false,
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'Sales: UGX ' + context.parsed.y.toLocaleString();
-                    }
-                }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return 'UGX ' + value.toLocaleString();
-                    }
-                }
-            },
-            x: {
-                grid: {
-                    display: false
-                }
-            }
-        },
-        interaction: {
-            intersect: false,
-            mode: 'index',
-        }
-    }
-});
+// ---- Sales chart ----------------------------------------------------------
+// Colours are read from the brand tokens so the chart follows the theme
+// instead of carrying its own hard-coded palette.
+(function () {
+    var css    = getComputedStyle(document.documentElement);
+    var signal = css.getPropertyValue('--wh-signal-600').trim() || '#0A7A6D';
+    var line   = css.getPropertyValue('--wh-line').trim() || '#DCE2DC';
+    var muted  = css.getPropertyValue('--wh-slate-600').trim() || '#48586E';
 
-// Export chart function
+    new Chart(document.getElementById('salesChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {!! json_encode($filled_sales_data->pluck('formatted_date')) !!},
+            datasets: [{
+                label: 'Sales (UGX)',
+                data: {!! json_encode($filled_sales_data->pluck('total')) !!},
+                backgroundColor: signal,
+                hoverBackgroundColor: signal,
+                borderRadius: 3,
+                borderSkipped: false,
+                maxBarThickness: 44
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            // Respect the reader's motion preference rather than always animating in.
+            animation: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? false : { duration: 400 },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#0A1628',
+                    padding: 10,
+                    cornerRadius: 6,
+                    displayColors: false,
+                    callbacks: {
+                        label: function (context) {
+                            return 'UGX ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    border: { display: false },
+                    grid: { color: line, drawTicks: false },
+                    ticks: {
+                        color: muted,
+                        padding: 8,
+                        callback: function (value) { return value.toLocaleString(); }
+                    }
+                },
+                x: {
+                    border: { color: line },
+                    grid: { display: false },
+                    ticks: { color: muted, autoSkip: true, maxRotation: 0 }
+                }
+            },
+            interaction: { intersect: false, mode: 'index' }
+        }
+    });
+})();
+
 function exportChart(format) {
-    const canvas = document.getElementById('salesChart');
-    const link = document.createElement('a');
-    
-    if (format === 'png') {
-        link.download = 'sales-chart.png';
-        link.href = canvas.toDataURL('image/png');
-    } else if (format === 'pdf') {
-        // For PDF, you'd need a library like jsPDF
-        alert('PDF export requires additional libraries. PNG export is available.');
-        return;
-    }
-    
+    if (format !== 'png') return;
+    var canvas = document.getElementById('salesChart');
+    var link = document.createElement('a');
+    link.download = 'sales-chart.png';
+    link.href = canvas.toDataURL('image/png');
     link.click();
 }
 
-// Auto-update balance every 30 seconds
-setInterval(function() {
-    fetch('/dashboard')
+// ---- Live balance ---------------------------------------------------------
+// Targets a stable id rather than a chain of layout classes, so restyling the
+// balance no longer silently breaks the refresh.
+setInterval(function () {
+    fetch('{{ route('dashboard') }}')
         .then(response => response.text())
         .then(html => {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newBalance = doc.querySelector('.h2.mb-0.font-weight-bold.text-gray-800');
-            if (newBalance) {
-                document.querySelector('.h2.mb-0.font-weight-bold.text-gray-800').textContent = newBalance.textContent;
-            }
+            var doc = new DOMParser().parseFromString(html, 'text/html');
+            var next = doc.getElementById('walletBalance');
+            var current = document.getElementById('walletBalance');
+            if (next && current) current.innerHTML = next.innerHTML;
         })
         .catch(error => console.log('Auto-update failed:', error));
 }, 30000);
 
-// Calculate withdrawal fee in real-time
+// ---- Withdrawal breakdown -------------------------------------------------
 function calculateWithdrawalFee() {
-    const amountInput = document.getElementById('withdraw_amount');
-    const amount = parseFloat(amountInput.value) || 0;
-    
+    var amount = parseFloat(document.getElementById('withdraw_amount').value) || 0;
+    var fee = 0, net = 0;
+
     if (amount >= 5000) {
-        const fee = amount * 0.05; // 5% fee
-        const netAmount = amount - fee;
-        
-        document.getElementById('fee_display').textContent = 'UGX ' + Math.round(fee).toLocaleString();
-        document.getElementById('net_display').textContent = 'UGX ' + Math.round(netAmount).toLocaleString();
-        document.getElementById('receive_display').textContent = 'UGX ' + Math.round(netAmount).toLocaleString();
-    } else {
-        document.getElementById('fee_display').textContent = 'UGX 0';
-        document.getElementById('net_display').textContent = 'UGX 0';
-        document.getElementById('receive_display').textContent = 'UGX 0';
+        fee = Math.round(amount * 0.05);
+        net = Math.round(amount - fee);
     }
+
+    document.getElementById('fee_display').textContent     = 'UGX ' + fee.toLocaleString();
+    document.getElementById('net_display').textContent     = 'UGX ' + net.toLocaleString();
+    document.getElementById('receive_display').textContent = 'UGX ' + net.toLocaleString();
 }
 
-// Calculate fee on page load if there's a value
-document.addEventListener('DOMContentLoaded', function() {
-    calculateWithdrawalFee();
-});
+document.addEventListener('DOMContentLoaded', calculateWithdrawalFee);
 </script>
 @endpush
-@endsection 
+@endsection
