@@ -17,9 +17,9 @@ class PaymentRetryTest extends TestCase
         $errorMessage2 = 'This is likely a duplicate transaction. Please vary your submission parameters.';
         $errorMessage3 = 'Some other error message';
         
-        $this->assertTrue(strpos($errorMessage1, 'duplicate transaction') !== false);
-        $this->assertTrue(strpos($errorMessage2, 'duplicate transaction') !== false);
-        $this->assertFalse(strpos($errorMessage3, 'duplicate transaction') !== false);
+        $this->assertTrue(stripos($errorMessage1, 'duplicate transaction') !== false);
+        $this->assertTrue(stripos($errorMessage2, 'duplicate transaction') !== false);
+        $this->assertFalse(stripos($errorMessage3, 'duplicate transaction') !== false);
     }
 
     /**

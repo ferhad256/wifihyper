@@ -22,8 +22,8 @@ class WithdrawalRequestLimitTest extends TestCase
             'phone' => '0783052764'
         ]);
 
-        // Authenticate as tenant
-        $this->actingAs($tenant);
+        // Authenticate as tenant (this app uses a custom session key, not the Auth guard)
+        $this->withSession(['tenant_id' => $tenant->id]);
 
         // Submit withdrawal request
         $response = $this->post(route('dashboard.withdraw'), [
@@ -67,8 +67,8 @@ class WithdrawalRequestLimitTest extends TestCase
             'description' => 'First withdrawal request'
         ]);
 
-        // Authenticate as tenant
-        $this->actingAs($tenant);
+        // Authenticate as tenant (this app uses a custom session key, not the Auth guard)
+        $this->withSession(['tenant_id' => $tenant->id]);
 
         // Try to submit another withdrawal request
         $response = $this->post(route('dashboard.withdraw'), [
@@ -111,8 +111,8 @@ class WithdrawalRequestLimitTest extends TestCase
             'completed_at' => now()
         ]);
 
-        // Authenticate as tenant
-        $this->actingAs($tenant);
+        // Authenticate as tenant (this app uses a custom session key, not the Auth guard)
+        $this->withSession(['tenant_id' => $tenant->id]);
 
         // Submit new withdrawal request
         $response = $this->post(route('dashboard.withdraw'), [
@@ -159,8 +159,8 @@ class WithdrawalRequestLimitTest extends TestCase
             'failed_at' => now()
         ]);
 
-        // Authenticate as tenant
-        $this->actingAs($tenant);
+        // Authenticate as tenant (this app uses a custom session key, not the Auth guard)
+        $this->withSession(['tenant_id' => $tenant->id]);
 
         // Submit new withdrawal request
         $response = $this->post(route('dashboard.withdraw'), [
@@ -206,8 +206,8 @@ class WithdrawalRequestLimitTest extends TestCase
             'processed_at' => now()
         ]);
 
-        // Authenticate as tenant
-        $this->actingAs($tenant);
+        // Authenticate as tenant (this app uses a custom session key, not the Auth guard)
+        $this->withSession(['tenant_id' => $tenant->id]);
 
         // Try to submit another withdrawal request
         $response = $this->post(route('dashboard.withdraw'), [
