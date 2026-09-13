@@ -82,7 +82,7 @@ class WithdrawalRequestLimitTest extends TestCase
 
         // Assert error message about pending withdrawal
         $response->assertSessionHas('error');
-        $response->assertSessionHasErrors(false); // No validation errors, just business logic error
+        $response->assertSessionHasNoErrors(); // No validation errors, just business logic error
     }
 
     /**
