@@ -36,7 +36,7 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, redis, gd, intl, bcmath, opcache, tokenizer, xml, xmlwriter, json
-          coverage: none
+          coverage: pcov
           tools: composer:v2
 
       - name: Install Composer dependencies
