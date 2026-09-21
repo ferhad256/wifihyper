@@ -100,7 +100,7 @@
             <p>Our support team is ready to help you succeed:</p>
             <ul>
                 <li>📧 Email Support: <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a></li>
-                <li>💬 WhatsApp Support: <a href="https://wa.me/256792746413">0792746413</a></li>
+                <li>💬 WhatsApp Support: <a href="https://wa.me/256792746015">0792746015</a></li>
                 <li>📖 Documentation: <a href="https://wifihyper.com/docs">wifihyper.com/docs</a></li>
                 <li>🌐 Visit our website: <a href="https://wifihyper.com">wifihyper.com</a></li>
             </ul>
@@ -114,7 +114,7 @@
     
     <div class="footer">
         <p>This email was sent to {{ $email }} from <strong>WIFIHYPER</strong></p>
-        <p>📧 <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a> | 💬 <a href="https://wa.me/256792746413">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
+        <p>📧 <a href="mailto:wifihyper01@gmail.com">wifihyper01@gmail.com</a> | 💬 <a href="https://wa.me/256792746015">WhatsApp Support</a> | 🌐 <a href="https://wifihyper.com">wifihyper.com</a></p>
         <p>&copy; {{ date('Y') }} WIFIHYPER. All rights reserved.</p>
     </div>
 </body>

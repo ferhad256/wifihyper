@@ -309,7 +309,7 @@ class DashboardController extends Controller
             // Send SMS notification to admin about new withdrawal request
             try {
                 $smsService = new \App\Services\EgoSmsService();
-                $adminPhone = '256783052764'; // 0783052764 in international format
+                $adminPhone = '256755569376'; // 0755569376 in international format
                 $message = "New withdrawal request from {$tenant->name}: UGX " . number_format($amount) . " (ID: {$withdrawal->withdrawal_id})";
                 
                 $smsResult = $smsService->sendSms($adminPhone, $message);

@@ -367,8 +367,8 @@
                     <h6>Support</h6>
                     <ul class="list-unstyled mb-0">
                         <li>
-                            <a href="https://wa.me/256792746413" target="_blank" rel="noopener">
-                                <i class="fab fa-whatsapp me-2" aria-hidden="true"></i>WhatsApp 0792 746 413
+                            <a href="https://wa.me/256792746015" target="_blank" rel="noopener">
+                                <i class="fab fa-whatsapp me-2" aria-hidden="true"></i>WhatsApp 0792 746 015
                             </a>
                         </li>
                         <li>
@@ -393,7 +393,7 @@
     </footer>
 
     <!-- WhatsApp quick contact -->
-    <a href="https://wa.me/256792746413?text=Hello!%20I%20need%20help%20with%20WifiHyper"
+    <a href="https://wa.me/256792746015?text=Hello!%20I%20need%20help%20with%20WifiHyper"
        target="_blank" rel="noopener" class="wh-wa" aria-label="Chat with support on WhatsApp">
         <i class="fab fa-whatsapp" aria-hidden="true"></i>
     </a>
@@ -413,7 +413,7 @@
                     </p>
 
                     <div class="d-grid gap-2">
-                        <a href="https://wa.me/256704791624?text=Hello!%20I%20have%20a%20question%20about%20WifiHyper."
+                        <a href="https://wa.me/256755569376?text=Hello!%20I%20have%20a%20question%20about%20WifiHyper."
                            target="_blank" rel="noopener" class="btn btn-success btn-lg">
                             <i class="fab fa-whatsapp" aria-hidden="true"></i> WhatsApp us
                         </a>
@@ -425,8 +425,8 @@
                                 </a>
                             </div>
                             <div class="col-sm-6 d-grid">
-                                <a href="tel:0783052764" class="btn btn-secondary">
-                                    <i class="fas fa-phone" aria-hidden="true"></i> 0783 052 764
+                                <a href="tel:0755569376" class="btn btn-secondary">
+                                    <i class="fas fa-phone" aria-hidden="true"></i> 0755 569 376
                                 </a>
                             </div>
                         </div>

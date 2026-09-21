@@ -187,9 +187,9 @@
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
                                 <a class="dropdown-item" target="_blank" rel="noopener"
-                                   href="https://wa.me/256792746413?text=Hello!%20I%20need%20help%20with%20my%20WifiHyper%20account">
+                                   href="https://wa.me/256792746015?text=Hello!%20I%20need%20help%20with%20my%20WifiHyper%20account">
                                     <i class="fab fa-whatsapp" style="color:var(--wh-ok-600);" aria-hidden="true"></i>
-                                    WhatsApp 0792 746 413
+                                    WhatsApp 0792 746 015
                                 </a>
                             </li>
                             <li>
@@ -293,7 +293,7 @@
                         <div class="mb-3">
                             <label class="form-label" for="callContact">Number to call <span class="text-danger">*</span></label>
                             <input type="tel" id="callContact" name="contact" class="form-control" maxlength="30"
-                                   placeholder="0792746413" required autocomplete="tel" inputmode="tel">
+                                   placeholder="0792746015" required autocomplete="tel" inputmode="tel">
                             <div class="form-text">The phone number you want us to reach you on.</div>
                         </div>
                         <div class="mb-3">
