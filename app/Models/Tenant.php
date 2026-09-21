@@ -95,13 +95,11 @@ class Tenant extends Model
 
     /**
      * Get transaction fee for a specific amount
-     * New structure: 100 UGX fixed fee + 5% of amount
+     * Fee structure: 2.8% of amount
      */
     public function getTransactionFee($amount)
     {
-        $fixedFee = 100; // Fixed 100 UGX fee
-        $percentageFee = $amount * 0.05; // 5% of amount
-        return $fixedFee + $percentageFee;
+        return ($amount * \App\Services\TransactionFeeService::FEE_PERCENTAGE) / 100;
     }
 
     public function hotspots(): HasMany

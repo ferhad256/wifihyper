@@ -5,26 +5,27 @@ namespace App\Services;
 class TransactionFeeService
 {
     /**
+     * Fee charged on every voucher purchase, as a percentage of the amount.
+     */
+    public const FEE_PERCENTAGE = 2.8;
+
+    /**
      * Calculate transaction fee based on amount
-     * New structure: 100 UGX fixed fee + 5% of amount
+     * Fee structure: 2.8% of amount
      * 
      * @param float $amount
      * @return array
      */
     public function calculateFee(float $amount): array
     {
-        $fixedFee = 100; // Fixed 100 UGX fee
-        $percentageFee = ($amount * 5) / 100; // 5% of amount
-        $totalTransactionFee = $fixedFee + $percentageFee;
+        $totalTransactionFee = ($amount * self::FEE_PERCENTAGE) / 100;
         $netAmount = $amount - $totalTransactionFee;
 
         return [
             'amount' => $amount,
             'transaction_fee' => round($totalTransactionFee, 2),
             'net_amount' => round($netAmount, 2),
-            'fee_percentage' => 5.0, // Always 5%
-            'fixed_fee' => $fixedFee,
-            'percentage_fee' => round($percentageFee, 2),
+            'fee_percentage' => self::FEE_PERCENTAGE,
         ];
     }
 
@@ -36,10 +37,8 @@ class TransactionFeeService
      */
     public function getFeeDescription(float $amount): string
     {
-        $fixedFee = 100;
-        $percentageFee = ($amount * 5) / 100;
-        $totalFee = $fixedFee + $percentageFee;
-        
-        return "Transaction Fee (100 UGX + 5%): UGX " . number_format($totalFee, 0);
+        $totalFee = ($amount * self::FEE_PERCENTAGE) / 100;
+
+        return "Transaction Fee (" . self::FEE_PERCENTAGE . "%): UGX " . number_format($totalFee, 0);
     }
-} 
+}

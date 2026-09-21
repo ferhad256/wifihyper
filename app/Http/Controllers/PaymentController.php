@@ -528,7 +528,7 @@ class PaymentController extends Controller
                 'voucher_id' => $voucher->id,
                 'transaction_id' => 'MANUAL_' . time(),
                 'amount' => $voucher->package ? $voucher->package->price : 0,
-                'transaction_fee' => $feeCalculation['fee_amount'],
+                'transaction_fee' => $feeCalculation['transaction_fee'],
                 'net_amount' => $feeCalculation['net_amount'],
                 'fee_percentage' => $feeCalculation['fee_percentage'],
                 'currency' => 'UGX',
