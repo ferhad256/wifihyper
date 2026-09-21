@@ -48,4 +48,18 @@ class TenantFactory extends Factory
             'is_active' => false,
         ]);
     }
+
+    /**
+     * Indicate that the tenant's account has been deactivated.
+     *
+     * Distinct from unverified(): the email is verified, but the account has
+     * been switched off (e.g. by an admin), which is a separate login gate.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => now(),
+            'is_active' => false,
+        ]);
+    }
 }
