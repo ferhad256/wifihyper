@@ -16,7 +16,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'exclude.notifications' => \App\Http\Middleware\ExcludeNotifications::class,
             'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
             'rate.limiting' => \App\Http\Middleware\RateLimiting::class,
-            'session.security' => \App\Http\Middleware\SessionSecurity::class,
             'input.sanitization' => \App\Http\Middleware\InputSanitization::class,
             'auth.admin' => \App\Http\Middleware\AdminMiddleware::class,
             'auth.super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
@@ -25,7 +24,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Apply security middleware globally
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         $middleware->append(\App\Http\Middleware\InputSanitization::class);
-        $middleware->append(\App\Http\Middleware\SessionSecurity::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

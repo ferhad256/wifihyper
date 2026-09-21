@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 class RateLimiting
@@ -17,38 +16,48 @@ class RateLimiting
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $key = $this->resolveRequestSignature($request);
-        
-        // Rate limiting for authentication endpoints
-        if ($request->is('login') || $request->is('register')) {
+        // Rate limiting for authentication endpoints.
+        //
+        // POST only: this previously matched GET too, so merely rendering the
+        // login form consumed one of the five attempts and a user who looked
+        // at the page a few times was locked out before typing anything.
+        if ($request->isMethod('post') && $request->is('login', 'register', 'forgot-password', 'reset-password')) {
+            $key = $this->resolveRequestSignature($request);
+
             if (RateLimiter::tooManyAttempts($key, 5)) { // 5 attempts per minute
                 $seconds = RateLimiter::availableIn($key);
                 return back()->with('error', "Too many attempts. Please try again in {$seconds} seconds.");
             }
-            
+
             RateLimiter::hit($key, 60); // 1 minute decay
         }
-        
+
         // Rate limiting for API endpoints
         if ($request->is('api/*')) {
+            $key = $this->resolveRequestSignature($request);
+
             if (RateLimiter::tooManyAttempts($key, 60)) { // 60 requests per minute
                 return response()->json(['error' => 'Too many requests'], 429);
             }
-            
+
             RateLimiter::hit($key, 60);
         }
-        
+
         return $next($request);
     }
-    
+
     /**
-     * Resolve request signature for rate limiting
+     * Resolve request signature for rate limiting.
+     *
+     * Keyed on IP plus the submitted email rather than IP plus user agent.
+     * The user agent is attacker-controlled, so rotating it defeated the
+     * limiter entirely; the email gives per-account throttling, which is what
+     * protects a single account from being brute forced.
      */
     protected function resolveRequestSignature(Request $request): string
     {
-        $ip = $request->ip();
-        $userAgent = $request->userAgent();
-        
-        return sha1($ip . '|' . $userAgent);
+        $email = (string) $request->input('email', '');
+
+        return sha1($request->ip() . '|' . mb_strtolower(trim($email)));
     }
-} 
+}
