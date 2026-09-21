@@ -6,15 +6,18 @@ use App\Models\Tenant;
 use App\Services\EmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class SettingsController extends Controller
 {
+    use ResolvesTenant;
+
     /**
      * Update appearance settings
      */
     public function updateAppearance(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -49,7 +52,7 @@ class SettingsController extends Controller
      */
     public function updateNotifications(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -86,7 +89,7 @@ class SettingsController extends Controller
      */
     public function updateSystem(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -121,7 +124,7 @@ class SettingsController extends Controller
      */
     public function updateSecurity(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -156,7 +159,7 @@ class SettingsController extends Controller
      */
     public function testEmail(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);

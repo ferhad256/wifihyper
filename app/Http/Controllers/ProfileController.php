@@ -15,15 +15,18 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class ProfileController extends Controller
 {
+    use ResolvesTenant;
+
     /**
      * Update profile information
      */
     public function updateProfile(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -74,7 +77,7 @@ class ProfileController extends Controller
      */
     public function changePassword(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -109,7 +112,7 @@ class ProfileController extends Controller
         try {
             // Update password in database
             $tenant->update([
-                'password' => Hash::make($request->new_password),
+                'password' => $request->new_password,
                 'password_changed_at' => now(),
             ]);
 
@@ -141,7 +144,7 @@ class ProfileController extends Controller
      */
     public function deleteAccount(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -267,7 +270,7 @@ class ProfileController extends Controller
      */
     public function showDeleteConfirmation()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');

@@ -10,16 +10,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class VoucherController extends Controller
 {
+    use ResolvesTenant;
+
 
     /**
      * Display a listing of vouchers
      */
     public function index()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -64,7 +67,7 @@ class VoucherController extends Controller
      */
     public function store(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -115,7 +118,7 @@ class VoucherController extends Controller
      */
     public function uploadMultiple(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -255,7 +258,7 @@ class VoucherController extends Controller
      */
     public function export()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -300,7 +303,7 @@ class VoucherController extends Controller
      */
     public function destroy(Voucher $voucher)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $voucher->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -319,7 +322,7 @@ class VoucherController extends Controller
      */
     public function deleteAllForPackage(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -361,7 +364,7 @@ class VoucherController extends Controller
      */
     public function deleteAllForHotspot(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -398,7 +401,7 @@ class VoucherController extends Controller
      */
     public function uploadCsv(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');

@@ -54,7 +54,7 @@ class NotificationService
     protected function createLowVoucherNotification(Tenant $tenant, Package $package, int $unusedCount)
     {
         // Check if we already sent a notification for this package today
-        $existingNotification = $tenant->notifications()
+        $existingNotification = $tenant->alerts()
             ->where('type', 'low_vouchers')
             ->where('data->package_id', $package->id)
             ->whereDate('created_at', today())
@@ -65,7 +65,7 @@ class NotificationService
         }
 
         // Create the notification
-        $notification = $tenant->notifications()->create([
+        $notification = $tenant->alerts()->create([
             'type' => 'low_vouchers',
             'title' => 'Low Voucher Stock Alert',
             'message' => "Package '{$package->name}' has only {$unusedCount} vouchers remaining. Please upload more vouchers to avoid service interruption.",
@@ -95,7 +95,7 @@ class NotificationService
     {
         try {
             // Check if we already sent a no voucher notification today
-            $existingNotification = $tenant->notifications()
+            $existingNotification = $tenant->alerts()
                 ->where('type', 'no_vouchers')
                 ->whereDate('created_at', today())
                 ->first();
@@ -126,7 +126,7 @@ class NotificationService
      */
     protected function createNoVoucherNotification(Tenant $tenant)
     {
-        $notification = $tenant->notifications()->create([
+        $notification = $tenant->alerts()->create([
             'type' => 'no_vouchers',
             'title' => 'No Vouchers Available',
             'message' => 'You have no unused vouchers available. Please upload vouchers to continue providing WiFi services.',
@@ -148,7 +148,7 @@ class NotificationService
      */
     public function getNotificationsForDropdown(Tenant $tenant, int $limit = 10)
     {
-        return $tenant->notifications()
+        return $tenant->alerts()
             ->orderBy('created_at', 'desc')
             ->take($limit)
             ->get()
@@ -170,7 +170,7 @@ class NotificationService
      */
     public function markAsRead(Tenant $tenant, int $notificationId)
     {
-        $notification = $tenant->notifications()
+        $notification = $tenant->alerts()
             ->where('id', $notificationId)
             ->first();
 
@@ -187,7 +187,7 @@ class NotificationService
      */
     public function markAllAsRead(Tenant $tenant)
     {
-        return $tenant->notifications()
+        return $tenant->alerts()
             ->where('status', 'unread')
             ->update([
                 'status' => 'read',
@@ -200,7 +200,7 @@ class NotificationService
      */
     public function getUnreadCount(Tenant $tenant)
     {
-        return $tenant->notifications()
+        return $tenant->alerts()
             ->where('status', 'unread')
             ->count();
     }
@@ -210,7 +210,7 @@ class NotificationService
      */
     public function createNotification(Tenant $tenant, string $type, string $title, string $message, array $data = [])
     {
-        return $tenant->notifications()->create([
+        return $tenant->alerts()->create([
             'type' => $type,
             'title' => $title,
             'message' => $message,

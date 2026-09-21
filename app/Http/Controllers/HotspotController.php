@@ -7,16 +7,19 @@ use App\Models\Hotspot;
 use App\Models\Package;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class HotspotController extends Controller
 {
+    use ResolvesTenant;
+
 
     /**
      * Display a listing of hotspots
      */
     public function index()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -32,7 +35,7 @@ class HotspotController extends Controller
      */
     public function store(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -73,7 +76,7 @@ class HotspotController extends Controller
      */
     public function show(Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -89,7 +92,7 @@ class HotspotController extends Controller
      */
     public function edit(Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -103,7 +106,7 @@ class HotspotController extends Controller
      */
     public function update(Request $request, Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -141,7 +144,7 @@ class HotspotController extends Controller
      */
     public function destroy(Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -160,7 +163,7 @@ class HotspotController extends Controller
      */
     public function packages(Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -176,7 +179,7 @@ class HotspotController extends Controller
      */
     public function storePackage(Request $request, Hotspot $hotspot)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id) {
             \Log::error('Unauthorized package creation attempt', [
@@ -335,7 +338,7 @@ class HotspotController extends Controller
      */
     public function editPackage(Hotspot $hotspot, Package $package)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id || $package->hotspot_id !== $hotspot->id) {
             return response()->json(['error' => 'Unauthorized action.'], 403);
@@ -349,7 +352,7 @@ class HotspotController extends Controller
      */
     public function updatePackage(Request $request, Hotspot $hotspot, Package $package)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id || $package->hotspot_id !== $hotspot->id) {
             return back()->with('error', 'Unauthorized action.');
@@ -393,7 +396,7 @@ class HotspotController extends Controller
      */
     public function deletePackage(Hotspot $hotspot, Package $package)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant || $hotspot->tenant_id !== $tenant->id || $package->hotspot_id !== $hotspot->id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized action.'], 403);

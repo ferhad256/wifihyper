@@ -111,13 +111,11 @@ Route::middleware('auth.tenant')->group(function () {
     Route::put('/hotspots/{hotspot}/packages/{package}', [HotspotController::class, 'updatePackage'])->name('hotspots.packages.update');
     Route::delete('/hotspots/{hotspot}/packages/{package}', [HotspotController::class, 'deletePackage'])->name('hotspots.packages.destroy');
     
-    // Withdrawal routes
-    Route::get('/withdrawal', [WithdrawalController::class, 'showWithdrawalForm'])->name('withdrawal.form');
-    Route::post('/withdrawal', [WithdrawalController::class, 'initiateWithdrawal'])->name('withdrawal.initiate');
-    Route::get('/withdrawal/pending/{withdrawalId}', [WithdrawalController::class, 'pending'])->name('withdrawal.pending');
-    Route::get('/withdrawal/success/{withdrawalId}', [WithdrawalController::class, 'success'])->name('withdrawal.success');
-    Route::get('/withdrawal/history', [WithdrawalController::class, 'history'])->name('withdrawal.history');
-    Route::get('/withdrawal/status/{withdrawalId}', [WithdrawalController::class, 'checkStatus'])->name('withdrawal.status');
+    // Withdrawals are requested via DashboardController::withdraw (the
+    // dashboard.withdraw route above). WithdrawalController's own screens were
+    // removed: they authenticated against the wrong guard and rendered views
+    // that were never created. Only its JPesa callback remains, registered
+    // outside this group.
 });
 
 // Captive portal routes (for WiFi users)

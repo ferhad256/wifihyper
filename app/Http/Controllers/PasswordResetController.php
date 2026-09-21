@@ -157,7 +157,7 @@ class PasswordResetController extends Controller
         }
 
         // Update password
-        $tenant->password = Hash::make($request->password);
+        $tenant->password = $request->password;
         $tenant->password_changed_at = now();
         $tenant->save();
 

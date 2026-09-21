@@ -15,9 +15,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class DashboardController extends Controller
 {
+    use ResolvesTenant;
+
     protected $jpesaService;
 
     public function __construct(JpesaService $jpesaService)
@@ -30,7 +33,7 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -145,7 +148,7 @@ class DashboardController extends Controller
      */
     public function billing()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -196,7 +199,7 @@ class DashboardController extends Controller
      */
     public function hotspots()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -212,7 +215,7 @@ class DashboardController extends Controller
      */
     public function settings()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -226,7 +229,7 @@ class DashboardController extends Controller
      */
     public function profile()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -240,7 +243,7 @@ class DashboardController extends Controller
      */
     public function withdraw(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -381,7 +384,7 @@ class DashboardController extends Controller
      */
     public function markNotificationAsRead(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -402,7 +405,7 @@ class DashboardController extends Controller
      */
     public function markAllNotificationsAsRead(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -419,7 +422,7 @@ class DashboardController extends Controller
      */
     public function getUnreadNotificationsCount()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -436,7 +439,7 @@ class DashboardController extends Controller
      */
     public function getNotifications()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return response()->json(['error' => 'Unauthorized'], 401);
@@ -453,7 +456,7 @@ class DashboardController extends Controller
      */
     public function exportTransactions()
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         
         if (!$tenant) {
             return redirect()->route('login');
@@ -504,7 +507,7 @@ class DashboardController extends Controller
      */
     public function requestSupportCall(Request $request)
     {
-        $tenant = Tenant::find(session('tenant_id'));
+        $tenant = $this->tenant();
         if (!$tenant) {
             return redirect()->route('login');
         }

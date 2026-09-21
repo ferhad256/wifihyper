@@ -660,7 +660,7 @@ class PaymentController extends Controller
     private function createVoucherShortageNotification(Tenant $tenant, Package $package): void
     {
         // Check if notification already exists for this package
-        $existingNotification = $tenant->notifications()
+        $existingNotification = $tenant->alerts()
             ->where('type', 'voucher_shortage')
             ->where('data->package_id', $package->id)
             ->where('status', 'unread')

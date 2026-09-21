@@ -25,7 +25,7 @@ class TenantFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= 'password',
             'phone' => '07' . fake()->numerify('########'),
             'business_name' => fake()->company(),
             'address' => fake()->address(),

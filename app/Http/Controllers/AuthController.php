@@ -6,7 +6,7 @@ use App\Models\Tenant;
 use App\Services\NotificationService;
 use App\Services\EmailVerificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -71,14 +71,13 @@ class AuthController extends Controller
             return back()->with('error', 'Account is deactivated. Please contact support.')->withInput();
         }
 
-        // Verify password with proper hashing
-        if (Hash::check($request->password, $tenant->password)) {
-            // Regenerate session to prevent session fixation
-            session()->regenerate();
-            
-            // Store tenant ID in session
+        // Verify the password and establish the session via the tenant guard.
+        // attempt() regenerates the session id itself, so the old manual
+        // session()->regenerate() call here would be redundant.
+        if (Auth::guard('tenant')->attempt(['email' => $tenant->email, 'password' => $request->password])) {
+            // Transitional: some code may still read this key directly. It is
+            // removed once the last session('tenant_id') reader is gone.
             session(['tenant_id' => $tenant->id]);
-            session(['last_activity' => time()]);
             
             // Log successful login
             \Log::info('Successful login', [
@@ -137,7 +136,7 @@ class AuthController extends Controller
                 'phone' => $request->phone ? strip_tags($request->phone) : null,
                 'business_name' => $request->business_name ? strip_tags($request->business_name) : null,
                 'address' => $request->address ? strip_tags($request->address) : null,
-                'password' => Hash::make($request->password),
+                'password' => $request->password,
                 'is_active' => false, // Account inactive until email verification
                 'email_verified_at' => null, // Email not verified yet
             ]);
@@ -195,18 +194,20 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         // Log logout activity
-        if (session('tenant_id')) {
+        if ($tenantId = Auth::guard('tenant')->id()) {
             \Log::info('User logout', [
-                'tenant_id' => session('tenant_id'),
+                'tenant_id' => $tenantId,
                 'ip' => $request->ip(),
             ]);
         }
-        
-        // Clear all session data
-        session()->flush();
-        
-        // Regenerate session ID
-        session()->regenerate();
+
+        // Clear the guard first: session()->flush() on its own leaves the
+        // remember-me cookie intact, which would silently re-authenticate on
+        // the next request.
+        Auth::guard('tenant')->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         
         return redirect()->route('landing')->with('success', 'You have been logged out successfully.');
     }

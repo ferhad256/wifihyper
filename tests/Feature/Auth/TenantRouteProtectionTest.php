@@ -20,18 +20,6 @@ class TenantRouteProtectionTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Routes behind auth.tenant that are known-dead code.
-     *
-     * WithdrawalController resolves Auth::user() against the web guard, which
-     * is always null for tenants, and the views it renders were never created.
-     * Slated for deletion; excluded here so this test reports real regressions.
-     */
-    private const KNOWN_DEAD = [
-        'withdrawal.form',
-        'withdrawal.history',
-    ];
-
-    /**
      * Every parameterless GET route protected by auth.tenant.
      */
     private function protectedGetRoutes(): array
@@ -71,10 +59,6 @@ class TenantRouteProtectionTest extends TestCase
         $tenant = Tenant::factory()->create();
 
         foreach ($this->protectedGetRoutes() as $route) {
-            if (in_array($route->getName(), self::KNOWN_DEAD, true)) {
-                continue;
-            }
-
             $response = $this->loginAsTenant($tenant)->get('/' . ltrim($route->uri(), '/'));
 
             $this->assertNotSame(
@@ -83,5 +67,40 @@ class TenantRouteProtectionTest extends TestCase
                 "An authenticated tenant WAS bounced to login from /{$route->uri()}"
             );
         }
+    }
+
+    /**
+     * The guard is re-checked on every request, so a tenant switched off
+     * while signed in loses access immediately. Previously the middleware
+     * only asked whether a session key existed, so they kept full access
+     * until their session happened to expire.
+     */
+    public function test_a_tenant_deactivated_mid_session_loses_access(): void
+    {
+        $tenant = Tenant::factory()->create();
+
+        // /hotspots rather than /dashboard: the dashboard's chart query uses
+        // MySQL-only DATE_FORMAT() and cannot run on the sqlite test database.
+        $this->loginAsTenant($tenant)->get('/hotspots')->assertOk();
+
+        $tenant->update(['is_active' => false]);
+
+        $this->get('/hotspots')->assertRedirect(route('login'));
+    }
+
+    public function test_a_tenant_unverified_mid_session_loses_access(): void
+    {
+        $tenant = Tenant::factory()->create();
+
+        $this->loginAsTenant($tenant)->get('/hotspots')->assertOk();
+
+        $tenant->update(['email_verified_at' => null]);
+
+        $this->get('/hotspots')->assertRedirect(route('login'));
+    }
+
+    public function test_an_unauthenticated_json_request_gets_401_rather_than_a_redirect(): void
+    {
+        $this->getJson('/notifications/count')->assertUnauthorized();
     }
 }

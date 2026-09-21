@@ -13,17 +13,13 @@ abstract class TestCase extends BaseTestCase
     /**
      * Authenticate as a tenant.
      *
-     * Tenant auth is currently a hand-rolled session key rather than a Laravel
-     * guard (see App\Http\Middleware\TenantAuth). Every test goes through this
-     * one helper so that when the tenant guard lands, only this method changes
-     * and the whole suite re-validates the refactor.
+     * Every test authenticates through this one helper. It previously wrote a
+     * hand-rolled session key; swapping it for the real guard was the single
+     * change that re-validated the whole auth refactor.
      */
     protected function loginAsTenant(Tenant $tenant): static
     {
-        return $this->withSession(['tenant_id' => $tenant->id]);
-
-        // After the tenant guard refactor this becomes:
-        // return $this->actingAs($tenant, 'tenant');
+        return $this->actingAs($tenant, 'tenant');
     }
 
     /**
