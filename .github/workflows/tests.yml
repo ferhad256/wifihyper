@@ -61,6 +61,13 @@ jobs:
             echo "SESSION_DRIVER=array"
             echo "QUEUE_CONNECTION=sync"
             echo "MAIL_MAILER=array"
+            # .env.example sets MAIL_FROM_ADDRESS to an EMPTY string, and
+            # env() treats that as a value, so the config default never
+            # applied and Symfony rejected every message with "An email must
+            # have a From or a Sender header". No successful send was
+            # verifiable in CI until this was set.
+            echo "MAIL_FROM_ADDRESS=ci@wifihyper.test"
+            echo "MAIL_FROM_NAME=WifiHyper CI"
             echo "BCRYPT_ROUNDS=4"
             echo "YO_PAYMENTS_IPN_ENABLED=false"
             echo "UG_SMS_USERNAME=test"
