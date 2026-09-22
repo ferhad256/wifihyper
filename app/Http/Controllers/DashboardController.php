@@ -60,8 +60,6 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
-
-
         // Get sales chart data (current year from January to December)
         $currentYear = now()->year;
         $sales_data = $tenant->transactions()
@@ -241,142 +239,31 @@ class DashboardController extends Controller
     /**
      * Handle withdraw request
      */
-    public function withdraw(Request $request)
+    public function withdraw(Request $request, \App\Services\WithdrawalRequestService $withdrawals)
     {
         $tenant = $this->tenant();
-        
+
         if (!$tenant) {
             return redirect()->route('login');
         }
 
         $request->validate([
-            'amount' => 'required|numeric|min:5000|max:' . $tenant->wallet_balance,
+            'amount' => 'required|numeric',
             'phone_number' => 'required|string|min:10|max:15',
         ], [
-            'amount.min' => 'Minimum withdrawal amount is UGX 5,000',
-            'amount.max' => 'Withdrawal amount cannot exceed your wallet balance',
             'phone_number.required' => 'Phone number is required for withdrawal',
             'phone_number.min' => 'Phone number must be at least 10 digits',
             'phone_number.max' => 'Phone number must not exceed 15 digits',
         ]);
-        $amount = $request->amount;
-        $phoneNumber = $this->formatPhoneNumber($request->phone_number);
 
-        // Check if tenant has a pending withdrawal request
-        if (WithdrawalTransaction::hasPendingWithdrawal($tenant->id)) {
-            $pendingWithdrawal = WithdrawalTransaction::getPendingWithdrawal($tenant->id);
-            return back()->with('error', 'You already have a pending withdrawal request (ID: ' . $pendingWithdrawal->withdrawal_id . '). Please wait for it to be approved or rejected before submitting a new request.')->withInput();
-        }
+        // The amount and phone rules that matter (minimum, balance ceiling,
+        // one open request, destination must be the registered number) live
+        // in the service, so this page and the panel cannot drift apart.
+        $result = $withdrawals->request($tenant, (float) $request->amount, $request->phone_number);
 
-        // Ensure tenant has a registered phone number
-        if (!$tenant->phone) {
-            return back()->with('error', 'Please update your profile with a phone number before making withdrawal requests.')->withInput();
-        }
-
-        // Validate that the withdrawal phone number matches the tenant's registered phone number
-        $tenantFormattedPhone = $this->formatPhoneNumber($tenant->phone);
-        if ($phoneNumber !== $tenantFormattedPhone) {
-            return back()->with('error', 'Withdrawals can only be made to your registered phone number for security purposes.')->withInput();
-        }
-
-        // Validate phone number format
-        if (!$this->isValidUgandaPhoneNumber($phoneNumber)) {
-            return back()->with('error', 'Please enter a valid Uganda phone number.')->withInput();
-        }
-
-        try {
-            // Calculate 5% withdrawal fee
-            $withdrawalFee = $amount * 0.05; // 5% fee
-            $netAmount = $amount - $withdrawalFee;
-
-            // Create withdrawal request (no wallet deduction yet - admin will approve)
-            $withdrawal = WithdrawalTransaction::create([
-                'tenant_id' => $tenant->id,
-                'withdrawal_id' => 'WD_' . time() . '_' . rand(1000, 9999),
-                'amount' => $amount,
-                'fee' => $withdrawalFee,
-                'net_amount' => $netAmount,
-                'phone_number' => $phoneNumber,
-                'currency' => 'UGX',
-                'status' => 'pending',
-                'description' => $request->description ?? 'Wallet withdrawal request',
-            ]);
-
-            Log::info('Withdrawal request created', [
-                'withdrawal_id' => $withdrawal->withdrawal_id,
-                'tenant_id' => $tenant->id,
-                'amount' => $amount,
-                'phone_number' => $phoneNumber
-            ]);
-
-            // Send SMS notification to admin about new withdrawal request
-            try {
-                $smsService = new \App\Services\EgoSmsService();
-                $adminPhone = '256755569376'; // 0755569376 in international format
-                $message = "New withdrawal request from {$tenant->name}: UGX " . number_format($amount) . " (ID: {$withdrawal->withdrawal_id})";
-                
-                $smsResult = $smsService->sendSms($adminPhone, $message);
-                
-                if ($smsResult['success']) {
-                    Log::info('Admin SMS notification sent for withdrawal request', [
-                        'withdrawal_id' => $withdrawal->withdrawal_id,
-                        'admin_phone' => $adminPhone,
-                        'message' => $message
-                    ]);
-                } else {
-                    Log::warning('Failed to send admin SMS notification for withdrawal request', [
-                        'withdrawal_id' => $withdrawal->withdrawal_id,
-                        'admin_phone' => $adminPhone,
-                        'error' => $smsResult['message'] ?? 'Unknown error'
-                    ]);
-                }
-            } catch (\Exception $smsException) {
-                Log::error('Exception while sending admin SMS notification for withdrawal request', [
-                    'withdrawal_id' => $withdrawal->withdrawal_id,
-                    'error' => $smsException->getMessage()
-                ]);
-            }
-
-            return redirect()->back()->with('success', 'Withdrawal request submitted successfully. An admin will review and process your request within 24 hours.');
-
-        } catch (\Exception $e) {
-            Log::error('Withdrawal request failed', [
-                'tenant_id' => $tenant->id,
-                'error' => $e->getMessage(),
-                'request_data' => $request->all()
-            ]);
-
-            return redirect()->back()->with('error', 'Failed to submit withdrawal request. Please try again.');
-        }
-    }
-
-    /**
-     * Format phone number for payment processing (256xxxxxxxxx format)
-     */
-    private function formatPhoneNumber($phoneNumber)
-    {
-        // Remove any non-numeric characters
-        $phoneNumber = preg_replace('/[^0-9]/', '', $phoneNumber);
-        
-        // If number starts with 0, remove it and add 256
-        if (strpos($phoneNumber, '0') === 0) {
-            $phoneNumber = '256' . substr($phoneNumber, 1);
-        }
-        // If number doesn't start with 256, add it
-        else if (strpos($phoneNumber, '256') !== 0) {
-            $phoneNumber = '256' . $phoneNumber;
-        }
-        
-        return $phoneNumber;
-    }
-
-    /**
-     * Validate Uganda phone number format
-     */
-    private function isValidUgandaPhoneNumber($phoneNumber)
-    {
-        // Uganda phone numbers should be 12 digits (256 + 9 digits)
-        return preg_match('/^256[0-9]{9}$/', $phoneNumber);
+        return $result['ok']
+            ? redirect()->back()->with('success', $result['message'])
+            : redirect()->back()->with('error', $result['message'])->withInput();
     }
 
     /**
