@@ -5,6 +5,7 @@ namespace Tests\Feature\Filament;
 use App\Models\Admin;
 use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -95,5 +96,56 @@ class PanelAccessTest extends TestCase
         $this->get('/admin/login')->assertOk();
         $this->get('/login')->assertOk();
         $this->get('/dashboard')->assertRedirect(route('login'));
+    }
+
+    /**
+     * A 200 alone would not catch a panel that renders as an empty shell, so
+     * assert the navigation is really there.
+     */
+    public function test_the_tenant_panel_renders_its_navigation(): void
+    {
+        $response = $this->actingAs(Tenant::factory()->create(), 'tenant')->get(self::TENANT_PANEL);
+
+        foreach (['Hotspots', 'Vouchers', 'Sales', 'Withdrawals', 'Account'] as $navItem) {
+            $response->assertSee($navItem);
+        }
+    }
+
+    public function test_the_admin_panel_renders_its_navigation(): void
+    {
+        $response = $this->actingAs(Admin::factory()->superAdmin()->create(), 'admin')->get(self::ADMIN_PANEL);
+
+        foreach (['Tenants', 'Transactions', 'Withdrawals', 'Staff'] as $navItem) {
+            $response->assertSee($navItem);
+        }
+    }
+
+    /**
+     * Widgets are lazy-loaded, so their content is not in the page's first
+     * response - it arrives on a follow-up Livewire request. Testing them as
+     * components is what actually exercises the queries behind them.
+     */
+    public function test_the_tenant_widgets_render(): void
+    {
+        $this->actingAs(Tenant::factory()->create(), 'tenant');
+
+        Livewire::test(\App\Filament\Tenant\Widgets\WalletOverview::class)
+            ->assertOk()
+            ->assertSee('Wallet balance')
+            ->assertSee('Voucher stock');
+
+        Livewire::test(\App\Filament\Tenant\Widgets\SalesChart::class)->assertOk();
+    }
+
+    public function test_the_admin_widgets_render(): void
+    {
+        $this->actingAs(Admin::factory()->create(), 'admin');
+
+        Livewire::test(\App\Filament\Admin\Widgets\PlatformOverview::class)
+            ->assertOk()
+            ->assertSee('Revenue')
+            ->assertSee('Payouts waiting');
+
+        Livewire::test(\App\Filament\Admin\Widgets\RevenueChart::class)->assertOk();
     }
 }
