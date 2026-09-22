@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class Tenant extends Authenticatable
+class Tenant extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable;
 
@@ -96,6 +98,19 @@ class Tenant extends Authenticatable
     public function canAccessSystem(): bool
     {
         return $this->hasVerifiedEmail() && $this->is_active;
+    }
+
+    /**
+     * Filament calls this on every panel request, not just at sign-in, so a
+     * tenant deactivated mid-session loses access immediately.
+     *
+     * Without this contract Filament lets any authenticated user into any
+     * panel outside the local environment - including, here, letting a tenant
+     * into the admin console.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $panel->getId() === 'tenant' && $this->canAccessSystem();
     }
 
     /**

@@ -127,6 +127,16 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        // Unused today - admins have no reset flow. Declared so the admin
+        // panel can name a broker explicitly rather than inheriting the
+        // default one, which resolves against the Tenant model.
+        'admins' => [
+            'provider' => 'admins',
+            'table' => 'admin_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
     ],
 
     /*
