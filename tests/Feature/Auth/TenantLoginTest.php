@@ -147,7 +147,7 @@ class TenantLoginTest extends TestCase
         $this->attempt($tenant->email, self::PASSWORD)
             ->assertRedirect(route('verification.show', ['email' => $tenant->email]));
 
-        $this->assertCount(1, $this->sentMails());
+        $this->assertCount(1, $this->sentMails(), $this->mailDiagnostics());
         $this->assertFalse(Auth::guard('tenant')->check());
     }
 

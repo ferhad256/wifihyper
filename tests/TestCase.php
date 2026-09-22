@@ -44,6 +44,25 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
+     * Describes how mail is actually configured, for assertion messages.
+     *
+     * A count of zero has two very different causes - nothing tried to send,
+     * or the configured transport is not the one collecting - and they are
+     * indistinguishable from the failure output without this.
+     */
+    protected function mailDiagnostics(): string
+    {
+        $transport = Mail::getSymfonyTransport();
+
+        return sprintf(
+            'mail.default=%s transport=%s collecting=%s',
+            (string) config('mail.default'),
+            $transport::class,
+            $transport instanceof ArrayTransport ? 'yes' : 'NO',
+        );
+    }
+
+    /**
      * Discard anything sent so far, so a test can assert on what follows.
      */
     protected function flushSentMails(): void
