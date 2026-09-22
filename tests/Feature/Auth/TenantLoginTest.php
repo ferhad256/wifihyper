@@ -144,6 +144,14 @@ class TenantLoginTest extends TestCase
         $tenant = $this->activeTenant(['email_verified_at' => null]);
         $this->flushSentMails();
 
+        // Sending is gated on a cache entry, so state it as a precondition:
+        // otherwise a stale entry looks identical to a broken mailer.
+        $this->assertTrue(
+            app(\App\Services\EmailVerificationService::class)->canRequestVerification($tenant),
+            'Precondition: the service refused to send. cache.default=' . config('cache.default')
+                . ' cached=' . var_export(\Illuminate\Support\Facades\Cache::get("email_verification_{$tenant->id}"), true)
+        );
+
         $this->attempt($tenant->email, self::PASSWORD)
             ->assertRedirect(route('verification.show', ['email' => $tenant->email]));
 
