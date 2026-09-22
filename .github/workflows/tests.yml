@@ -49,22 +49,33 @@ jobs:
         run: php artisan key:generate
 
       - name: Configure testing environment
+        # PREPENDED, not appended. PHP Dotenv is immutable - the FIRST
+        # definition of a key wins - so appending these after the values
+        # copied from .env.example left them inert. MAIL_MAILER stayed
+        # "resend" with an empty key, so every send failed silently and any
+        # test asserting "no mail was sent" passed for the wrong reason.
         run: |
-          echo "APP_ENV=testing" >> .env
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=:memory:" >> .env
-          echo "CACHE_DRIVER=array" >> .env
-          echo "SESSION_DRIVER=array" >> .env
-          echo "QUEUE_CONNECTION=sync" >> .env
-          echo "MAIL_MAILER=array" >> .env
-          echo "REDIS_HOST=127.0.0.1" >> .env
-          echo "REDIS_PASSWORD=null" >> .env
-          echo "REDIS_PORT=6379" >> .env
-          echo "YO_PAYMENTS_IPN_ENABLED=false" >> .env
-          echo "UG_SMS_USERNAME=test" >> .env
-          echo "UG_SMS_PASSWORD=test" >> .env
-          echo "YO_PAYMENTS_USERNAME=test" >> .env
-          echo "YO_PAYMENTS_PASSWORD=test" >> .env
+          {
+            echo "APP_ENV=testing"
+            echo "DB_CONNECTION=sqlite"
+            echo "DB_DATABASE=:memory:"
+            echo "CACHE_STORE=array"
+            echo "SESSION_DRIVER=array"
+            echo "QUEUE_CONNECTION=sync"
+            echo "MAIL_MAILER=array"
+            echo "BCRYPT_ROUNDS=4"
+            echo "YO_PAYMENTS_IPN_ENABLED=false"
+            echo "UG_SMS_USERNAME=test"
+            echo "UG_SMS_PASSWORD=test"
+            echo "YO_PAYMENTS_USERNAME=test"
+            echo "YO_PAYMENTS_PASSWORD=test"
+            cat .env
+          } > .env.testing
+          mv .env.testing .env
+          echo "--- effective settings (first definition of each key wins) ---"
+          grep -m1 -E '^MAIL_MAILER=' .env
+          grep -m1 -E '^CACHE_STORE=' .env
+          grep -m1 -E '^DB_CONNECTION=' .env
 
       - name: Create storage directories
         run: |
@@ -80,9 +91,12 @@ jobs:
           chmod -R 775 bootstrap/cache
 
       - name: Clear and cache config
+        # config:cache is deliberately NOT run before the test suite. It bakes
+        # .env values into the cached config, after which env() returns null
+        # and every <env> in phpunit.xml is ignored - which is how the mailer
+        # above went unnoticed. Route and view caching do not have that effect.
         run: |
           php artisan config:clear
-          php artisan config:cache
           php artisan route:clear
           php artisan route:cache
           php artisan view:clear
