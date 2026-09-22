@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Admin;
 use App\Models\Tenant;
 use App\Models\Transaction;
 use App\Models\WithdrawalTransaction;

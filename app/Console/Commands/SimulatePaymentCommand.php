@@ -9,7 +9,6 @@ use App\Models\Hotspot;
 use App\Models\Tenant;
 use App\Services\EgoSmsService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SimulatePaymentCommand extends Command

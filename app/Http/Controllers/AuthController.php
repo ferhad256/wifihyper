@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Services\NotificationService;
-use App\Services\EmailVerificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;

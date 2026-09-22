@@ -6,7 +6,6 @@ use App\Models\Tenant;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Cache;
 
 class EmailVerificationService

@@ -2,19 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tenant;
-use App\Models\Transaction;
-use App\Models\Voucher;
-use App\Models\Hotspot;
 use App\Models\Package;
-use App\Models\Notification;
 use App\Services\SecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Concerns\ResolvesTenant;
 
 class ProfileController extends Controller

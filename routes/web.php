@@ -71,7 +71,6 @@ Route::middleware('auth.tenant')->group(function () {
     
     // Voucher management routes
     Route::get('/vouchers', [VoucherController::class, 'index'])->name('vouchers.index');
-    Route::post('/vouchers/upload', [VoucherController::class, 'upload'])->name('vouchers.upload');
     Route::post('/vouchers/upload-multiple', [VoucherController::class, 'uploadMultiple'])->name('vouchers.upload-multiple');
     Route::post('/vouchers/upload-csv', [VoucherController::class, 'uploadCsv'])->name('vouchers.upload-csv');
     Route::post('/vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
@@ -143,11 +142,6 @@ Route::get('/payment/pending/{transactionId}', [PaymentController::class, 'pendi
 // which does not exist. Registered after the group above, it shadowed the working
 // PortalController@failed and made every failed payment throw BadMethodCallException.
 // Removed so the failure screen resolves again.
-
-// Unified IPN endpoint for all payment responses (success, failure, pending)
-Route::post('/payment/ipn', [PaymentController::class, 'unifiedIpn'])
-    ->name('payment.ipn')
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class]);
 
 // JPesa callback route
 Route::post('/payment/jpesa/callback', [PaymentController::class, 'jpesaCallback'])

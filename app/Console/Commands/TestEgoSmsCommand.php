@@ -4,7 +4,6 @@ namespace App\Console\Commands;
 
 use App\Services\EgoSmsService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
 
 class TestEgoSmsCommand extends Command
 {

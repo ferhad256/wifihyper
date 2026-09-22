@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tenant;
 use App\Models\Hotspot;
 use App\Models\Package;
 use Illuminate\Http\Request;

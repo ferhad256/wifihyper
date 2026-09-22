@@ -28,17 +28,6 @@ class PaymentController extends Controller
         $this->voucherAvailabilityService = new VoucherAvailabilityService();
         $this->transactionFeeService = new TransactionFeeService();
     }
-
-    /**
-     * Show payment form for a package
-     */
-    public function showPaymentForm(Request $request, $hotspotId)
-    {
-        $package = Package::findOrFail($request->package_id);
-        
-        return view('portal.payment', compact('package'));
-    }
-
     /**
      * Initiate payment (called from portal form)
      */
@@ -405,7 +394,6 @@ class PaymentController extends Controller
         }
     }
 
-
     /**
      * Show payment pending page
      */
@@ -691,7 +679,6 @@ class PaymentController extends Controller
             ]);
         }
     }
-
 
     /**
      * Unified IPN handler for all payment responses (success, failure, pending)
@@ -1171,7 +1158,6 @@ class PaymentController extends Controller
             return response('ERROR: Internal server error', 500);
         }
     }
-
 
     /**
      * Format phone number for payment processing (256xxxxxxxxx format)

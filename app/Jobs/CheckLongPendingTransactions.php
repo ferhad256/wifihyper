@@ -2,7 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\Transaction;
 use App\Services\LongPendingTransactionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Tenant;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class JpesaService

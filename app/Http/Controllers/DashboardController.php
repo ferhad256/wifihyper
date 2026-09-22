@@ -9,10 +9,8 @@ use App\Models\Voucher;
 use App\Models\Notification;
 use App\Models\WithdrawalTransaction;
 use App\Services\JpesaService;
-use App\Services\VoucherAvailabilityService;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Http\Controllers\Concerns\ResolvesTenant;
@@ -191,23 +189,6 @@ class DashboardController extends Controller
 
         return view('dashboard.billing', compact('tenant', 'transactions', 'daily_stats', 'withdrawal_requests'));
     }
-
-    /**
-     * Show hotspots management page
-     */
-    public function hotspots()
-    {
-        $tenant = $this->tenant();
-        
-        if (!$tenant) {
-            return redirect()->route('login');
-        }
-
-        $hotspots = $tenant->hotspots()->with('packages')->get();
-
-        return view('dashboard.hotspots', compact('tenant', 'hotspots'));
-    }
-
     /**
      * Show settings page
      */
