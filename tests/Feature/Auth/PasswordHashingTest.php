@@ -45,6 +45,42 @@ class PasswordHashingTest extends TestCase
         );
     }
 
+    /**
+     * A password is hashed, never rendered, so HTML-encoding it on the way in
+     * protects nothing and changes it.
+     *
+     * Input sanitisation used to escape every posted string, so registering
+     * with an ampersand in the password stored the hash of "&amp;" instead.
+     * The panel login posts JSON and is exempt from sanitising, so the
+     * password the operator typed could never match that hash again - an
+     * account locked out at the moment it was created.
+     *
+     * The generated fixture password contains symbols at random, so this
+     * asserts the property explicitly rather than leaving it to the draw.
+     */
+    public function test_a_password_containing_html_characters_survives_registration(): void
+    {
+        Mail::fake();
+
+        $password = self::fixturePassword('html').'&<>"\'';
+
+        $this->post('/register', [
+            'name' => 'Test Operator',
+            'email' => 'escaped@example.com',
+            'password' => $password,
+            'password_confirmation' => $password,
+            'terms' => 'on',
+        ]);
+
+        $tenant = Tenant::where('email', 'escaped@example.com')->first();
+
+        $this->assertNotNull($tenant, 'Registration did not create the tenant.');
+        $this->assertTrue(
+            Hash::check($password, $tenant->password),
+            'The password was altered in transit - it can no longer be used to sign in.'
+        );
+    }
+
     public function test_the_factory_produces_a_usable_hash(): void
     {
         // The factory feeds the rest of the suite; if its hash stops verifying,

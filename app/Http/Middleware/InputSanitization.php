@@ -30,6 +30,30 @@ class InputSanitization
     ];
 
     /**
+     * Input keys whose values must reach the application byte-for-byte.
+     *
+     * HTML-encoding a password protects nothing - it is hashed, never
+     * rendered - but it does change it. A password containing & " ' < or >
+     * was stored as the hash of its escaped form, while the panel login
+     * posts JSON and is exempt above, so the password the operator actually
+     * typed could never match that hash again: an account locked out at the
+     * moment it was created, with no error to show for it.
+     *
+     * Trimming is skipped for the same keys, mirroring Laravel's own
+     * TrimStrings exception list - leading and trailing spaces are legal in
+     * a password and silently removing them has the same effect.
+     *
+     * @var list<string>
+     */
+    protected array $exceptKeys = [
+        'password',
+        'password_confirmation',
+        'current_password',
+        'new_password',
+        'new_password_confirmation',
+    ];
+
+    /**
      * Handle an incoming request.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
@@ -60,6 +84,8 @@ class InputSanitization
         foreach ($data as $key => $value) {
             if (is_array($value)) {
                 $sanitized[$key] = $this->sanitizeArray($value);
+            } elseif (in_array($key, $this->exceptKeys, true)) {
+                $sanitized[$key] = $value;
             } else {
                 $sanitized[$key] = $this->sanitizeValue($value);
             }
