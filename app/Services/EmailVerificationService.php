@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\Tenant;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Auth\Events\Verified;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class EmailVerificationService
 {
@@ -23,13 +23,16 @@ class EmailVerificationService
     public function sendVerificationCode(Tenant $tenant): array
     {
         try {
-            // Generate a 6-digit verification code
-            $verificationCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-            
-            // Store verification code in cache with 5 minutes expiry
+            // random_int, not rand: rand() is a predictable PRNG and this
+            // code is a credential.
+            $verificationCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            // Stored hashed. The cache is a shared store (and in this app the
+            // database), so a readable copy of a live credential does not
+            // belong in it.
             $cacheKey = "email_verification_{$tenant->id}";
             Cache::put($cacheKey, [
-                'code' => $verificationCode,
+                'code' => Hash::make($verificationCode),
                 'attempts' => 0,
                 'expires_at' => now()->addMinutes(5)
             ], 300); // 5 minutes
@@ -42,10 +45,10 @@ class EmailVerificationService
             );
 
             if ($emailResult['success']) {
+                // The code itself is deliberately not logged.
                 Log::info('Verification code sent successfully', [
                     'tenant_id' => $tenant->id,
                     'email' => $tenant->email,
-                    'verification_code' => $verificationCode
                 ]);
 
                 return [
@@ -98,10 +101,15 @@ class EmailVerificationService
             }
 
             // Check if code matches
-            if ($verificationData['code'] !== $code) {
+            if (! Hash::check($code, $verificationData['code'])) {
                 // Increment attempts
                 $verificationData['attempts']++;
-                Cache::put($cacheKey, $verificationData, 900);
+
+                // Re-put for whatever is LEFT of the original window. Writing
+                // a fresh 900s TTL here silently extended a 5 minute code to
+                // 15 minutes every time someone guessed wrong.
+                $remaining = max(1, (int) now()->diffInSeconds($verificationData['expires_at'], false));
+                Cache::put($cacheKey, $verificationData, $remaining);
 
                 if ($verificationData['attempts'] >= 3) {
                     // Too many attempts, expire the code
@@ -129,10 +137,8 @@ class EmailVerificationService
             }
 
             // Code is valid, mark email as verified
-            $tenant->update([
-                'email_verified_at' => now(),
-                'is_active' => true
-            ]);
+            $tenant->markEmailAsVerified();
+            event(new Verified($tenant));
 
             // Clear verification cache
             Cache::forget($cacheKey);

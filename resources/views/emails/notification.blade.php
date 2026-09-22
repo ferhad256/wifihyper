@@ -68,7 +68,7 @@
         
         <p>You can view all your notifications and manage your account by visiting your dashboard.</p>
         
-        <a href="{{ route('dashboard') }}" class="btn">View Dashboard</a>
+        <a href="{{ url('/dashboard') }}" class="btn">View Dashboard</a>
         
         <div class="notification-box">
             <h3>📞 Need Support?</h3>

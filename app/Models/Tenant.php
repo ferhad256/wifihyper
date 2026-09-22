@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Tenant extends Model
+class Tenant extends Authenticatable implements FilamentUser
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $fillable = [
         'name',
@@ -28,6 +31,7 @@ class Tenant extends Model
 
     protected $hidden = [
         'password',
+        'remember_token',
     ];
 
     protected $casts = [
@@ -37,6 +41,9 @@ class Tenant extends Model
         'password_changed_at' => 'datetime',
         'payment_settings' => 'array',
         'settings' => 'array',
+        // Hashes on assignment, and is idempotent - an already-hashed value
+        // passes straight through, so no caller can double-hash a password.
+        'password' => 'hashed',
     ];
 
     /**
@@ -94,6 +101,19 @@ class Tenant extends Model
     }
 
     /**
+     * Filament calls this on every panel request, not just at sign-in, so a
+     * tenant deactivated mid-session loses access immediately.
+     *
+     * Without this contract Filament lets any authenticated user into any
+     * panel outside the local environment - including, here, letting a tenant
+     * into the admin console.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $panel->getId() === 'tenant' && $this->canAccessSystem();
+    }
+
+    /**
      * Get transaction fee for a specific amount
      * Fee structure: 2.8% of amount
      */
@@ -122,7 +142,18 @@ class Tenant extends Model
         return $this->hasMany(SmsLog::class);
     }
 
-    public function notifications(): HasMany
+    /**
+     * This tenant's in-app alerts (low voucher stock, payments, and so on).
+     *
+     * Named alerts() rather than notifications() because the Notifiable trait
+     * defines a notifications() morphMany of its own, and a same-named
+     * relation of a different shape would silently shadow it.
+     *
+     * Laravel's own database notifications cannot be used here regardless: the
+     * App\Models\Notification table is literally named `notifications`, which
+     * is the name DatabaseNotification hardcodes.
+     */
+    public function alerts(): HasMany
     {
         return $this->hasMany(Notification::class);
     }

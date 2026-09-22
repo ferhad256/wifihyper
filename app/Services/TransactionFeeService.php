@@ -28,17 +28,4 @@ class TransactionFeeService
             'fee_percentage' => self::FEE_PERCENTAGE,
         ];
     }
-
-    /**
-     * Format fee information for display
-     * 
-     * @param float $amount
-     * @return string
-     */
-    public function getFeeDescription(float $amount): string
-    {
-        $totalFee = ($amount * self::FEE_PERCENTAGE) / 100;
-
-        return "Transaction Fee (" . self::FEE_PERCENTAGE . "%): UGX " . number_format($totalFee, 0);
-    }
 }

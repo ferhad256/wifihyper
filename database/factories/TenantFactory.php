@@ -25,7 +25,7 @@ class TenantFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'password' => static::$password ??= Hash::make('password'),
+            'password' => static::$password ??= 'password',
             'phone' => '07' . fake()->numerify('########'),
             'business_name' => fake()->company(),
             'address' => fake()->address(),
@@ -45,6 +45,20 @@ class TenantFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+            'is_active' => false,
+        ]);
+    }
+
+    /**
+     * Indicate that the tenant's account has been deactivated.
+     *
+     * Distinct from unverified(): the email is verified, but the account has
+     * been switched off (e.g. by an admin), which is a separate login gate.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'email_verified_at' => now(),
             'is_active' => false,
         ]);
     }

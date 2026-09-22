@@ -1,6 +1,7 @@
 # Laravel Framework
 /node_modules
 /public/hot
+/public/js/filament
 /public/storage
 /storage/*.key
 /vendor
@@ -47,6 +48,8 @@ Thumbs.db
 
 # Build files
 /public/build
+/public/css/filament
+/public/fonts/filament
 /public/mix-manifest.json
 
 # Database

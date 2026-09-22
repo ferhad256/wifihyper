@@ -14,8 +14,11 @@ return [
     */
 
     'defaults' => [
-        'guard' => env('AUTH_GUARD', 'web'),
-        'passwords' => env('AUTH_PASSWORD_BROKER', 'users'),
+        // Literals rather than env(): config:cache bakes these in, so an
+        // AUTH_GUARD line appearing in a server .env later would silently
+        // override the application's own expectations.
+        'guard' => 'tenant',
+        'passwords' => 'tenants',
     ],
 
     /*
@@ -44,6 +47,11 @@ return [
             'driver' => 'session',
             'provider' => 'admins',
         ],
+
+        'tenant' => [
+            'driver' => 'session',
+            'provider' => 'tenants',
+        ],
     ],
 
     /*
@@ -71,6 +79,11 @@ return [
         'admins' => [
             'driver' => 'eloquent',
             'model' => App\Models\Admin::class,
+        ],
+
+        'tenants' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Tenant::class,
         ],
 
         // 'users' => [
@@ -102,6 +115,25 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Its own table: password_reset_tokens keys on email as its primary
+        // key and is already claimed by the users broker above.
+        'tenants' => [
+            'provider' => 'tenants',
+            'table' => 'tenant_password_reset_tokens',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        // Unused today - admins have no reset flow. Declared so the admin
+        // panel can name a broker explicitly rather than inheriting the
+        // default one, which resolves against the Tenant model.
+        'admins' => [
+            'provider' => 'admins',
+            'table' => 'admin_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

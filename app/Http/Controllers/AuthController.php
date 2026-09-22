@@ -4,21 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Tenant;
 use App\Services\NotificationService;
-use App\Services\EmailVerificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
-    /**
-     * Show login form
-     */
-    public function showLogin()
-    {
-        return view('auth.login');
-    }
-
     /**
      * Show registration form
      */
@@ -26,86 +17,6 @@ class AuthController extends Controller
     {
         return view('auth.register');
     }
-
-    /**
-     * Handle tenant login
-     */
-    public function login(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|max:255',
-            'password' => 'required|string|min:8|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $tenant = Tenant::where('email', $request->email)->first();
-
-        if (!$tenant) {
-            // Use same error message to prevent user enumeration
-            return back()->with('error', 'Invalid credentials.')->withInput();
-        }
-
-        // Check if email is verified
-        if (!$tenant->hasVerifiedEmail()) {
-            \Log::warning('Login attempt with unverified email', [
-                'tenant_id' => $tenant->id,
-                'email' => $tenant->email,
-                'ip' => $request->ip(),
-            ]);
-
-            // Send verification email if not already sent recently
-            $emailVerificationService = new \App\Services\EmailVerificationService(new \App\Services\EmailService());
-            if ($emailVerificationService->canRequestVerification($tenant)) {
-                $emailVerificationService->sendVerificationCode($tenant);
-            }
-
-            return redirect()->route('verification.show', ['email' => $tenant->email])
-                ->with('error', 'Please verify your email address before logging in. A new verification code has been sent.');
-        }
-
-        // Check if account is active
-        if (!$tenant->is_active) {
-            return back()->with('error', 'Account is deactivated. Please contact support.')->withInput();
-        }
-
-        // Verify password with proper hashing
-        if (Hash::check($request->password, $tenant->password)) {
-            // Regenerate session to prevent session fixation
-            session()->regenerate();
-            
-            // Store tenant ID in session
-            session(['tenant_id' => $tenant->id]);
-            session(['last_activity' => time()]);
-            
-            // Log successful login
-            \Log::info('Successful login', [
-                'tenant_id' => $tenant->id,
-                'email' => $tenant->email,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-            
-            // Check for low voucher notifications on login
-            $notificationService = new NotificationService();
-            $notificationService->checkLowVoucherNotifications($tenant);
-            $notificationService->checkNoVoucherNotifications($tenant);
-            
-            return redirect()->route('dashboard')->with('success', 'Welcome back, ' . $tenant->name . '!');
-        }
-
-        // Log failed login attempt
-        \Log::warning('Failed login attempt', [
-            'email' => $request->email,
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
-
-        return back()->with('error', 'Invalid credentials.')->withInput();
-    }
-
     /**
      * Handle tenant registration
      */
@@ -137,7 +48,7 @@ class AuthController extends Controller
                 'phone' => $request->phone ? strip_tags($request->phone) : null,
                 'business_name' => $request->business_name ? strip_tags($request->business_name) : null,
                 'address' => $request->address ? strip_tags($request->address) : null,
-                'password' => Hash::make($request->password),
+                'password' => $request->password,
                 'is_active' => false, // Account inactive until email verification
                 'email_verified_at' => null, // Email not verified yet
             ]);
@@ -185,29 +96,5 @@ class AuthController extends Controller
             
             return back()->with('error', 'Registration failed. Please try again.')->withInput();
         }
-    }
-
-
-
-    /**
-     * Handle tenant logout
-     */
-    public function logout(Request $request)
-    {
-        // Log logout activity
-        if (session('tenant_id')) {
-            \Log::info('User logout', [
-                'tenant_id' => session('tenant_id'),
-                'ip' => $request->ip(),
-            ]);
-        }
-        
-        // Clear all session data
-        session()->flush();
-        
-        // Regenerate session ID
-        session()->regenerate();
-        
-        return redirect()->route('landing')->with('success', 'You have been logged out successfully.');
     }
 }

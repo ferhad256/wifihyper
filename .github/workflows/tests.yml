@@ -49,22 +49,32 @@ jobs:
         run: php artisan key:generate
 
       - name: Configure testing environment
+        # Appended, so these override the values copied from .env.example.
+        # CACHE_STORE, not CACHE_DRIVER: Laravel 11+ reads CACHE_STORE, so the
+        # old key was inert and the cache silently fell back to the database.
         run: |
-          echo "APP_ENV=testing" >> .env
-          echo "DB_CONNECTION=sqlite" >> .env
-          echo "DB_DATABASE=:memory:" >> .env
-          echo "CACHE_DRIVER=array" >> .env
-          echo "SESSION_DRIVER=array" >> .env
-          echo "QUEUE_CONNECTION=sync" >> .env
-          echo "MAIL_MAILER=array" >> .env
-          echo "REDIS_HOST=127.0.0.1" >> .env
-          echo "REDIS_PASSWORD=null" >> .env
-          echo "REDIS_PORT=6379" >> .env
-          echo "YO_PAYMENTS_IPN_ENABLED=false" >> .env
-          echo "UG_SMS_USERNAME=test" >> .env
-          echo "UG_SMS_PASSWORD=test" >> .env
-          echo "YO_PAYMENTS_USERNAME=test" >> .env
-          echo "YO_PAYMENTS_PASSWORD=test" >> .env
+          {
+            echo "APP_ENV=testing"
+            echo "DB_CONNECTION=sqlite"
+            echo "DB_DATABASE=:memory:"
+            echo "CACHE_STORE=array"
+            echo "SESSION_DRIVER=array"
+            echo "QUEUE_CONNECTION=sync"
+            echo "MAIL_MAILER=array"
+            # .env.example sets MAIL_FROM_ADDRESS to an EMPTY string, and
+            # env() treats that as a value, so the config default never
+            # applied and Symfony rejected every message with "An email must
+            # have a From or a Sender header". No successful send was
+            # verifiable in CI until this was set.
+            echo "MAIL_FROM_ADDRESS=ci@wifihyper.test"
+            echo "MAIL_FROM_NAME=WifiHyperCI"
+            echo "BCRYPT_ROUNDS=4"
+            echo "YO_PAYMENTS_IPN_ENABLED=false"
+            echo "UG_SMS_USERNAME=test"
+            echo "UG_SMS_PASSWORD=test"
+            echo "YO_PAYMENTS_USERNAME=test"
+            echo "YO_PAYMENTS_PASSWORD=test"
+          } >> .env
 
       - name: Create storage directories
         run: |
@@ -80,9 +90,12 @@ jobs:
           chmod -R 775 bootstrap/cache
 
       - name: Clear and cache config
+        # config:cache is deliberately NOT run before the test suite. It bakes
+        # .env values into the cached config, after which env() returns null
+        # and every <env> in phpunit.xml is ignored - which is how the mailer
+        # above went unnoticed. Route and view caching do not have that effect.
         run: |
           php artisan config:clear
-          php artisan config:cache
           php artisan route:clear
           php artisan route:cache
           php artisan view:clear

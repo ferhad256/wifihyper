@@ -104,4 +104,16 @@ return [
         'from_name' => env('MAIL_FROM_NAME', 'WIFIHYPER'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin alert phone
+    |--------------------------------------------------------------------------
+    |
+    | Receives an SMS when a tenant requests a withdrawal. Was hardcoded in
+    | DashboardController, which meant a change of number needed a deploy.
+    |
+    */
+
+    'admin_alert_phone' => env('ADMIN_ALERT_PHONE', '256755569376'),
+
 ];

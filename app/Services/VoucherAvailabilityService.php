@@ -63,7 +63,7 @@ class VoucherAvailabilityService
     private function createAvailabilityNotifications(Tenant $tenant, Package $package, array $availability): void
     {
         // Check if notification already exists for this package
-        $existingNotification = $tenant->notifications()
+        $existingNotification = $tenant->alerts()
             ->where('type', 'voucher_availability')
             ->where('data->package_id', $package->id)
             ->where('status', 'unread')
@@ -141,7 +141,7 @@ class VoucherAvailabilityService
      */
     public function getUnreadNotifications(Tenant $tenant): \Illuminate\Database\Eloquent\Collection
     {
-        return $tenant->notifications()
+        return $tenant->alerts()
             ->where('status', 'unread')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -152,7 +152,7 @@ class VoucherAvailabilityService
      */
     public function markNotificationAsRead(int $notificationId, Tenant $tenant): bool
     {
-        $notification = $tenant->notifications()
+        $notification = $tenant->alerts()
             ->where('id', $notificationId)
             ->first();
 
@@ -169,7 +169,7 @@ class VoucherAvailabilityService
      */
     public function markAllNotificationsAsRead(Tenant $tenant): int
     {
-        return $tenant->notifications()
+        return $tenant->alerts()
             ->where('status', 'unread')
             ->update([
                 'status' => 'read',

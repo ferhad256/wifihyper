@@ -43,14 +43,24 @@ class PasswordResetController extends Controller
 
         $tenant = Tenant::where('email', $request->email)->first();
 
-        if (!$tenant) {
-            // Don't reveal if email exists or not for security
-            return back()->with('success', 'If your email is registered, you will receive a password reset link shortly.');
-        }
+        // One response for every outcome: unregistered, deactivated, or a
+        // link genuinely sent. A distinct "account is deactivated" message
+        // here told an anonymous caller that the address WAS registered,
+        // which defeated the generic message below it.
+        $genericResponse = fn () => back()->with(
+            'success',
+            'If your email is registered, you will receive a password reset link shortly.'
+        );
 
-        // Check if account is active
-        if (!$tenant->is_active) {
-            return back()->with('error', 'Account is deactivated. Please contact support.')->withInput();
+        if (! $tenant || ! $tenant->is_active) {
+            if ($tenant) {
+                \Log::info('Password reset requested for a deactivated account', [
+                    'tenant_id' => $tenant->id,
+                    'ip' => $request->ip(),
+                ]);
+            }
+
+            return $genericResponse();
         }
 
         // Generate reset token
@@ -157,7 +167,7 @@ class PasswordResetController extends Controller
         }
 
         // Update password
-        $tenant->password = Hash::make($request->password);
+        $tenant->password = $request->password;
         $tenant->password_changed_at = now();
         $tenant->save();
 
