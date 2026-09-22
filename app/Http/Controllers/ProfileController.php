@@ -184,16 +184,18 @@ class ProfileController extends Controller
                 'user_agent' => $request->userAgent(),
             ]);
 
-            // Delete all related data
-            $this->deleteTenantData($tenant);
-
-            // Delete the tenant
-            $tenant->delete();
+            // Delete all related data and the tenant itself. The service
+            // wraps this in its own transaction.
+            app(\App\Services\TenantDeletionService::class)->delete($tenant);
 
             DB::commit();
 
-            // Clear session and redirect to login
-            session()->flush();
+            // Clear the guard, not just the session: flush() alone would
+            // leave a remember cookie able to re-authenticate a tenant that
+            // no longer exists.
+            \Illuminate\Support\Facades\Auth::guard('tenant')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
             
             Log::info('Account deleted successfully', [
                 'tenant_id' => $tenant->id,
@@ -213,55 +215,6 @@ class ProfileController extends Controller
             ]);
 
             return back()->with('error', 'Failed to delete account: ' . $e->getMessage())->withInput();
-        }
-    }
-
-    /**
-     * Delete all tenant-related data
-     */
-    private function deleteTenantData(Tenant $tenant)
-    {
-        try {
-            // Delete notifications
-            Notification::where('tenant_id', $tenant->id)->delete();
-
-            // Delete transactions
-            Transaction::where('tenant_id', $tenant->id)->delete();
-
-            // Delete vouchers
-            Voucher::where('tenant_id', $tenant->id)->delete();
-
-            // Delete packages
-            $packageIds = Package::where('hotspot_id', function($query) use ($tenant) {
-                $query->select('id')->from('hotspots')->where('tenant_id', $tenant->id);
-            })->pluck('id');
-            
-            Package::whereIn('id', $packageIds)->delete();
-
-            // Delete hotspots
-            Hotspot::where('tenant_id', $tenant->id)->delete();
-
-            // Delete subscription plans
-            if (method_exists($tenant, 'subscriptionPlans')) {
-                $tenant->subscriptionPlans()->delete();
-            }
-
-            // Delete any other related models
-            // Add more models here as needed
-
-            Log::info('Tenant data deleted successfully', [
-                'tenant_id' => $tenant->id,
-                'email' => $tenant->email,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Failed to delete tenant data', [
-                'tenant_id' => $tenant->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
-            throw $e;
         }
     }
 
