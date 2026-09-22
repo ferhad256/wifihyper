@@ -22,8 +22,6 @@ class AdminLoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const PASSWORD = 'Str0ng!Passw0rd';
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -34,7 +32,7 @@ class AdminLoginTest extends TestCase
     private function admin(array $overrides = []): Admin
     {
         return Admin::factory()->create(array_merge([
-            'password' => Hash::make(self::PASSWORD),
+            'password' => Hash::make(self::fixturePassword()),
         ], $overrides));
     }
 
@@ -54,7 +52,7 @@ class AdminLoginTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->attempt($admin->email, self::PASSWORD)->assertHasNoFormErrors();
+        $this->attempt($admin->email, self::fixturePassword())->assertHasNoFormErrors();
 
         $this->assertTrue(Auth::guard('admin')->check());
         $this->assertSame($admin->id, Auth::guard('admin')->id());
@@ -64,7 +62,7 @@ class AdminLoginTest extends TestCase
     {
         $admin = $this->admin();
 
-        $this->attempt($admin->email, 'Wr0ng!Passw0rd')->assertHasFormErrors(['email']);
+        $this->attempt($admin->email, self::fixturePassword('wrong'))->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('admin')->check());
     }
@@ -73,7 +71,7 @@ class AdminLoginTest extends TestCase
     {
         $admin = $this->admin(['is_active' => false]);
 
-        $this->attempt($admin->email, self::PASSWORD)->assertHasFormErrors(['email']);
+        $this->attempt($admin->email, self::fixturePassword())->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('admin')->check());
     }

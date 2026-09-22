@@ -15,8 +15,6 @@ class AccountPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const PASSWORD = 'Str0ng!Passw0rd';
-
     private Tenant $tenant;
 
     protected function setUp(): void
@@ -24,7 +22,7 @@ class AccountPageTest extends TestCase
         parent::setUp();
 
         $this->tenant = Tenant::factory()->create([
-            'password' => Hash::make(self::PASSWORD),
+            'password' => Hash::make(self::fixturePassword()),
             'wallet_balance' => 0,
         ]);
 
@@ -73,35 +71,35 @@ class AccountPageTest extends TestCase
     {
         Livewire::test(Account::class)
             ->fillForm([
-                'current_password' => self::PASSWORD,
-                'new_password' => 'An0ther!Passw0rd',
-                'new_password_confirmation' => 'An0ther!Passw0rd',
+                'current_password' => self::fixturePassword(),
+                'new_password' => self::fixturePassword('new'),
+                'new_password_confirmation' => self::fixturePassword('new'),
             ], 'passwordForm')
             ->call('savePassword')
             ->assertHasNoFormErrors();
 
-        $this->assertTrue(Hash::check('An0ther!Passw0rd', $this->tenant->fresh()->password));
+        $this->assertTrue(Hash::check(self::fixturePassword('new'), $this->tenant->fresh()->password));
     }
 
     public function test_the_current_password_must_be_correct(): void
     {
         Livewire::test(Account::class)
             ->fillForm([
-                'current_password' => 'wrong-password',
-                'new_password' => 'An0ther!Passw0rd',
-                'new_password_confirmation' => 'An0ther!Passw0rd',
+                'current_password' => self::fixturePassword('wrong'),
+                'new_password' => self::fixturePassword('new'),
+                'new_password_confirmation' => self::fixturePassword('new'),
             ], 'passwordForm')
             ->call('savePassword')
             ->assertHasFormErrors(['current_password'], 'passwordForm');
 
-        $this->assertTrue(Hash::check(self::PASSWORD, $this->tenant->fresh()->password));
+        $this->assertTrue(Hash::check(self::fixturePassword(), $this->tenant->fresh()->password));
     }
 
     public function test_closing_the_account_requires_the_exact_phrase(): void
     {
         Livewire::test(Account::class)
             ->callAction('deleteAccount', [
-                'password' => self::PASSWORD,
+                'password' => self::fixturePassword(),
                 'confirmation' => 'delete my account',
             ])
             ->assertHasActionErrors(['confirmation']);
@@ -113,7 +111,7 @@ class AccountPageTest extends TestCase
     {
         Livewire::test(Account::class)
             ->callAction('deleteAccount', [
-                'password' => 'wrong-password',
+                'password' => self::fixturePassword('wrong'),
                 'confirmation' => 'DELETE MY ACCOUNT',
             ])
             ->assertHasActionErrors(['password']);
@@ -131,7 +129,7 @@ class AccountPageTest extends TestCase
 
         Livewire::test(Account::class)
             ->callAction('deleteAccount', [
-                'password' => self::PASSWORD,
+                'password' => self::fixturePassword(),
                 'confirmation' => 'DELETE MY ACCOUNT',
             ]);
 
@@ -146,7 +144,7 @@ class AccountPageTest extends TestCase
 
         Livewire::test(Account::class)
             ->callAction('deleteAccount', [
-                'password' => self::PASSWORD,
+                'password' => self::fixturePassword(),
                 'confirmation' => 'DELETE MY ACCOUNT',
             ])
             ->assertHasNoActionErrors();

@@ -23,9 +23,6 @@ class PasswordHashingTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const PASSWORD = 'Str0ng!Passw0rd';
-    private const NEW_PASSWORD = 'An0ther!Passw0rd';
-
     public function test_registration_stores_a_usable_hash(): void
     {
         Mail::fake();
@@ -33,20 +30,21 @@ class PasswordHashingTest extends TestCase
         $this->post('/register', [
             'name' => 'Test Operator',
             'email' => 'operator@example.com',
-            'password' => self::PASSWORD,
-            'password_confirmation' => self::PASSWORD,
+            'password' => self::fixturePassword(),
+            'password_confirmation' => self::fixturePassword(),
             'terms' => 'on',
         ]);
 
         $tenant = Tenant::where('email', 'operator@example.com')->first();
 
         $this->assertNotNull($tenant, 'Registration did not create the tenant.');
-        $this->assertNotSame(self::PASSWORD, $tenant->password, 'Password was stored in plain text.');
+        $this->assertNotSame(self::fixturePassword(), $tenant->password, 'Password was stored in plain text.');
         $this->assertTrue(
-            Hash::check(self::PASSWORD, $tenant->password),
+            Hash::check(self::fixturePassword(), $tenant->password),
             'Stored hash does not verify - the password was likely hashed twice.'
         );
     }
+
     public function test_the_factory_produces_a_usable_hash(): void
     {
         // The factory feeds the rest of the suite; if its hash stops verifying,
