@@ -14,17 +14,25 @@ class InputSanitization
      * Livewire posts a JSON payload containing a `snapshot` string and a
      * checksum over it. Request::replace() writes back through
      * getInputSource(), which IS the JSON bag on a JSON request, so
-     * htmlspecialchars() would rewrite the quotes inside that snapshot and
-     * fail the checksum on every round trip. The Filament panel paths are
-     * listed for the same reason.
+     * htmlspecialchars() rewrites the quotes inside that snapshot and the
+     * payload no longer parses. The Filament panel paths are listed for the
+     * same reason.
      *
      * Matched as paths rather than route names because global middleware runs
      * before the route is resolved.
+     *
+     * `livewire-*` is not a typo. Livewire 4 derives its endpoint prefix from
+     * a hash of APP_KEY - /livewire-d9d4428a/update, say - so the literal
+     * `livewire/*` this list used to carry matched nothing on a real
+     * installation, and every panel login died with "Invalid Livewire
+     * snapshot structure". The prefix differs per environment, which is why
+     * it never showed up in development.
      *
      * @var list<string>
      */
     protected array $except = [
         'livewire/*',
+        'livewire-*',
         'dashboard/*',
         'admin/*',
     ];
@@ -60,7 +68,7 @@ class InputSanitization
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->is(...$this->except)) {
+        if ($this->isLivewireRequest($request) || $request->is(...$this->except)) {
             return $next($request);
         }
 
@@ -72,6 +80,20 @@ class InputSanitization
         $request->replace($sanitized);
 
         return $next($request);
+    }
+
+    /**
+     * Is this a request from the Livewire client?
+     *
+     * Tested exactly as Livewire's own RequireLivewireHeaders tests it, so
+     * the two cannot drift apart. This is the guard that matters: the path
+     * list above depends on knowing the endpoint's name, and the endpoint's
+     * name is a hash. A header-and-content-type check holds whatever the URL
+     * turns out to be, including the upload and preview endpoints.
+     */
+    protected function isLivewireRequest(Request $request): bool
+    {
+        return $request->hasHeader('X-Livewire') && $request->isJson();
     }
 
     /**

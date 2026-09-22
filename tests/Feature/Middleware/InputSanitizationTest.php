@@ -3,8 +3,10 @@
 namespace Tests\Feature\Middleware;
 
 use App\Http\Middleware\InputSanitization;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
@@ -14,6 +16,8 @@ use Tests\TestCase;
  */
 class InputSanitizationTest extends TestCase
 {
+    use RefreshDatabase;
+
     /**
      * Run the middleware and hand back the request the application would see.
      */
@@ -29,7 +33,7 @@ class InputSanitizationTest extends TestCase
         return $received;
     }
 
-    private function jsonRequest(string $uri, array $payload): Request
+    private function jsonRequest(string $uri, array $payload, array $headers = []): Request
     {
         return Request::create(
             $uri,
@@ -37,7 +41,7 @@ class InputSanitizationTest extends TestCase
             [],
             [],
             [],
-            ['CONTENT_TYPE' => 'application/json'],
+            array_merge(['CONTENT_TYPE' => 'application/json'], $headers),
             json_encode($payload)
         );
     }
@@ -54,11 +58,15 @@ class InputSanitizationTest extends TestCase
     {
         $snapshot = '{"data":{"name":"O\'Brien & Sons","qty":3},"checksum":"abc123"}';
 
-        $request = $this->jsonRequest('/livewire/update', [
+        // Livewire::getUpdateUri(), not a hand-written '/livewire/update'.
+        // Livewire 4 hashes APP_KEY into its endpoint prefix, so the literal
+        // path exists in no environment and asserting against it proved
+        // nothing - which is how this shipped broken.
+        $request = $this->jsonRequest(Livewire::getUpdateUri(), [
             'components' => [
                 ['snapshot' => $snapshot, 'calls' => []],
             ],
-        ]);
+        ], ['HTTP_X_LIVEWIRE' => '1']);
 
         $received = $this->pipe($request);
 
@@ -67,6 +75,55 @@ class InputSanitizationTest extends TestCase
             $received->input('components.0.snapshot'),
             'The Livewire snapshot was rewritten - checksum validation would fail.'
         );
+    }
+
+    /**
+     * The header-and-content-type check, which is what actually holds.
+     *
+     * A path list can only exempt an endpoint whose name is known, and
+     * Livewire's name is a hash of APP_KEY that differs per environment. This
+     * asserts the exemption survives a prefix nobody anticipated.
+     */
+    public function test_a_livewire_payload_is_exempt_whatever_the_endpoint_is_called(): void
+    {
+        $snapshot = '{"data":{"note":"a quoted word"},"checksum":"abc123"}';
+
+        $request = $this->jsonRequest('/some-unrecognised-prefix/update', [
+            'components' => [['snapshot' => $snapshot, 'calls' => []]],
+        ], ['HTTP_X_LIVEWIRE' => '1']);
+
+        $this->assertSame($snapshot, $this->pipe($request)->input('components.0.snapshot'));
+    }
+
+    /**
+     * The end-to-end version: a real round trip over HTTP, through the global
+     * middleware stack, to the endpoint Livewire actually publishes.
+     *
+     * Every other test here drives the middleware in isolation, which is why
+     * they all passed while production answered "Invalid Livewire snapshot
+     * structure" on every sign-in. Only a real request catches a wrong URL.
+     */
+    public function test_a_real_livewire_round_trip_survives_the_middleware_stack(): void
+    {
+        $html = $this->get('/admin/login')->assertOk()->getContent();
+
+        $this->assertSame(
+            1,
+            preg_match('/wire:snapshot="([^"]+)"/', $html, $matches),
+            'No Livewire component was rendered on the admin login page.'
+        );
+
+        $response = $this->withHeaders(['X-Livewire' => '1'])->postJson(Livewire::getUpdateUri(), [
+            '_token' => csrf_token(),
+            'components' => [[
+                'snapshot' => html_entity_decode($matches[1], ENT_QUOTES),
+                'updates' => [],
+                'calls' => [],
+            ]],
+        ]);
+
+        $response->assertOk();
+        $this->assertArrayHasKey('components', $response->json());
     }
 
     public function test_filament_panel_paths_pass_through_untouched(): void
