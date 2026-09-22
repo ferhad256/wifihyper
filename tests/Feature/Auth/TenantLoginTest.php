@@ -112,15 +112,12 @@ class TenantLoginTest extends TestCase
     }
 
     /**
-     * KNOWN DEFECT, pinned deliberately.
-     *
-     * AuthController checks email verification BEFORE verifying the password,
-     * so an anonymous caller can tell a registered-but-unverified address apart
-     * from an unknown one without knowing any password. The refactor moves the
-     * verification gate after credential checking, at which point this test
-     * SHOULD fail and be replaced by its inverse.
+     * The login flow used to run the verification and is_active gates before
+     * checking the password, so an anonymous caller could tell a registered
+     * address from an unknown one, and learn its state, without credentials.
+     * Credentials are now checked first.
      */
-    public function test_unverified_accounts_are_currently_distinguishable_without_a_password(): void
+    public function test_an_unverified_account_is_indistinguishable_without_the_password(): void
     {
         $tenant = $this->activeTenant(['email_verified_at' => null]);
 
@@ -134,21 +131,43 @@ class TenantLoginTest extends TestCase
             'password' => 'not-the-right-password',
         ]);
 
-        // The responses differ, which is the leak.
-        $this->assertNotSame(
+        $this->assertSame(
             $unknown->headers->get('Location'),
             $unverified->headers->get('Location'),
-            'Responses are now identical - the enumeration leak looks fixed, update this test.'
+            'A registered-but-unverified address is still distinguishable from an unknown one.'
+        );
+        $this->assertSame(
+            session('error'),
+            'Invalid credentials.',
+            'The response revealed something other than a generic failure.'
+        );
+    }
+
+    public function test_a_deactivated_account_is_indistinguishable_without_the_password(): void
+    {
+        $tenant = $this->activeTenant(['is_active' => false]);
+
+        $deactivated = $this->post('/login', [
+            'email' => $tenant->email,
+            'password' => 'not-the-right-password',
+        ]);
+
+        $unknown = $this->post('/login', [
+            'email' => 'nobody@example.com',
+            'password' => 'not-the-right-password',
+        ]);
+
+        $this->assertSame(
+            $unknown->headers->get('Location'),
+            $deactivated->headers->get('Location')
         );
     }
 
     /**
-     * KNOWN DEFECT, pinned deliberately.
-     *
-     * The same pre-password branch also lets an anonymous caller trigger a
+     * The same pre-password branch let an anonymous caller send a
      * verification email to any registered address, with no credentials.
      */
-    public function test_an_anonymous_caller_can_currently_trigger_a_verification_email(): void
+    public function test_a_wrong_password_triggers_no_verification_email(): void
     {
         $tenant = $this->activeTenant(['email_verified_at' => null]);
         $this->flushSentMails();
@@ -159,10 +178,27 @@ class TenantLoginTest extends TestCase
         ]);
 
         $this->assertCount(
-            1,
+            0,
             $this->sentMails(),
-            'No verification email was triggered - the pre-password branch looks fixed, update this test.'
+            'A failed login still triggered a verification email.'
         );
+    }
+
+    /**
+     * With the CORRECT password, an unverified tenant should still be helped
+     * along to the verification screen - that is a real user, not a prober.
+     */
+    public function test_the_correct_password_still_sends_an_unverified_tenant_to_verification(): void
+    {
+        $tenant = $this->activeTenant(['email_verified_at' => null]);
+        $this->flushSentMails();
+
+        $this->post('/login', [
+            'email' => $tenant->email,
+            'password' => self::PASSWORD,
+        ])->assertRedirect(route('verification.show', ['email' => $tenant->email]));
+
+        $this->assertCount(1, $this->sentMails());
     }
 
     public function test_logout_clears_the_session(): void

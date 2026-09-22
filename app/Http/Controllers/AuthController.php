@@ -41,22 +41,40 @@ class AuthController extends Controller
             return back()->withErrors($validator)->withInput();
         }
 
-        $tenant = Tenant::where('email', $request->email)->first();
+        // Credentials are checked FIRST, and nothing above this point
+        // distinguishes one account from another.
+        //
+        // The verification and is_active gates used to run before the password
+        // was ever checked, which told an anonymous caller whether an address
+        // was registered and what state it was in - and let them trigger a
+        // verification email to any registered address without credentials.
+        //
+        // validate() checks the password without starting a session, and is
+        // timeboxed by the framework, so a wrong password and an unknown
+        // address take the same time as well as returning the same response.
+        if (! Auth::guard('tenant')->validate(['email' => $request->email, 'password' => $request->password])) {
+            \Log::warning('Failed login attempt', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
 
-        if (!$tenant) {
-            // Use same error message to prevent user enumeration
             return back()->with('error', 'Invalid credentials.')->withInput();
         }
 
-        // Check if email is verified
-        if (!$tenant->hasVerifiedEmail()) {
+        /** @var \App\Models\Tenant $tenant */
+        $tenant = Auth::guard('tenant')->getLastAttempted();
+
+        // From here on the caller has proved they know the password, so it is
+        // safe to tell them why they still cannot get in.
+
+        if (! $tenant->hasVerifiedEmail()) {
             \Log::warning('Login attempt with unverified email', [
                 'tenant_id' => $tenant->id,
                 'email' => $tenant->email,
                 'ip' => $request->ip(),
             ]);
 
-            // Send verification email if not already sent recently
             $emailVerificationService = new \App\Services\EmailVerificationService(new \App\Services\EmailService());
             if ($emailVerificationService->canRequestVerification($tenant)) {
                 $emailVerificationService->sendVerificationCode($tenant);
@@ -66,43 +84,31 @@ class AuthController extends Controller
                 ->with('error', 'Please verify your email address before logging in. A new verification code has been sent.');
         }
 
-        // Check if account is active
-        if (!$tenant->is_active) {
+        if (! $tenant->is_active) {
             return back()->with('error', 'Account is deactivated. Please contact support.')->withInput();
         }
 
-        // Verify the password and establish the session via the tenant guard.
-        // attempt() regenerates the session id itself, so the old manual
-        // session()->regenerate() call here would be redundant.
-        if (Auth::guard('tenant')->attempt(['email' => $tenant->email, 'password' => $request->password])) {
-            // Transitional: some code may still read this key directly. It is
-            // removed once the last session('tenant_id') reader is gone.
-            session(['tenant_id' => $tenant->id]);
-            
-            // Log successful login
-            \Log::info('Successful login', [
-                'tenant_id' => $tenant->id,
-                'email' => $tenant->email,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-            ]);
-            
-            // Check for low voucher notifications on login
-            $notificationService = new NotificationService();
-            $notificationService->checkLowVoucherNotifications($tenant);
-            $notificationService->checkNoVoucherNotifications($tenant);
-            
-            return redirect()->route('dashboard')->with('success', 'Welcome back, ' . $tenant->name . '!');
-        }
+        // login() migrates the session id itself, so there is no separate
+        // session()->regenerate() call here.
+        Auth::guard('tenant')->login($tenant);
 
-        // Log failed login attempt
-        \Log::warning('Failed login attempt', [
-            'email' => $request->email,
+        // Transitional: some code may still read this key directly. It is
+        // removed once the last session('tenant_id') reader is gone.
+        session(['tenant_id' => $tenant->id]);
+
+        \Log::info('Successful login', [
+            'tenant_id' => $tenant->id,
+            'email' => $tenant->email,
             'ip' => $request->ip(),
             'user_agent' => $request->userAgent(),
         ]);
 
-        return back()->with('error', 'Invalid credentials.')->withInput();
+        // Check for low voucher notifications on login
+        $notificationService = new NotificationService();
+        $notificationService->checkLowVoucherNotifications($tenant);
+        $notificationService->checkNoVoucherNotifications($tenant);
+
+        return redirect()->intended(route('dashboard'))->with('success', 'Welcome back, ' . $tenant->name . '!');
     }
 
     /**
