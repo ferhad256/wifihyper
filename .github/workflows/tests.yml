@@ -67,7 +67,7 @@ jobs:
             # have a From or a Sender header". No successful send was
             # verifiable in CI until this was set.
             echo "MAIL_FROM_ADDRESS=ci@wifihyper.test"
-            echo "MAIL_FROM_NAME=WifiHyper CI"
+            echo "MAIL_FROM_NAME=WifiHyperCI"
             echo "BCRYPT_ROUNDS=4"
             echo "YO_PAYMENTS_IPN_ENABLED=false"
             echo "UG_SMS_USERNAME=test"
