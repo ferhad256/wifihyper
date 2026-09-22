@@ -159,6 +159,21 @@ class TenantLoginTest extends TestCase
         $this->assertFalse(Auth::guard('tenant')->check());
     }
 
+    /**
+     * Exercises the send path directly, so a failure reports the mailer's own
+     * error rather than only an empty outbox.
+     */
+    public function test_the_verification_service_can_actually_send(): void
+    {
+        $tenant = $this->activeTenant(['email_verified_at' => null]);
+        $this->flushSentMails();
+
+        $result = app(\App\Services\EmailVerificationService::class)->sendVerificationCode($tenant);
+
+        $this->assertTrue($result['success'], 'send failed: ' . ($result['message'] ?? 'no message'));
+        $this->assertCount(1, $this->sentMails(), $this->mailDiagnostics());
+    }
+
     public function test_signing_out_clears_the_guard(): void
     {
         $tenant = $this->activeTenant();
