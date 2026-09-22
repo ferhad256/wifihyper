@@ -9,13 +9,15 @@ use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 /**
- * Guards the planned move to a 'password' => 'hashed' cast.
+ * Guards the 'password' => 'hashed' cast on both models.
  *
- * Passwords are currently hashed by hand in three places (AuthController,
- * PasswordResetController, ProfileController). When the cast is added those
- * calls get deleted; if any is missed the password is hashed twice and the
- * account is silently locked out. Run this file before AND after that change
- * and require identical results.
+ * Passwords used to be hashed by hand in several controllers. With the cast
+ * doing it, a leftover manual Hash::make would hash twice and silently lock
+ * the account out - which is exactly what happened on the Admin model, where
+ * the cast was missing and a plain password reached the column instead.
+ *
+ * Password CHANGES are asserted in AccountPageTest (tenant) and
+ * AdminStaffResourceTest (admin), where those forms now live.
  */
 class PasswordHashingTest extends TestCase
 {
@@ -45,65 +47,6 @@ class PasswordHashingTest extends TestCase
             'Stored hash does not verify - the password was likely hashed twice.'
         );
     }
-
-    public function test_changing_the_password_stores_a_usable_hash(): void
-    {
-        $tenant = Tenant::factory()->create([
-            'password' => Hash::make(self::PASSWORD),
-        ]);
-
-        $this->loginAsTenant($tenant)->put('/profile/password', [
-            'current_password' => self::PASSWORD,
-            'new_password' => self::NEW_PASSWORD,
-            'new_password_confirmation' => self::NEW_PASSWORD,
-        ]);
-
-        $tenant->refresh();
-
-        $this->assertTrue(
-            Hash::check(self::NEW_PASSWORD, $tenant->password),
-            'New password hash does not verify - it was likely hashed twice.'
-        );
-        $this->assertFalse(
-            Hash::check(self::PASSWORD, $tenant->password),
-            'The old password still works after a password change.'
-        );
-        $this->assertNotNull($tenant->password_changed_at);
-    }
-
-    public function test_the_password_change_requires_the_current_password(): void
-    {
-        $tenant = Tenant::factory()->create([
-            'password' => Hash::make(self::PASSWORD),
-        ]);
-
-        $this->loginAsTenant($tenant)->put('/profile/password', [
-            'current_password' => 'not-the-current-password',
-            'new_password' => self::NEW_PASSWORD,
-            'new_password_confirmation' => self::NEW_PASSWORD,
-        ])->assertSessionHasErrors('current_password');
-
-        $tenant->refresh();
-
-        $this->assertTrue(
-            Hash::check(self::PASSWORD, $tenant->password),
-            'The password changed despite the wrong current password being supplied.'
-        );
-    }
-
-    public function test_the_new_password_must_differ_from_the_current_one(): void
-    {
-        $tenant = Tenant::factory()->create([
-            'password' => Hash::make(self::PASSWORD),
-        ]);
-
-        $this->loginAsTenant($tenant)->put('/profile/password', [
-            'current_password' => self::PASSWORD,
-            'new_password' => self::PASSWORD,
-            'new_password_confirmation' => self::PASSWORD,
-        ])->assertSessionHasErrors('new_password');
-    }
-
     public function test_the_factory_produces_a_usable_hash(): void
     {
         // The factory feeds the rest of the suite; if its hash stops verifying,

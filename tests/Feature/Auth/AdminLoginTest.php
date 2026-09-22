@@ -3,21 +3,33 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\Admin;
+use App\Models\Tenant;
+use Filament\Auth\Pages\Login;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * The admin guard already works correctly and is the reference implementation
- * the tenant side is being refactored towards. These tests exist to protect it
- * from the default-guard change that refactor introduces.
+ * Admin sign-in, now served by the admin panel.
+ *
+ * The properties that matter are unchanged: wrong credentials and an inactive
+ * account both fail, and neither guard leaks into the other.
  */
 class AdminLoginTest extends TestCase
 {
     use RefreshDatabase;
 
     private const PASSWORD = 'Str0ng!Passw0rd';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel('admin');
+    }
 
     private function admin(array $overrides = []): Admin
     {
@@ -26,93 +38,86 @@ class AdminLoginTest extends TestCase
         ], $overrides));
     }
 
+    private function attempt(string $email, string $password): \Livewire\Features\SupportTesting\Testable
+    {
+        return Livewire::test(Login::class)
+            ->fillForm(['email' => $email, 'password' => $password])
+            ->call('authenticate');
+    }
+
+    public function test_the_login_page_renders(): void
+    {
+        $this->get('/admin/login')->assertOk();
+    }
+
     public function test_valid_credentials_authenticate_on_the_admin_guard(): void
     {
         $admin = $this->admin();
 
-        $response = $this->post('/admin/login', [
-            'email' => $admin->email,
-            'password' => self::PASSWORD,
-        ]);
+        $this->attempt($admin->email, self::PASSWORD)->assertHasNoFormErrors();
 
-        $response->assertRedirect(route('admin.dashboard'));
         $this->assertTrue(Auth::guard('admin')->check());
         $this->assertSame($admin->id, Auth::guard('admin')->id());
     }
 
-    public function test_wrong_password_is_rejected(): void
+    public function test_a_wrong_password_is_rejected(): void
     {
         $admin = $this->admin();
 
-        $this->post('/admin/login', [
-            'email' => $admin->email,
-            'password' => 'Wr0ng!Passw0rd',
-        ])->assertSessionHasErrors('email');
+        $this->attempt($admin->email, 'Wr0ng!Passw0rd')->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('admin')->check());
     }
 
-    public function test_an_inactive_admin_cannot_log_in(): void
+    public function test_an_inactive_admin_cannot_sign_in(): void
     {
         $admin = $this->admin(['is_active' => false]);
 
-        $this->post('/admin/login', [
-            'email' => $admin->email,
-            'password' => self::PASSWORD,
-        ])->assertSessionHasErrors('email');
+        $this->attempt($admin->email, self::PASSWORD)->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('admin')->check());
     }
 
-    public function test_guests_cannot_reach_the_admin_dashboard(): void
+    public function test_guests_cannot_reach_the_console(): void
     {
-        $this->get('/admin')->assertRedirect(route('admin.login'));
+        $this->get('/admin')->assertRedirect('/admin/login');
     }
 
-    public function test_an_authenticated_admin_reaches_the_dashboard(): void
+    public function test_an_authenticated_admin_reaches_the_console(): void
     {
-        $admin = $this->admin();
-
-        $response = $this->actingAs($admin, 'admin')->get('/admin');
-
-        $this->assertNotSame(route('admin.login'), $response->headers->get('Location'));
+        $this->actingAs($this->admin(), 'admin')->get('/admin')->assertOk();
     }
 
-    public function test_a_regular_admin_cannot_reach_super_admin_routes(): void
+    public function test_a_regular_admin_cannot_reach_staff_management(): void
     {
-        $admin = $this->admin(['role' => 'admin']);
-
-        $this->actingAs($admin, 'admin')->get('/admin/register')->assertForbidden();
+        $this->actingAs($this->admin(['role' => 'admin']), 'admin')
+            ->get('/admin/admins')
+            ->assertForbidden();
     }
 
-    public function test_a_super_admin_can_reach_super_admin_routes(): void
+    public function test_a_super_admin_can_reach_staff_management(): void
     {
-        $admin = $this->admin(['role' => 'super_admin']);
-
-        $this->actingAs($admin, 'admin')->get('/admin/register')->assertOk();
+        $this->actingAs($this->admin(['role' => 'super_admin']), 'admin')
+            ->get('/admin/admins')
+            ->assertOk();
     }
 
-    public function test_logout_clears_the_admin_guard(): void
+    public function test_signing_out_clears_the_admin_guard(): void
     {
-        $admin = $this->admin();
-
-        $this->actingAs($admin, 'admin')
+        $this->actingAs($this->admin(), 'admin')
             ->post('/admin/logout')
-            ->assertRedirect(route('admin.login'));
+            ->assertRedirect();
 
         $this->assertFalse(Auth::guard('admin')->check());
     }
 
     /**
-     * A tenant session must never grant admin access, and vice versa. This is
-     * the property most likely to break when the tenant guard is introduced.
+     * The property most likely to break when two session guards coexist.
      */
-    public function test_a_tenant_session_does_not_grant_admin_access(): void
+    public function test_a_tenant_session_does_not_grant_console_access(): void
     {
-        $tenant = \App\Models\Tenant::factory()->create();
-
-        $this->loginAsTenant($tenant)
+        $this->actingAs(Tenant::factory()->create(), 'tenant')
             ->get('/admin')
-            ->assertRedirect(route('admin.login'));
+            ->assertRedirect('/admin/login');
     }
 }

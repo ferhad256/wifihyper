@@ -33,11 +33,10 @@ class TenantPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('tenant')
-            // NOT /dashboard: still served by the Blade dashboard routes.
-            ->path('app')
+            ->path('dashboard')
             ->authGuard('tenant')
             ->authPasswordBroker('tenants')
-            ->login()
+            ->login(\App\Filament\Tenant\Pages\Auth\Login::class)
             ->colors([
                 'primary' => Color::hex('#1C42E0'),
                 'gray' => Color::Stone,

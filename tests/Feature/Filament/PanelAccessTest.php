@@ -20,23 +20,23 @@ class PanelAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const TENANT_PANEL = '/app';
-    private const ADMIN_PANEL = '/console';
+    private const TENANT_PANEL = '/dashboard';
+    private const ADMIN_PANEL = '/admin';
 
     public function test_guests_are_sent_to_the_tenant_panel_login(): void
     {
-        $this->get(self::TENANT_PANEL)->assertRedirect('/app/login');
+        $this->get(self::TENANT_PANEL)->assertRedirect('/dashboard/login');
     }
 
     public function test_guests_are_sent_to_the_admin_panel_login(): void
     {
-        $this->get(self::ADMIN_PANEL)->assertRedirect('/console/login');
+        $this->get(self::ADMIN_PANEL)->assertRedirect('/admin/login');
     }
 
     public function test_both_panel_login_pages_render(): void
     {
-        $this->get('/app/login')->assertOk();
-        $this->get('/console/login')->assertOk();
+        $this->get('/dashboard/login')->assertOk();
+        $this->get('/admin/login')->assertOk();
     }
 
     public function test_a_tenant_can_reach_the_tenant_panel(): void
@@ -57,14 +57,14 @@ class PanelAccessTest extends TestCase
     {
         $this->actingAs(Tenant::factory()->create(), 'tenant')
             ->get(self::ADMIN_PANEL)
-            ->assertRedirect('/console/login');
+            ->assertRedirect('/admin/login');
     }
 
     public function test_an_admin_cannot_reach_the_tenant_panel(): void
     {
         $this->actingAs(Admin::factory()->create(), 'admin')
             ->get(self::TENANT_PANEL)
-            ->assertRedirect('/app/login');
+            ->assertRedirect('/dashboard/login');
     }
 
     public function test_a_deactivated_tenant_is_refused_the_tenant_panel(): void
@@ -89,13 +89,23 @@ class PanelAccessTest extends TestCase
     }
 
     /**
-     * The panels must not have taken over the URLs the Blade UI still serves.
+     * The URLs the Blade dashboard used for the life of the product are
+     * redirected rather than dropped, so existing bookmarks still land
+     * somewhere useful.
      */
-    public function test_the_existing_blade_routes_are_untouched(): void
+    public function test_the_old_dashboard_urls_redirect_into_the_panel(): void
     {
-        $this->get('/admin/login')->assertOk();
-        $this->get('/login')->assertOk();
-        $this->get('/dashboard')->assertRedirect(route('login'));
+        $this->assertSame(301, $this->get('/hotspots')->getStatusCode());
+
+        foreach ([
+            '/hotspots' => '/dashboard/hotspots',
+            '/vouchers' => '/dashboard/vouchers',
+            '/billing' => '/dashboard/transactions',
+            '/profile' => '/dashboard/account',
+            '/settings' => '/dashboard/account',
+        ] as $old => $new) {
+            $this->get($old)->assertRedirect($new);
+        }
     }
 
     /**

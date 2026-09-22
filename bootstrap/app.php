@@ -12,13 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
-            'auth.tenant' => \App\Http\Middleware\TenantAuth::class,
             'exclude.notifications' => \App\Http\Middleware\ExcludeNotifications::class,
             'security.headers' => \App\Http\Middleware\SecurityHeaders::class,
             'rate.limiting' => \App\Http\Middleware\RateLimiting::class,
             'input.sanitization' => \App\Http\Middleware\InputSanitization::class,
-            'auth.admin' => \App\Http\Middleware\AdminMiddleware::class,
-            'auth.super_admin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);
         
         // Apply security middleware globally

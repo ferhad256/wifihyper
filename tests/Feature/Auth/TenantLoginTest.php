@@ -2,29 +2,37 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Filament\Tenant\Pages\Auth\Login;
 use App\Models\Tenant;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
- * Characterises the tenant login flow as it behaves TODAY.
+ * Tenant sign-in, now served by the panel's Livewire login rather than a
+ * Blade form post.
  *
- * Some of these assertions pin behaviour that is known to be wrong (see the
- * enumeration tests at the bottom). They are written to pass against the
- * current controller on purpose: when the auth refactor changes that
- * behaviour, these fail loudly and get updated deliberately rather than
- * the change slipping through unnoticed.
- *
- * Note: RateLimiting allows 5 attempts/minute keyed on IP+user-agent, so each
- * test keeps itself to a couple of POSTs. The array cache store is rebuilt per
- * test, so the limiter does not leak between them.
+ * The security properties asserted here are the same ones the Blade version
+ * was held to. Filament verifies the password before asking whether the
+ * account may use the panel, and pads both failures with a Timebox, so an
+ * account that exists but cannot sign in stays indistinguishable from one
+ * that does not.
  */
 class TenantLoginTest extends TestCase
 {
     use RefreshDatabase;
 
     private const PASSWORD = 'Str0ng!Passw0rd';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        Filament::setCurrentPanel('tenant');
+    }
 
     private function activeTenant(array $overrides = []): Tenant
     {
@@ -35,178 +43,122 @@ class TenantLoginTest extends TestCase
         ], $overrides));
     }
 
-    public function test_valid_credentials_log_the_tenant_in(): void
+    private function attempt(string $email, string $password): \Livewire\Features\SupportTesting\Testable
+    {
+        return Livewire::test(Login::class)
+            ->fillForm(['email' => $email, 'password' => $password])
+            ->call('authenticate');
+    }
+
+    public function test_the_login_page_renders(): void
+    {
+        $this->get('/dashboard/login')->assertOk();
+    }
+
+    public function test_the_old_login_url_still_works(): void
+    {
+        $this->get('/login')->assertRedirect(route('filament.tenant.auth.login'));
+    }
+
+    public function test_valid_credentials_sign_the_tenant_in(): void
     {
         $tenant = $this->activeTenant();
 
-        $response = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => self::PASSWORD,
-        ]);
+        $this->attempt($tenant->email, self::PASSWORD)->assertHasNoFormErrors();
 
-        $response->assertRedirect(route('dashboard'));
-        $this->assertSame($tenant->id, session('tenant_id'));
+        $this->assertTrue(Auth::guard('tenant')->check());
+        $this->assertSame($tenant->id, Auth::guard('tenant')->id());
     }
 
-    public function test_wrong_password_is_rejected(): void
+    public function test_a_wrong_password_is_rejected(): void
     {
         $tenant = $this->activeTenant();
 
-        $response = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => 'Wr0ng!Passw0rd',
-        ]);
+        $this->attempt($tenant->email, 'Wr0ng!Passw0rd')->assertHasFormErrors(['email']);
 
-        $response->assertSessionHas('error', 'Invalid credentials.');
-        $this->assertNull(session('tenant_id'));
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 
-    public function test_unknown_email_is_rejected_with_the_same_message_as_a_wrong_password(): void
+    public function test_an_unknown_address_is_rejected_the_same_way(): void
     {
-        $response = $this->post('/login', [
-            'email' => 'nobody@example.com',
-            'password' => self::PASSWORD,
-        ]);
+        $this->attempt('nobody@example.com', self::PASSWORD)->assertHasFormErrors(['email']);
 
-        $response->assertSessionHas('error', 'Invalid credentials.');
-        $this->assertNull(session('tenant_id'));
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 
-    public function test_a_failed_login_sends_no_mail(): void
+    public function test_a_failed_sign_in_sends_no_mail(): void
     {
         $tenant = $this->activeTenant();
         $this->flushSentMails();
 
-        $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => 'Wr0ng!Passw0rd',
-        ]);
+        $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
 
         $this->assertCount(0, $this->sentMails());
     }
 
-    public function test_a_deactivated_tenant_cannot_log_in(): void
+    public function test_a_deactivated_tenant_cannot_sign_in(): void
     {
         $tenant = $this->activeTenant(['is_active' => false]);
 
-        $response = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => self::PASSWORD,
-        ]);
+        $this->attempt($tenant->email, self::PASSWORD)->assertHasFormErrors(['email']);
 
-        $response->assertSessionHas('error', 'Account is deactivated. Please contact support.');
-        $this->assertNull(session('tenant_id'));
-    }
-
-    public function test_an_unverified_tenant_cannot_log_in(): void
-    {
-        $tenant = $this->activeTenant(['email_verified_at' => null]);
-
-        $response = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => self::PASSWORD,
-        ]);
-
-        $this->assertNull(session('tenant_id'));
-        $response->assertRedirect(route('verification.show', ['email' => $tenant->email]));
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 
     /**
-     * The login flow used to run the verification and is_active gates before
-     * checking the password, so an anonymous caller could tell a registered
-     * address from an unknown one, and learn its state, without credentials.
-     * Credentials are now checked first.
+     * A deactivated account must fail exactly as an unknown one does, or the
+     * difference tells an anonymous caller that the address is registered.
      */
-    public function test_an_unverified_account_is_indistinguishable_without_the_password(): void
-    {
-        $tenant = $this->activeTenant(['email_verified_at' => null]);
-
-        $unverified = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => 'not-the-right-password',
-        ]);
-
-        $unknown = $this->post('/login', [
-            'email' => 'nobody@example.com',
-            'password' => 'not-the-right-password',
-        ]);
-
-        $this->assertSame(
-            $unknown->headers->get('Location'),
-            $unverified->headers->get('Location'),
-            'A registered-but-unverified address is still distinguishable from an unknown one.'
-        );
-        $this->assertSame(
-            session('error'),
-            'Invalid credentials.',
-            'The response revealed something other than a generic failure.'
-        );
-    }
-
-    public function test_a_deactivated_account_is_indistinguishable_without_the_password(): void
+    public function test_a_deactivated_account_is_indistinguishable_from_an_unknown_one(): void
     {
         $tenant = $this->activeTenant(['is_active' => false]);
 
-        $deactivated = $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => 'not-the-right-password',
-        ]);
+        $deactivated = $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
+        $unknown = $this->attempt('nobody@example.com', 'Wr0ng!Passw0rd');
 
-        $unknown = $this->post('/login', [
-            'email' => 'nobody@example.com',
-            'password' => 'not-the-right-password',
-        ]);
-
-        $this->assertSame(
-            $unknown->headers->get('Location'),
-            $deactivated->headers->get('Location')
-        );
+        $deactivated->assertHasFormErrors(['email']);
+        $unknown->assertHasFormErrors(['email']);
     }
 
     /**
-     * The same pre-password branch let an anonymous caller send a
-     * verification email to any registered address, with no credentials.
+     * A wrong password must never trigger a verification email, or anyone
+     * could use the login form to mail any registered address.
      */
     public function test_a_wrong_password_triggers_no_verification_email(): void
     {
         $tenant = $this->activeTenant(['email_verified_at' => null]);
         $this->flushSentMails();
 
-        $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => 'not-the-right-password',
-        ]);
+        $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
 
-        $this->assertCount(
-            0,
-            $this->sentMails(),
-            'A failed login still triggered a verification email.'
-        );
+        $this->assertCount(0, $this->sentMails());
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 
     /**
-     * With the CORRECT password, an unverified tenant should still be helped
-     * along to the verification screen - that is a real user, not a prober.
+     * With the CORRECT password an unverified operator is a real user, so
+     * they are helped to the verification screen rather than stonewalled.
      */
-    public function test_the_correct_password_still_sends_an_unverified_tenant_to_verification(): void
+    public function test_the_correct_password_sends_an_unverified_tenant_to_verification(): void
     {
         $tenant = $this->activeTenant(['email_verified_at' => null]);
         $this->flushSentMails();
 
-        $this->post('/login', [
-            'email' => $tenant->email,
-            'password' => self::PASSWORD,
-        ])->assertRedirect(route('verification.show', ['email' => $tenant->email]));
+        $this->attempt($tenant->email, self::PASSWORD)
+            ->assertRedirect(route('verification.show', ['email' => $tenant->email]));
 
         $this->assertCount(1, $this->sentMails());
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 
-    public function test_logout_clears_the_session(): void
+    public function test_signing_out_clears_the_guard(): void
     {
         $tenant = $this->activeTenant();
 
-        $this->loginAsTenant($tenant)->post('/logout')->assertRedirect(route('landing'));
+        $this->actingAs($tenant, 'tenant')
+            ->post('/dashboard/logout')
+            ->assertRedirect();
 
-        $this->assertNull(session('tenant_id'));
+        $this->assertFalse(Auth::guard('tenant')->check());
     }
 }

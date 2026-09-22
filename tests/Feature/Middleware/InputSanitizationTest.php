@@ -71,7 +71,7 @@ class InputSanitizationTest extends TestCase
 
     public function test_filament_panel_paths_pass_through_untouched(): void
     {
-        foreach (['/app/login', '/console/login'] as $uri) {
+        foreach (['/dashboard/login', '/admin/login'] as $uri) {
             $received = $this->pipe($this->jsonRequest($uri, ['quote' => 'He said "hi"']));
 
             $this->assertSame(

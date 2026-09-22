@@ -34,7 +34,7 @@ class AdminStaffResourceTest extends TestCase
     {
         $this->asSuperAdmin();
 
-        $this->get('/console/admins')->assertOk();
+        $this->get('/admin/admins')->assertOk();
     }
 
     /**
@@ -44,7 +44,7 @@ class AdminStaffResourceTest extends TestCase
     {
         $this->actingAs(Admin::factory()->create(['role' => 'admin']), 'admin');
 
-        $this->get('/console/admins')->assertForbidden();
+        $this->get('/admin/admins')->assertForbidden();
     }
 
     public function test_the_resource_is_hidden_from_a_regular_admin(): void

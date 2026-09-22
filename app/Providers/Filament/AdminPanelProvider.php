@@ -24,10 +24,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->id('admin')
-            // NOT /admin: that path is still served by the Blade admin routes
-            // in routes/web.php. This moves to 'admin' once those are retired,
-            // with redirects from the old URLs.
-            ->path('console')
+            ->path('admin')
             ->authGuard('admin')
             ->authPasswordBroker('admins')
             ->login()

@@ -35,7 +35,7 @@ class AdminTenantResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/console/tenants')->assertOk();
+        $this->get('/admin/tenants')->assertOk();
     }
 
     /**
@@ -139,7 +139,7 @@ class AdminTenantResourceTest extends TestCase
         Auth::guard('admin')->logout();
 
         $this->actingAs(Tenant::factory()->create(), 'tenant')
-            ->get('/console/tenants')
-            ->assertRedirect('/console/login');
+            ->get('/admin/tenants')
+            ->assertRedirect('/admin/login');
     }
 }

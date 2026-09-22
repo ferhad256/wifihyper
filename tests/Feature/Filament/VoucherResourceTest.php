@@ -35,7 +35,7 @@ class VoucherResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/app/vouchers')->assertOk();
+        $this->get('/dashboard/vouchers')->assertOk();
     }
 
     /**

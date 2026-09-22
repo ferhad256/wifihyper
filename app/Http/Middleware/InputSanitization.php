@@ -25,8 +25,8 @@ class InputSanitization
      */
     protected array $except = [
         'livewire/*',
-        'app/*',
-        'console/*',
+        'dashboard/*',
+        'admin/*',
     ];
 
     /**

@@ -33,7 +33,7 @@ class HotspotResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/app/hotspots')->assertOk();
+        $this->get('/dashboard/hotspots')->assertOk();
     }
 
     public function test_only_the_signed_in_tenants_hotspots_are_listed(): void
@@ -80,7 +80,7 @@ class HotspotResourceTest extends TestCase
     {
         $theirs = Hotspot::factory()->for($this->bob, 'tenant')->create();
 
-        $this->get("/app/hotspots/{$theirs->id}/edit")->assertNotFound();
+        $this->get("/dashboard/hotspots/{$theirs->id}/edit")->assertNotFound();
     }
 
     public function test_a_package_can_be_added_through_the_relation_manager(): void

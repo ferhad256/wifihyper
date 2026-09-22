@@ -28,7 +28,7 @@ class TransactionResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/app/transactions')->assertOk();
+        $this->get('/dashboard/transactions')->assertOk();
     }
 
     public function test_only_the_signed_in_tenants_sales_are_listed(): void
@@ -56,7 +56,7 @@ class TransactionResourceTest extends TestCase
 
     public function test_there_is_no_create_or_edit_route(): void
     {
-        $this->get('/app/transactions/create')->assertNotFound();
+        $this->get('/dashboard/transactions/create')->assertNotFound();
     }
 
     public function test_sales_can_be_filtered_by_status(): void

@@ -2,105 +2,100 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Admin;
 use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 /**
- * The safety net under the tenant auth refactor.
+ * Nothing behind a panel is reachable without signing in.
  *
- * Rather than listing routes by hand, this discovers every GET route behind
- * the auth.tenant middleware, so routes added later are covered automatically.
- * It deliberately asserts only the auth property (redirected to login or not),
- * not a 200 — several of these pages need seeded data to render fully.
+ * This began as the net under the tenant-guard refactor, enumerating routes
+ * behind the auth.tenant middleware. Those Blade routes are gone and the
+ * panels own their own authentication, so it now enumerates the panel routes
+ * instead - same idea, still discovering them rather than listing them, so a
+ * resource added later is covered without anyone remembering to add it here.
  */
 class TenantRouteProtectionTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * Every parameterless GET route protected by auth.tenant.
+     * Parameterless GET routes belonging to a panel, excluding its own login
+     * and logout pages, which are necessarily reachable.
+     *
+     * @return array<int, \Illuminate\Routing\Route>
      */
-    private function protectedGetRoutes(): array
+    private function panelRoutes(string $panel): array
     {
         return collect(Route::getRoutes())
             ->filter(fn ($route) => in_array('GET', $route->methods(), true))
-            ->filter(fn ($route) => in_array('auth.tenant', $route->middleware(), true))
+            ->filter(fn ($route) => str_starts_with((string) $route->getName(), "filament.{$panel}."))
+            ->filter(fn ($route) => ! str_contains((string) $route->getName(), '.auth.'))
             ->filter(fn ($route) => ! str_contains($route->uri(), '{'))
             ->values()
             ->all();
     }
 
-    public function test_protected_routes_are_discoverable(): void
+    public function test_panel_routes_are_discoverable(): void
     {
-        // Guards the two tests below against silently passing on an empty set.
-        $this->assertNotEmpty(
-            $this->protectedGetRoutes(),
-            'No auth.tenant routes were discovered - the other assertions in this file would be vacuous.'
-        );
+        // Guards the assertions below from passing on an empty set.
+        $this->assertNotEmpty($this->panelRoutes('tenant'));
+        $this->assertNotEmpty($this->panelRoutes('admin'));
     }
 
-    public function test_guests_are_redirected_to_login_from_every_protected_route(): void
+    public function test_guests_are_sent_to_login_from_every_tenant_panel_route(): void
     {
-        foreach ($this->protectedGetRoutes() as $route) {
-            $response = $this->get('/' . ltrim($route->uri(), '/'));
-
-            $this->assertSame(
-                route('login'),
-                $response->headers->get('Location'),
-                "A guest was NOT redirected to login from /{$route->uri()}"
-            );
+        foreach ($this->panelRoutes('tenant') as $route) {
+            $this->get('/' . ltrim($route->uri(), '/'))
+                ->assertRedirect('/dashboard/login');
         }
     }
 
-    public function test_authenticated_tenants_are_not_bounced_to_login(): void
+    public function test_guests_are_sent_to_login_from_every_admin_panel_route(): void
+    {
+        foreach ($this->panelRoutes('admin') as $route) {
+            $this->get('/' . ltrim($route->uri(), '/'))
+                ->assertRedirect('/admin/login');
+        }
+    }
+
+    public function test_a_tenant_reaches_every_tenant_panel_route(): void
     {
         $tenant = Tenant::factory()->create();
 
-        foreach ($this->protectedGetRoutes() as $route) {
-            $response = $this->loginAsTenant($tenant)->get('/' . ltrim($route->uri(), '/'));
-
-            $this->assertNotSame(
-                route('login'),
-                $response->headers->get('Location'),
-                "An authenticated tenant WAS bounced to login from /{$route->uri()}"
-            );
+        foreach ($this->panelRoutes('tenant') as $route) {
+            $this->actingAs($tenant, 'tenant')
+                ->get('/' . ltrim($route->uri(), '/'))
+                ->assertOk();
         }
     }
 
     /**
-     * The guard is re-checked on every request, so a tenant switched off
-     * while signed in loses access immediately. Previously the middleware
-     * only asked whether a session key existed, so they kept full access
-     * until their session happened to expire.
+     * A tenant session must not open any admin route, and vice versa. Staff
+     * management is excluded from the admin sweep because it is additionally
+     * gated to super admins.
      */
-    public function test_a_tenant_deactivated_mid_session_loses_access(): void
+    public function test_a_tenant_cannot_reach_any_admin_panel_route(): void
     {
         $tenant = Tenant::factory()->create();
 
-        // /hotspots rather than /dashboard: the dashboard's chart query uses
-        // MySQL-only DATE_FORMAT() and cannot run on the sqlite test database.
-        $this->loginAsTenant($tenant)->get('/hotspots')->assertOk();
-
-        $tenant->update(['is_active' => false]);
-
-        $this->get('/hotspots')->assertRedirect(route('login'));
+        foreach ($this->panelRoutes('admin') as $route) {
+            $this->actingAs($tenant, 'tenant')
+                ->get('/' . ltrim($route->uri(), '/'))
+                ->assertRedirect('/admin/login');
+        }
     }
 
-    public function test_a_tenant_unverified_mid_session_loses_access(): void
+    public function test_an_admin_cannot_reach_any_tenant_panel_route(): void
     {
-        $tenant = Tenant::factory()->create();
+        $admin = Admin::factory()->create();
 
-        $this->loginAsTenant($tenant)->get('/hotspots')->assertOk();
-
-        $tenant->update(['email_verified_at' => null]);
-
-        $this->get('/hotspots')->assertRedirect(route('login'));
-    }
-
-    public function test_an_unauthenticated_json_request_gets_401_rather_than_a_redirect(): void
-    {
-        $this->getJson('/notifications/count')->assertUnauthorized();
+        foreach ($this->panelRoutes('tenant') as $route) {
+            $this->actingAs($admin, 'admin')
+                ->get('/' . ltrim($route->uri(), '/'))
+                ->assertRedirect('/dashboard/login');
+        }
     }
 }

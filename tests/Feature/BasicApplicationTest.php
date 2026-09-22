@@ -31,13 +31,12 @@ class BasicApplicationTest extends TestCase
     }
 
     /**
-     * Test that login page is accessible.
+     * /login is kept as a redirect to the panel's sign-in page, so old
+     * bookmarks and every route('login') reference keep working.
      */
-    public function test_login_page_is_accessible()
+    public function test_the_login_url_redirects_to_the_panel()
     {
-        $response = $this->get('/login');
-        
-        $response->assertStatus(200);
+        $this->get('/login')->assertRedirect(route('filament.tenant.auth.login'));
     }
 
     /**

@@ -45,7 +45,7 @@ class AdminWithdrawalResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/console/withdrawal-transactions')->assertOk();
+        $this->get('/admin/withdrawal-transactions')->assertOk();
     }
 
     public function test_approving_deducts_the_amount_from_the_wallet(): void

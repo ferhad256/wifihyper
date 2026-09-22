@@ -17,6 +17,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\Unique;
 
 class PackagesRelationManager extends RelationManager
@@ -24,6 +26,20 @@ class PackagesRelationManager extends RelationManager
     protected static string $relationship = 'packages';
 
     protected static ?string $title = 'Packages';
+
+    /**
+     * Refuse to operate on a hotspot this tenant does not own.
+     *
+     * In the normal flow the parent page already 404s on someone else's
+     * hotspot, so this never fires. It exists because a Livewire component is
+     * addressable in its own right, and packages carry no tenant_id of their
+     * own - ownership is only ever transitive through the hotspot, so this is
+     * the one place it can be asserted directly.
+     */
+    public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
+    {
+        return $ownerRecord->tenant_id === Auth::guard('tenant')->id();
+    }
 
     public function form(Schema $schema): Schema
     {

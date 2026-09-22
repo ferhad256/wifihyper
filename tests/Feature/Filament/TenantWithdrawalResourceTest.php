@@ -46,7 +46,7 @@ class TenantWithdrawalResourceTest extends TestCase
 
     public function test_the_list_page_loads(): void
     {
-        $this->get('/app/withdrawal-transactions')->assertOk();
+        $this->get('/dashboard/withdrawal-transactions')->assertOk();
     }
 
     public function test_only_the_signed_in_tenants_withdrawals_are_listed(): void

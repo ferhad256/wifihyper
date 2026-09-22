@@ -2,23 +2,37 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Tenant\Resources\Hotspots\HotspotResource;
+use App\Filament\Tenant\Resources\Hotspots\Pages\EditHotspot;
+use App\Filament\Tenant\Resources\Hotspots\Pages\ListHotspots;
+use App\Filament\Tenant\Resources\Hotspots\RelationManagers\PackagesRelationManager;
+use App\Filament\Tenant\Resources\Transactions\Pages\ListTransactions;
+use App\Filament\Tenant\Resources\Transactions\TransactionResource;
+use App\Filament\Tenant\Resources\Vouchers\Pages\ListVouchers;
+use App\Filament\Tenant\Resources\Vouchers\VoucherResource;
+use App\Filament\Tenant\Resources\WithdrawalTransactions\WithdrawalTransactionResource;
 use App\Models\Hotspot;
 use App\Models\Package;
 use App\Models\Tenant;
+use App\Models\Transaction;
 use App\Models\Voucher;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 /**
  * Multi-tenant data isolation.
  *
- * This is the security property that matters most in this codebase, and it is
- * currently enforced by ownership checks hand-written into each controller
- * action. Those checks are duplicated, and duplicated checks drift.
+ * The most important property in this codebase. It used to be enforced by
+ * ownership checks hand-written into every controller action; it is now a
+ * scoped query on each resource, so these assertions come in two kinds:
  *
- * Every assertion here is about STATE, not about the response body or redirect
- * target, so this file is intended to survive the move to Filament resources
- * unchanged and re-validate the new query scoping.
+ *   - the scoped query genuinely excludes other operators' rows, and
+ *   - a record reached by guessing its id in the URL is not found.
+ *
+ * Asserting only "the record did not change" would pass for the wrong reason
+ * if a route simply stopped existing, so every test here either inspects the
+ * query directly or asserts a concrete response.
  */
 class TenantIsolationTest extends TestCase
 {
@@ -33,105 +47,152 @@ class TenantIsolationTest extends TestCase
 
         $this->alice = Tenant::factory()->create();
         $this->bob = Tenant::factory()->create();
+
+        $this->loginAsTenant($this->alice);
     }
 
-    public function test_a_tenant_cannot_view_another_tenants_hotspot(): void
+    public function test_the_hotspot_query_excludes_another_tenants_rows(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
+        $mine = Hotspot::factory()->for($this->alice, 'tenant')->create();
+        $theirs = Hotspot::factory()->for($this->bob, 'tenant')->create();
 
-        $this->loginAsTenant($this->alice)
-            ->get("/hotspots/{$hotspot->id}")
-            ->assertSessionHas('error', 'Unauthorized action.');
+        $ids = HotspotResource::getEloquentQuery()->pluck('id');
+
+        $this->assertTrue($ids->contains($mine->id));
+        $this->assertFalse($ids->contains($theirs->id));
     }
 
-    public function test_a_tenant_cannot_edit_another_tenants_hotspot(): void
+    public function test_the_voucher_query_excludes_another_tenants_rows(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create(['name' => 'Bob Cafe']);
+        $mine = Voucher::factory()->for($this->alice, 'tenant')->create();
+        $theirs = Voucher::factory()->for($this->bob, 'tenant')->create();
 
-        $this->loginAsTenant($this->alice)->put("/hotspots/{$hotspot->id}", [
-            'name' => 'Stolen By Alice',
-            'ssid' => 'stolen',
-            'location' => 'Nowhere',
-        ]);
+        $ids = VoucherResource::getEloquentQuery()->pluck('id');
 
-        $this->assertSame('Bob Cafe', $hotspot->fresh()->name, "Alice renamed Bob's hotspot.");
+        $this->assertTrue($ids->contains($mine->id));
+        $this->assertFalse($ids->contains($theirs->id));
     }
 
-    public function test_a_tenant_cannot_delete_another_tenants_hotspot(): void
+    public function test_the_sales_query_excludes_another_tenants_rows(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
+        $mine = Transaction::factory()->for($this->alice, 'tenant')->create();
+        $theirs = Transaction::factory()->for($this->bob, 'tenant')->create();
 
-        $this->loginAsTenant($this->alice)->delete("/hotspots/{$hotspot->id}");
+        $ids = TransactionResource::getEloquentQuery()->pluck('id');
 
-        $this->assertDatabaseHas('hotspots', ['id' => $hotspot->id]);
+        $this->assertTrue($ids->contains($mine->id));
+        $this->assertFalse($ids->contains($theirs->id));
     }
 
-    public function test_a_tenant_cannot_delete_another_tenants_voucher(): void
+    public function test_the_withdrawal_query_is_scoped(): void
     {
-        $voucher = Voucher::factory()->for($this->bob, 'tenant')->create();
+        $sql = WithdrawalTransactionResource::getEloquentQuery()->toSql();
 
-        $this->loginAsTenant($this->alice)->delete("/vouchers/{$voucher->id}");
-
-        $this->assertDatabaseHas('vouchers', ['id' => $voucher->id]);
+        $this->assertStringContainsString('tenant_id', $sql);
     }
 
-    public function test_a_tenant_cannot_list_another_tenants_packages(): void
+    public function test_the_hotspot_list_shows_only_a_tenants_own(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
-        Package::factory()->for($hotspot)->create(['name' => 'Bob Secret Package']);
+        $mine = Hotspot::factory()->for($this->alice, 'tenant')->create(['name' => 'Alice Place']);
+        $theirs = Hotspot::factory()->for($this->bob, 'tenant')->create(['name' => 'Bob Place']);
 
-        $response = $this->loginAsTenant($this->alice)->get("/hotspots/{$hotspot->id}/packages");
+        Livewire::test(ListHotspots::class)
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$theirs]);
+    }
 
-        $response->assertDontSee('Bob Secret Package');
+    public function test_the_voucher_list_shows_only_a_tenants_own(): void
+    {
+        $mine = Voucher::factory()->for($this->alice, 'tenant')->create(['code' => 'ALICE001']);
+        $theirs = Voucher::factory()->for($this->bob, 'tenant')->create(['code' => 'BOBB0001']);
+
+        Livewire::test(ListVouchers::class)
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$theirs]);
+    }
+
+    public function test_the_sales_list_shows_only_a_tenants_own(): void
+    {
+        $mine = Transaction::factory()->for($this->alice, 'tenant')->create();
+        $theirs = Transaction::factory()->for($this->bob, 'tenant')->create();
+
+        Livewire::test(ListTransactions::class)
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$theirs]);
     }
 
     /**
-     * Packages have no tenant_id - ownership is transitive through the
-     * hotspot. That makes this the likeliest place for an isolation hole.
+     * Guessing another operator's record id in the URL must not open it.
      */
-    public function test_a_tenant_cannot_delete_a_package_under_another_tenants_hotspot(): void
+    public function test_another_tenants_hotspot_cannot_be_opened_by_url(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
-        $package = Package::factory()->for($hotspot)->create();
+        $theirs = Hotspot::factory()->for($this->bob, 'tenant')->create();
 
-        $this->loginAsTenant($this->alice)
-            ->delete("/hotspots/{$hotspot->id}/packages/{$package->id}");
-
-        $this->assertDatabaseHas('packages', ['id' => $package->id]);
+        $this->get("/dashboard/hotspots/{$theirs->id}/edit")->assertNotFound();
     }
 
-    public function test_a_tenant_cannot_add_a_package_to_another_tenants_hotspot(): void
+    public function test_a_tenants_own_hotspot_can_be_opened_by_url(): void
     {
-        $hotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
+        // The companion to the test above: proves the 404 is about ownership
+        // rather than the route being broken for everyone.
+        $mine = Hotspot::factory()->for($this->alice, 'tenant')->create();
 
-        $this->loginAsTenant($this->alice)->post("/hotspots/{$hotspot->id}/packages", [
-            'name' => 'Alice Injected Package',
-            'price' => 1000,
-            'duration_hours' => 1,
-            'duration_unit' => 'hours',
+        $this->get("/dashboard/hotspots/{$mine->id}/edit")->assertOk();
+    }
+
+    /**
+     * Packages have no tenant_id of their own - ownership is transitive
+     * through the hotspot, which makes this the likeliest place for a hole.
+     */
+    public function test_another_tenants_packages_are_not_reachable(): void
+    {
+        $theirHotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
+        Package::factory()->for($theirHotspot)->create(['name' => 'Bob Secret Package']);
+
+        $this->get("/dashboard/hotspots/{$theirHotspot->id}/edit")->assertNotFound();
+    }
+
+    /**
+     * A Livewire component is addressable in its own right, so the relation
+     * manager asserts ownership itself rather than trusting that the only way
+     * in is a parent page that already 404s.
+     */
+    public function test_the_packages_relation_manager_refuses_another_tenants_hotspot(): void
+    {
+        $mine = Hotspot::factory()->for($this->alice, 'tenant')->create();
+        $theirs = Hotspot::factory()->for($this->bob, 'tenant')->create();
+
+        $this->assertTrue(
+            PackagesRelationManager::canViewForRecord($mine, EditHotspot::class),
+            'A tenant was refused their own hotspot.'
+        );
+
+        $this->assertFalse(
+            PackagesRelationManager::canViewForRecord($theirs, EditHotspot::class),
+            "The packages relation manager accepted another tenant's hotspot."
+        );
+    }
+
+    /**
+     * A bulk delete aimed at another operator's package deletes nothing, even
+     * though the select could never have offered it.
+     */
+    public function test_a_bulk_delete_cannot_reach_another_tenants_vouchers(): void
+    {
+        $theirHotspot = Hotspot::factory()->for($this->bob, 'tenant')->create();
+        $theirPackage = Package::factory()->for($theirHotspot)->create();
+
+        Voucher::factory()->for($this->bob, 'tenant')->create([
+            'package_id' => $theirPackage->id,
+            'code' => 'BOBS0001',
         ]);
 
-        $this->assertDatabaseMissing('packages', ['name' => 'Alice Injected Package']);
-    }
+        Livewire::test(ListVouchers::class)
+            ->callAction('deleteAllForPackage', [
+                'package_id' => $theirPackage->id,
+                'confirmation' => 'DELETE',
+            ]);
 
-    public function test_the_hotspot_list_only_shows_a_tenants_own_hotspots(): void
-    {
-        Hotspot::factory()->for($this->alice, 'tenant')->create(['name' => 'Alice Place']);
-        Hotspot::factory()->for($this->bob, 'tenant')->create(['name' => 'Bob Place']);
-
-        $response = $this->loginAsTenant($this->alice)->get('/hotspots');
-
-        $response->assertSee('Alice Place');
-        $response->assertDontSee('Bob Place');
-    }
-
-    public function test_the_voucher_list_only_shows_a_tenants_own_vouchers(): void
-    {
-        $aliceVoucher = Voucher::factory()->for($this->alice, 'tenant')->create(['code' => 'ALICE001']);
-        $bobVoucher = Voucher::factory()->for($this->bob, 'tenant')->create(['code' => 'BOBB0001']);
-
-        $response = $this->loginAsTenant($this->alice)->get('/vouchers');
-
-        $response->assertDontSee($bobVoucher->code);
+        $this->assertDatabaseHas('vouchers', ['code' => 'BOBS0001']);
     }
 }

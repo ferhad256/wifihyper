@@ -33,7 +33,7 @@ class AccountPageTest extends TestCase
 
     public function test_the_page_loads(): void
     {
-        $this->get('/app/account')->assertOk();
+        $this->get('/dashboard/account')->assertOk();
     }
 
     public function test_profile_details_can_be_saved(): void
