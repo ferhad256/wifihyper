@@ -64,8 +64,8 @@ class AdminStaffResourceTest extends TestCase
             ->fillForm([
                 'name' => 'New Operator',
                 'email' => 'newstaff@example.com',
-                'password' => 'Str0ng!Passw0rd',
-                'password_confirmation' => 'Str0ng!Passw0rd',
+                'password' => self::fixturePassword(),
+                'password_confirmation' => self::fixturePassword(),
                 'role' => 'admin',
             ])
             ->call('create')
@@ -86,15 +86,15 @@ class AdminStaffResourceTest extends TestCase
             ->fillForm([
                 'name' => 'New Operator',
                 'email' => 'newstaff@example.com',
-                'password' => 'Str0ng!Passw0rd',
-                'password_confirmation' => 'Str0ng!Passw0rd',
+                'password' => self::fixturePassword(),
+                'password_confirmation' => self::fixturePassword(),
                 'role' => 'admin',
             ])
             ->call('create');
 
         $admin = Admin::where('email', 'newstaff@example.com')->first();
 
-        $this->assertTrue(Hash::check('Str0ng!Passw0rd', $admin->password));
+        $this->assertTrue(Hash::check(self::fixturePassword(), $admin->password));
     }
 
     public function test_a_mismatched_password_confirmation_is_rejected(): void
@@ -105,8 +105,8 @@ class AdminStaffResourceTest extends TestCase
             ->fillForm([
                 'name' => 'New Operator',
                 'email' => 'newstaff@example.com',
-                'password' => 'Str0ng!Passw0rd',
-                'password_confirmation' => 'something-else',
+                'password' => self::fixturePassword(),
+                'password_confirmation' => self::fixturePassword('other'),
                 'role' => 'admin',
             ])
             ->call('create')

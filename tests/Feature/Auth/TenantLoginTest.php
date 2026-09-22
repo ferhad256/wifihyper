@@ -25,8 +25,6 @@ class TenantLoginTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const PASSWORD = 'Str0ng!Passw0rd';
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,7 +35,7 @@ class TenantLoginTest extends TestCase
     private function activeTenant(array $overrides = []): Tenant
     {
         return Tenant::factory()->create(array_merge([
-            'password' => Hash::make(self::PASSWORD),
+            'password' => Hash::make(self::fixturePassword()),
             'email_verified_at' => now(),
             'is_active' => true,
         ], $overrides));
@@ -64,7 +62,7 @@ class TenantLoginTest extends TestCase
     {
         $tenant = $this->activeTenant();
 
-        $this->attempt($tenant->email, self::PASSWORD)->assertHasNoFormErrors();
+        $this->attempt($tenant->email, self::fixturePassword())->assertHasNoFormErrors();
 
         $this->assertTrue(Auth::guard('tenant')->check());
         $this->assertSame($tenant->id, Auth::guard('tenant')->id());
@@ -74,14 +72,14 @@ class TenantLoginTest extends TestCase
     {
         $tenant = $this->activeTenant();
 
-        $this->attempt($tenant->email, 'Wr0ng!Passw0rd')->assertHasFormErrors(['email']);
+        $this->attempt($tenant->email, self::fixturePassword('wrong'))->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('tenant')->check());
     }
 
     public function test_an_unknown_address_is_rejected_the_same_way(): void
     {
-        $this->attempt('nobody@example.com', self::PASSWORD)->assertHasFormErrors(['email']);
+        $this->attempt('nobody@example.com', self::fixturePassword())->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('tenant')->check());
     }
@@ -91,7 +89,7 @@ class TenantLoginTest extends TestCase
         $tenant = $this->activeTenant();
         $this->flushSentMails();
 
-        $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
+        $this->attempt($tenant->email, self::fixturePassword('wrong'));
 
         $this->assertCount(0, $this->sentMails());
     }
@@ -100,7 +98,7 @@ class TenantLoginTest extends TestCase
     {
         $tenant = $this->activeTenant(['is_active' => false]);
 
-        $this->attempt($tenant->email, self::PASSWORD)->assertHasFormErrors(['email']);
+        $this->attempt($tenant->email, self::fixturePassword())->assertHasFormErrors(['email']);
 
         $this->assertFalse(Auth::guard('tenant')->check());
     }
@@ -113,8 +111,8 @@ class TenantLoginTest extends TestCase
     {
         $tenant = $this->activeTenant(['is_active' => false]);
 
-        $deactivated = $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
-        $unknown = $this->attempt('nobody@example.com', 'Wr0ng!Passw0rd');
+        $deactivated = $this->attempt($tenant->email, self::fixturePassword('wrong'));
+        $unknown = $this->attempt('nobody@example.com', self::fixturePassword('wrong'));
 
         $deactivated->assertHasFormErrors(['email']);
         $unknown->assertHasFormErrors(['email']);
@@ -129,7 +127,7 @@ class TenantLoginTest extends TestCase
         $tenant = $this->activeTenant(['email_verified_at' => null]);
         $this->flushSentMails();
 
-        $this->attempt($tenant->email, 'Wr0ng!Passw0rd');
+        $this->attempt($tenant->email, self::fixturePassword('wrong'));
 
         $this->assertCount(0, $this->sentMails());
         $this->assertFalse(Auth::guard('tenant')->check());
@@ -152,7 +150,7 @@ class TenantLoginTest extends TestCase
                 . ' cached=' . var_export(\Illuminate\Support\Facades\Cache::get("email_verification_{$tenant->id}"), true)
         );
 
-        $this->attempt($tenant->email, self::PASSWORD)
+        $this->attempt($tenant->email, self::fixturePassword())
             ->assertRedirect(route('verification.show', ['email' => $tenant->email]));
 
         $this->assertCount(1, $this->sentMails(), $this->mailDiagnostics());
