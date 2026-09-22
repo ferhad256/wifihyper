@@ -49,11 +49,9 @@ jobs:
         run: php artisan key:generate
 
       - name: Configure testing environment
-        # PREPENDED, not appended. PHP Dotenv is immutable - the FIRST
-        # definition of a key wins - so appending these after the values
-        # copied from .env.example left them inert. MAIL_MAILER stayed
-        # "resend" with an empty key, so every send failed silently and any
-        # test asserting "no mail was sent" passed for the wrong reason.
+        # Appended, so these override the values copied from .env.example.
+        # CACHE_STORE, not CACHE_DRIVER: Laravel 11+ reads CACHE_STORE, so the
+        # old key was inert and the cache silently fell back to the database.
         run: |
           {
             echo "APP_ENV=testing"
@@ -69,13 +67,7 @@ jobs:
             echo "UG_SMS_PASSWORD=test"
             echo "YO_PAYMENTS_USERNAME=test"
             echo "YO_PAYMENTS_PASSWORD=test"
-            cat .env
-          } > .env.testing
-          mv .env.testing .env
-          echo "--- effective settings (first definition of each key wins) ---"
-          grep -m1 -E '^MAIL_MAILER=' .env
-          grep -m1 -E '^CACHE_STORE=' .env
-          grep -m1 -E '^DB_CONNECTION=' .env
+          } >> .env
 
       - name: Create storage directories
         run: |
