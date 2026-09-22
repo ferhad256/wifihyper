@@ -43,6 +43,8 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\Filament\Admin\Widgets')
             ->widgets([
                 AccountWidget::class,
+                \App\Filament\Admin\Widgets\PlatformOverview::class,
+                \App\Filament\Admin\Widgets\RevenueChart::class,
             ])
             ->sidebarCollapsibleOnDesktop()
             ->middleware([

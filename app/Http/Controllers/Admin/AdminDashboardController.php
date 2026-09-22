@@ -49,14 +49,14 @@ class AdminDashboardController extends Controller
         $currentYear = now()->year;
         $transaction_fees = Transaction::where('status', 'completed')
             ->whereYear('created_at', $currentYear)
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(transaction_fee) as fees, COUNT(*) as count')
+            ->selectRaw(\App\Support\MonthlyTotals::monthExpression() . ' as month, SUM(transaction_fee) as fees, COUNT(*) as count')
             ->groupBy('month')
             ->get()
             ->keyBy('month');
 
         $withdrawal_fees = WithdrawalTransaction::where('status', 'completed')
             ->whereYear('created_at', $currentYear)
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(fee) as fees, COUNT(*) as count')
+            ->selectRaw(\App\Support\MonthlyTotals::monthExpression() . ' as month, SUM(fee) as fees, COUNT(*) as count')
             ->groupBy('month')
             ->get()
             ->keyBy('month');
@@ -106,7 +106,7 @@ class AdminDashboardController extends Controller
         $smsByDate = SmsLog::whereNotNull('sent_at')
             ->where('status', 'sent')
             ->where('sent_at', '>=', $dates->first())
-            ->selectRaw('DATE(sent_at) as day, COUNT(*) as cnt')
+            ->selectRaw(\App\Support\MonthlyTotals::dayExpression('sent_at') . ' as day, COUNT(*) as cnt')
             ->groupBy('day')
             ->pluck('cnt', 'day');
 

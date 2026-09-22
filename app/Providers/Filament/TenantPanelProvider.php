@@ -50,6 +50,8 @@ class TenantPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Tenant/Widgets'), for: 'App\Filament\Tenant\Widgets')
             ->widgets([
                 AccountWidget::class,
+                \App\Filament\Tenant\Widgets\WalletOverview::class,
+                \App\Filament\Tenant\Widgets\SalesChart::class,
             ])
             ->sidebarCollapsibleOnDesktop()
             ->middleware([

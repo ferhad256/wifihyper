@@ -65,7 +65,7 @@ class DashboardController extends Controller
         $sales_data = $tenant->transactions()
             ->where('status', 'completed')
             ->whereYear('created_at', $currentYear)
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, SUM(amount) as total, COUNT(*) as count')
+            ->selectRaw(\App\Support\MonthlyTotals::monthExpression() . ' as month, SUM(amount) as total, COUNT(*) as count')
             ->groupBy('month')
             ->orderBy('month')
             ->get()
