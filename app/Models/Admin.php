@@ -28,6 +28,9 @@ class Admin extends Authenticatable implements FilamentUser
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_active' => 'boolean',
+        // Hashes on assignment, idempotently, so no caller can store a plain
+        // password or double-hash one that is already hashed.
+        'password' => 'hashed',
     ];
 
     /**

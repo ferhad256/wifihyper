@@ -370,7 +370,7 @@ class AdminDashboardController extends Controller
 
         // Update password
         $admin->update([
-            'password' => Hash::make($request->new_password),
+            'password' => $request->new_password,
         ]);
 
         return back()->with('success', 'Password changed successfully.');
